@@ -100,7 +100,9 @@ LoadSettingsFile(settingsFile) {
 	Settings["Fleet"].SyncSettings := IniRead(settingsFile, "Fleet Options", "Sync Settings", 1)
 
 	Settings["Android"].ReverseTethering  := IniRead(settingsFile, "Android Clients", "Reverse Tethering", 1)
+	Settings["Android"].MicEnable  := IniRead(settingsFile, "Android Clients", "Mic Enable", 0)
 	Settings["Android"].MicDeviceID  := IniRead(settingsFile, "Android Clients", "Mic Device", "")
+	Settings["Android"].CamEnable  := IniRead(settingsFile, "Android Clients", "Cam Enable", 0)
 	Settings["Android"].CamDeviceID  := IniRead(settingsFile, "Android Clients", "Cam Device", "")
 
 	defaultConfFile :=DefaultApolloPath . "\config\sunshine.conf"
@@ -108,7 +110,7 @@ LoadSettingsFile(settingsFile) {
 	instance.index := 0
 	instance.id := 0
 	instance.Name := ConfRead(defaultConfFile, "sunshine_name", "default instance")
-	instance.Port := ConfRead(defaultConfFile, "port", "47987")
+	instance.Port := ConfRead(defaultConfFile, "port", "47989")
 	; instance.Audio := IniRead(settingsFile, section, "Port", "") TODO
 	instance.Settings := ConfRead(defaultConfFile)
 	Settings.Instances.Push(instance) ; Add the instance object to the Settings.Instances array
@@ -160,7 +162,9 @@ SaveSettingsFile(settingsFile) {
 
     ; Android Clients
     IniWrite(Settings["Android"].ReverseTethering, settingsFile, "Android Clients", "Reverse Tethering")
-    IniWrite(Settings["Android"].MicDeviceID, settingsFile, "Android Clients", "Mic Device")
+    IniWrite(Settings["Android"].MicEnable, settingsFile, "Android Clients", "Mic Enable")
+	IniWrite(Settings["Android"].MicDeviceID, settingsFile, "Android Clients", "Mic Device")
+	IniWrite(Settings["Android"].CamEnable, settingsFile, "Android Clients", "Cam Enable")
     IniWrite(Settings["Android"].CamDeviceID, settingsFile, "Android Clients", "Cam Device")
 
     ; Instances
@@ -210,14 +214,17 @@ InitmyGui() {
 	guiItems["PathsApolloBrowseButton"] := myGui.Add("Button", "x230 y24 w33 h23", "📂")
 	guiItems["PathsApolloResetButton"] := myGui.Add("Button", "x270 y24 w27 h23", "✖")
 	myGui.Add("GroupBox", "x8 y0 w300 h192", "Instances")
+	guiItems["InstancesListBox"] := myGui.Add("ListBox", "x16 y66 w100 h82 +0x100 Choose1", GetInstancesProperty(Settings.Instances, "Name"))
 	myGui.Add("Text", "x126 y70", "Name:")
 	guiItems["InstancesNameBox"] := myGui.Add("Edit", "x166 y65 w130 h23")
+	guiItems["InstancesNameBox"].Value := Settings.Instances[currentlySelectedIndex].Name
 	myGui.Add("Text", "x126 y98", "Port:")
 	guiItems["InstancesPortBox"] := myGui.Add("Edit", "x166 y92 w130 h23 +ReadOnly", "")
+	guiItems["InstancesPortBox"].Value := Settings.Instances[currentlySelectedIndex].Port
 	;myGui.Add("Text", "x126 y120 w54 h23", "Audio:")
 	;guiItems["InstancesAudioSelector"] := myGui.Add("ComboBox", "x166 y120 w130", [])
 	myGui.Add("Text", "x126 y126 ", "Link:")
-	myLink := "https://google.com"
+	myLink := "https://localhost:" . Settings.Instances[(Settings["Fleet"].SyncSettings = 1 ? 1 : currentlySelectedIndex)].Port+1
 	guiItems["InstancesLinkBox"] := myGui.Add("Link", "x166 y126", '<a href="' . myLink . '">' . myLink . '</a>')
 	guiItems["FleetSyncCheckbox"] := myGui.Add("CheckBox", "x130 y155 w165 h23", " Copy Default Instance Settings")
 	guiItems["InstancesButtonAdd"] := myGui.Add("Button", "x49 y155 w71 h23", "Add")
@@ -233,7 +240,7 @@ InitTray(){
 	A_TrayMenu.Add("Exit", (*) => ExitMyApp())
 }
 ReflectSettings(){
-	global myGui, guiItems
+	global myGui, guiItems, currentlySelectedIndex
 	guiItems["FleetAutoStartCheckBox"].Value := Settings["Fleet"].AutoStart
 	guiItems["FleetSyncVolCheckBox"].Value := Settings["Fleet"].SyncVolume
 	guiItems["FleetRemoveDisconnectCheckbox"].Value := Settings["Fleet"].RemoveDisconnected
@@ -245,7 +252,6 @@ ReflectSettings(){
 	guiItems["AndroidCamSelector"].Enabled := guiItems["AndroidCamCheckbox"].Value
 	guiItems["PathsApolloBox"].Value := Settings["Paths"].Apollo
 	guiItems["ButtonLogsShow"].Text := (Settings["Window"].logShow = 1 ? "Hide Logs" : "Show Logs")
-	guiItems["InstancesListBox"] := myGui.Add("ListBox", "x16 y66 w100 h82 +0x100 Choose1", GetInstancesProperty(Settings.Instances, "Name"))
 	;guiItems["InstancesAudioSelector"].Enabled :=0
 }
 InitmyGuiEvents(){
@@ -255,9 +261,32 @@ InitmyGuiEvents(){
 	guiItems["ButtonLockSettings"].OnEvent("Click", HandleSettingsLock)
 	guiItems["ButtonReload"].OnEvent("Click", HandleReloadButton)
 	guiItems["ButtonLogsShow"].OnEvent("Click", HandleLogsButton)
-	guiItems["InstancesListBox"].OnEvent
+	guiItems["InstancesListBox"].OnEvent("Change", HandleListChange)
+	androidBoxes := ["AndroidReverseTetheringCheckbox", "AndroidMicCheckbox", "AndroidCamCheckbox", "FleetSyncCheckbox"]
+	androidSettings := ["ReverseTethering", ""]
+	fleetBoxes := ["FleetAutoStartCheckBox", "FleetSyncVolCheckBox", "FleetRemoveDisconnectCheckbox", "FleetSyncCheckbox"]
+	fleetSettings := ["AutoStart", "SyncVolume", "RemoveDisconnected", "SyncSettings"]	;Settings[]
+
+	guiItems["AndroidReverseTetheringCheckbox"].OnEvent("Click", (*) => Settings["Android"].ReverseTethering := guiItems["AndroidReverseTetheringCheckbox"].Value)
+	guiItems["AndroidMicCheckbox"].OnEvent("Click", (*) => Settings["Android"].MicEnable := guiItems["AndroidMicCheckbox"].Value)
+	guiItems["AndroidCamCheckbox"].OnEvent("Click", (*) => Settings["Android"].CamEnable := guiItems["AndroidCamCheckbox"].Value)
+
+	guiItems["FleetAutoStartCheckBox"].OnEvent("Click", (*) => Settings["Fleet"].AutoStart := guiItems["FleetAutoStartCheckBox"].Value)
+	guiItems["FleetSyncVolCheckBox"].OnEvent("Click", (*) => Settings["Fleet"].SyncVolume := guiItems["FleetSyncVolCheckBox"].Value)
+	guiItems["FleetRemoveDisconnectCheckbox"].OnEvent("Click", (*) => Settings["Fleet"].RemoveDisconnected := guiItems["FleetRemoveDisconnectCheckbox"].Value)
+	guiItems["FleetSyncCheckbox"].OnEvent("Click", (*) => Settings["Fleet"].SyncSettings := guiItems["FleetSyncCheckbox"].Value)
+
 }
 
+global currentlySelectedIndex := 1
+HandleListChange(*) {
+	global guiItems, Settings, currentlySelectedIndex
+	currentlySelectedIndex := guiItems["InstancesListBox"].Value
+	guiItems["InstancesNameBox"].Value := Settings.Instances[currentlySelectedIndex].Name
+	guiItems["InstancesPortBox"].Value := Settings.Instances[currentlySelectedIndex].Port
+	myLink := "https://localhost:" . Settings.Instances[(Settings["Fleet"].SyncSettings = 1 ? 1 : currentlySelectedIndex)].Port+1
+	guiItems["InstancesLinkBox"].Text :=  '<a href="' . myLink . '">' . myLink . '</a>'
+}
 HandleLogsButton(*) {
 	global guiItems, Settings
 	Settings["Window"].logShow := ! Settings["Window"].logShow
@@ -389,8 +418,8 @@ TrayIconHandler(wParam, lParam, msg, hwnd) {
 
 settingsFile := A_ScriptDir "\state.ini"
 
-InitmyGui()
 LoadSettingsFile(settingsFile)
+InitmyGui()
 HandleSettingsLock()
 ReflectSettings()
 ShowmyGui()
