@@ -78,6 +78,8 @@ LoadSettingsFile(settingsFile) {
 
 	;Settings["FleetManager"].SchduledService	; TODO
 	;Settings["FleetManager"].StartMinimized	; TODO
+	if !FileExist(settingsFile)
+        FileAppend "", settingsFile
 
 	Settings["Window"].restorePosition := IniRead(settingsFile, "Fleet Manager Window", "Remember location", 1)
     Settings["Window"].xPos := IniRead(settingsFile, "Fleet Manager Window", "xPos", 0)
@@ -284,6 +286,7 @@ HandleListChange(*) {
 	currentlySelectedIndex := guiItems["InstancesListBox"].Value
 	guiItems["InstancesNameBox"].Value := Settings.Instances[currentlySelectedIndex].Name
 	guiItems["InstancesPortBox"].Value := Settings.Instances[currentlySelectedIndex].Port
+	guiItems["InstancesNameBox"].Opt(((settingsLocked || currentlySelectedIndex = 1) ? "+ReadOnly" : "-ReadOnly"))
 	myLink := "https://localhost:" . Settings.Instances[(Settings["Fleet"].SyncSettings = 1 ? 1 : currentlySelectedIndex)].Port+1
 	guiItems["InstancesLinkBox"].Text :=  '<a href="' . myLink . '">' . myLink . '</a>'
 }
@@ -309,7 +312,6 @@ HandleReloadButton(*) {
 	}
 	Sleep (100)
 }
-
 global settingsLocked := false
 HandleSettingsLock(*) {
     global guiItems, settingsLocked
@@ -317,12 +319,14 @@ HandleSettingsLock(*) {
 		settingsLocked := !settingsLocked   ; Toggle lock state
 		guiItems["ButtonLockSettings"].Text := settingsLocked ? "🔒" : "Apply"
 		guiItems["ButtonReload"].Text := settingsLocked ? "Reload" : "Cancel"
-		textBoxes := [ "PathsApolloBox", "InstancesNameBox"]
+		textBoxes := [ "PathsApolloBox"]
 		checkBoxes := ["FleetAutoStartCheckBox", "FleetSyncVolCheckBox", "FleetRemoveDisconnectCheckbox", "AndroidReverseTetheringCheckbox", "AndroidMicCheckbox", "AndroidCamCheckbox", "FleetSyncCheckbox"]
 		Buttons := ["InstancesButtonDelete", "InstancesButtonAdd", "PathsApolloBrowseButton", "PathsApolloResetButton"]
 
 		for textBox in textBoxes
 			guiItems[textbox].Opt(settingsLocked ? "+ReadOnly" : "-ReadOnly")
+		guiItems["InstancesNameBox"].Opt(((settingsLocked || currentlySelectedIndex = 1) ? "+ReadOnly" : "-ReadOnly"))
+
 		for checkBox in checkBoxes
 			guiItems[checkBox].Enabled := (settingsLocked ? false : true)
 		for button in Buttons
@@ -377,8 +381,10 @@ MinimizemyGui(*) {
 RestoremyGui() {
 	global myGui
 	h := (Settings["Window"].logShow = 0 ? " h198" : "h600")
-	if (Settings["Window"].restorePosition = 1) 
-		myGui.Show("x" Settings["Window"].xPos " y" Settings["Window"].yPos " w580 " h)
+	x :=Settings["Window"].xPos
+	y := Settings["Window"].yPos 
+	if (Settings["Window"].restorePosition = 1 & !((x+y) = 0)) 
+		myGui.Show("x" x " y" y " w580 " h)
 	else
 		myGui.Show("w580 " h)
 	Settings["Window"].lastState := 1
