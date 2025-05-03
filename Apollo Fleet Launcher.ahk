@@ -103,9 +103,9 @@ LoadSettingsFile(settingsFile) {
 
 	Settings["Android"].ReverseTethering  := IniRead(settingsFile, "Android Clients", "Reverse Tethering", 1)
 	Settings["Android"].MicEnable  := IniRead(settingsFile, "Android Clients", "Mic Enable", 0)
-	Settings["Android"].MicDeviceID  := IniRead(settingsFile, "Android Clients", "Mic Device", "")
+	Settings["Android"].MicDeviceID  := IniRead(settingsFile, "Android Clients", "Mic Device Serial", "")
 	Settings["Android"].CamEnable  := IniRead(settingsFile, "Android Clients", "Cam Enable", 0)
-	Settings["Android"].CamDeviceID  := IniRead(settingsFile, "Android Clients", "Cam Device", "")
+	Settings["Android"].CamDeviceID  := IniRead(settingsFile, "Android Clients", "Cam Device Serial", "")
 
 	defaultConfFile :=DefaultApolloPath . "\config\sunshine.conf"
 	instance := {} ; Create a new object for each instance
@@ -126,9 +126,10 @@ LoadSettingsFile(settingsFile) {
         if (SubStr(section, 1, 8) = "Instance") { ; section name starts with Instance
             instance := {} ; Create a new object for each instance
 			instance.index := index
-            instance.id := Number(SubStr(section, 9 ))
+            instance.id := IsNumber(SubStr(section, 9 )) ? SubStr(section, 9 ) : index
             instance.Name := IniRead(settingsFile, section, "Name", "")
             instance.Port := IniRead(settingsFile, section, "Port", "")
+			instance.LastKnownPID := IniRead(settingsFile, section, "Last PID", "")
             ; instance.Audio := IniRead(settingsFile, section, "Port", "") TODO
             Settings.Instances.Push(instance) ; Add the instance object to the Settings.Instances array
 			index := index + 1
@@ -137,6 +138,10 @@ LoadSettingsFile(settingsFile) {
 }
 SaveSettingsFile(settingsFile) {
     global Settings
+    if FileExist(settingsFile)
+        FileDelete(settingsFile)
+	FileAppend "", settingsFile
+	
 	if (Settings["Window"].restorePosition = 1 && DllCall("IsWindowVisible", "ptr", myGui.Hwnd) ){
 		WinGetPos(&x, &y, , , "ahk_id " myGui.Hwnd)
 		; Save position
@@ -165,9 +170,9 @@ SaveSettingsFile(settingsFile) {
     ; Android Clients
     IniWrite(Settings["Android"].ReverseTethering, settingsFile, "Android Clients", "Reverse Tethering")
     IniWrite(Settings["Android"].MicEnable, settingsFile, "Android Clients", "Mic Enable")
-	IniWrite(Settings["Android"].MicDeviceID, settingsFile, "Android Clients", "Mic Device")
+	IniWrite(Settings["Android"].MicDeviceID, settingsFile, "Android Clients", "Mic Device Serial")
 	IniWrite(Settings["Android"].CamEnable, settingsFile, "Android Clients", "Cam Enable")
-    IniWrite(Settings["Android"].CamDeviceID, settingsFile, "Android Clients", "Cam Device")
+    IniWrite(Settings["Android"].CamDeviceID, settingsFile, "Android Clients", "Cam Device Serial")
 
     ; Instances
     for instance in Settings.Instances {
@@ -175,6 +180,7 @@ SaveSettingsFile(settingsFile) {
         	sectionName := "Instance" instance.id
 			IniWrite(instance.Name, settingsFile, sectionName, "Name")
 			IniWrite(instance.Port, settingsFile, sectionName, "Port")
+			IniWrite(instance.LastKnownPID, settingsFile, sectionName, "Last PID")
 			; IniWrite(instance.Audio, settingsFile, sectionName, "Audio") ; TODO
 
 		}
@@ -216,7 +222,7 @@ InitmyGui() {
 	guiItems["PathsApolloBrowseButton"] := myGui.Add("Button", "x230 y24 w33 h23", "📂")
 	guiItems["PathsApolloResetButton"] := myGui.Add("Button", "x270 y24 w27 h23", "✖")
 	myGui.Add("GroupBox", "x8 y0 w300 h192", "Instances")
-	guiItems["InstancesListBox"] := myGui.Add("ListBox", "x16 y66 w100 h82 +0x100 Choose1", GetInstancesProperty(Settings.Instances, "Name"))
+	guiItems["InstancesListBox"] := myGui.Add("ListBox", "x16 y66 w100 h82 +0x100 Choose1")
 	myGui.Add("Text", "x126 y70", "Name:")
 	guiItems["InstancesNameBox"] := myGui.Add("Edit", "x166 y65 w130 h23")
 	guiItems["InstancesNameBox"].Value := Settings.Instances[currentlySelectedIndex].Name
@@ -248,13 +254,15 @@ ReflectSettings(){
 	guiItems["FleetRemoveDisconnectCheckbox"].Value := Settings["Fleet"].RemoveDisconnected
 	guiItems["FleetSyncCheckbox"].Value := Settings["Fleet"].SyncSettings
 	guiItems["AndroidReverseTetheringCheckbox"].Value := Settings["Android"].ReverseTethering
-	guiItems["AndroidMicCheckbox"].Value := (Settings["Android"].MicDeviceID = "" ? 0 : 1)
-	guiItems["AndroidMicSelector"].Enabled := guiItems["AndroidMicCheckbox"].Value
-	guiItems["AndroidCamCheckbox"].Value := (Settings["Android"].CamDeviceID = "" ? 0 : 1)
-	guiItems["AndroidCamSelector"].Enabled := guiItems["AndroidCamCheckbox"].Value
+	guiItems["AndroidMicCheckbox"].Value := Settings["Android"].MicEnable
+	guiItems["AndroidMicSelector"].Value := Settings["Android"].MicDeviceID
+	guiItems["AndroidCamCheckbox"].Value := Settings["Android"].CamEnable
+	guiItems["AndroidCamSelector"].Value := Settings["Android"].CamDeviceID
 	guiItems["PathsApolloBox"].Value := Settings["Paths"].Apollo
 	guiItems["ButtonLogsShow"].Text := (Settings["Window"].logShow = 1 ? "Hide Logs" : "Show Logs")
 	;guiItems["InstancesAudioSelector"].Enabled :=0
+	guiItems["InstancesListBox"].Delete()
+	guiItems["InstancesListBox"].Add(GetInstancesProperty(Settings.Instances, "Name"))
 }
 InitmyGuiEvents(){
 	global myGui, guiItems
@@ -264,20 +272,105 @@ InitmyGuiEvents(){
 	guiItems["ButtonReload"].OnEvent("Click", HandleReloadButton)
 	guiItems["ButtonLogsShow"].OnEvent("Click", HandleLogsButton)
 	guiItems["InstancesListBox"].OnEvent("Change", HandleListChange)
-	androidBoxes := ["AndroidReverseTetheringCheckbox", "AndroidMicCheckbox", "AndroidCamCheckbox", "FleetSyncCheckbox"]
-	androidSettings := ["ReverseTethering", ""]
-	fleetBoxes := ["FleetAutoStartCheckBox", "FleetSyncVolCheckBox", "FleetRemoveDisconnectCheckbox", "FleetSyncCheckbox"]
-	fleetSettings := ["AutoStart", "SyncVolume", "RemoveDisconnected", "SyncSettings"]	;Settings[]
 
 	guiItems["AndroidReverseTetheringCheckbox"].OnEvent("Click", (*) => Settings["Android"].ReverseTethering := guiItems["AndroidReverseTetheringCheckbox"].Value)
-	guiItems["AndroidMicCheckbox"].OnEvent("Click", (*) => Settings["Android"].MicEnable := guiItems["AndroidMicCheckbox"].Value)
-	guiItems["AndroidCamCheckbox"].OnEvent("Click", (*) => Settings["Android"].CamEnable := guiItems["AndroidCamCheckbox"].Value)
+	guiItems["AndroidMicCheckbox"].OnEvent("Click", HandleAndroidSelector) ; (*)=> guiItems["AndroidMicSelector"].Enabled := guiItems["AndroidMicCheckbox"].Value)
+	guiItems["AndroidCamCheckbox"].OnEvent("Click", HandleAndroidSelector) ; (*)=> guiItems["AndroidCamSelector"].Enabled := guiItems["AndroidMicCheckbox"].Value)
 
 	guiItems["FleetAutoStartCheckBox"].OnEvent("Click", (*) => Settings["Fleet"].AutoStart := guiItems["FleetAutoStartCheckBox"].Value)
 	guiItems["FleetSyncVolCheckBox"].OnEvent("Click", (*) => Settings["Fleet"].SyncVolume := guiItems["FleetSyncVolCheckBox"].Value)
 	guiItems["FleetRemoveDisconnectCheckbox"].OnEvent("Click", (*) => Settings["Fleet"].RemoveDisconnected := guiItems["FleetRemoveDisconnectCheckbox"].Value)
-	guiItems["FleetSyncCheckbox"].OnEvent("Click", (*) => Settings["Fleet"].SyncSettings := guiItems["FleetSyncCheckbox"].Value)
+	guiItems["FleetSyncCheckbox"].OnEvent("Click", HandleFleetSyncCheck)
 
+	guiItems["InstancesButtonAdd"].OnEvent("Click", HandleInstanceAddButton)
+	guiItems["InstancesButtonDelete"].OnEvent("Click", HandleInstanceDeleteButton)
+
+	guiItems["InstancesNameBox"].OnEvent("Change", HandleNameChange)
+	guiItems["InstancesPortBox"].OnEvent("LoseFocus", HandlePortChange)
+
+}
+HandleFleetSyncCheck(*){
+	global Settings, guiItems
+	Settings["Fleet"].SyncSettings := guiItems["FleetSyncCheckbox"].Value
+	HandleListChange()
+}
+RefreshInstancesList(){
+	global guiItems
+	guiItems["InstancesListBox"].Delete()
+	guiItems["InstancesListBox"].Add(GetInstancesProperty(Settings.Instances, "Name"))
+}
+HandlePortChange(*){
+	global Settings, guiItems
+	selectedEntryIndex := guiItems["InstancesListBox"].Value
+	newPort := guiItems["InstancesPortBox"].Value = "" ? Settings.Instances[selectedEntryIndex].Port : guiItems["InstancesPortBox"].Value 
+	valid := (1024 < newPort && newPort < 65000) ? true : false
+	for instance in Settings.Instances
+		if (instance.Port = newPort)
+			valid := false
+	if valid {
+		Settings.Instances[selectedEntryIndex].Port := newPort
+		myLink := "https://localhost:" . Settings.Instances[(Settings["Fleet"].SyncSettings = 1 ? 1 : currentlySelectedIndex)].Port+1
+		guiItems["InstancesLinkBox"].Text :=  '<a href="' . myLink . '">' . myLink . '</a>'	
+	} else {
+		guiItems["InstancesPortBox"].Value := Settings.Instances[currentlySelectedIndex].Port
+	}
+}
+HandleNameChange(*){
+	global Settings, guiItems
+	newName := guiItems["InstancesNameBox"].Value
+	selectedEntryIndex := guiItems["InstancesListBox"].Value
+	Settings.Instances[selectedEntryIndex].Name := newName
+	RefreshInstancesList()
+	guiItems["InstancesListBox"].Choose(selectedEntryIndex)
+}
+HandleInstanceAddButton(*){
+	global Settings, guiItems
+	
+	instance := {} ; Create a new object for each instance
+	instance.index := Settings.Instances[-1].index + 1
+	if (instance.index > 5){
+		MsgBox("Let's not add more than 5 instances for now.")
+	} else {
+	instance.id := instance.index
+	instance.Port := instance.id = 1 ? 10000 : Settings.Instances[-1].port + 1000
+	instance.Name := "Instance " . instance.Port
+	Settings.Instances.Push(instance) ; Add the instance object to the Settings.Instances array
+	RefreshInstancesList()
+	guiItems["InstancesListBox"].Choose(instance.index + 1)
+	HandleListChange()
+	}
+	Sleep (200)
+}
+HandleInstanceDeleteButton(*){
+	global Settings, guiItems
+	selectedEntryIndex := guiItems["InstancesListBox"].Value
+	if (selectedEntryIndex != 1){
+		Settings.Instances.RemoveAt(selectedEntryIndex) ; MUST USE REMOVEAT INSTEAD OF DELETE TO REMOVE THE ITEM COMPLETELY NOT JUST ITS VALUE
+		guiItems["InstancesListBox"].Delete(selectedEntryIndex)
+		guiItems["InstancesListBox"].Value := selectedEntryIndex - 1 
+		HandleListChange()
+		Loop settings.Instances.Length { 	; Update instances index
+			settings.Instances[A_Index].index := A_Index - 1
+			settings.Instances[A_Index].id := A_Index - 1
+			; TODO: the id is enough, remove index later
+		}
+	}
+	else
+		MsgBox("Can't delete the default entry")
+	Sleep (200)
+}
+HandleAndroidSelector(*) {
+	global Settings
+	Selectors := ["AndroidMicSelector", "AndroidCamSelector"]
+	Controls := ["AndroidMicCheckbox", "AndroidCamCheckbox"]
+	enableSettings := ["MicEnable", "CamEnable"]
+	idSettings := ["MicDeviceID", "CamDeviceID"]
+	Loop Selectors.Length {
+		guiItems[Selectors[A_index]].Enabled := settingsLocked ? 0 : guiItems[Controls[A_index]].Value
+
+		Settings["Android"].%enableSettings[A_index]% := guiItems[Controls[A_index]].Value
+        Settings["Android"].%idSettings[A_index]% := guiItems[Selectors[A_index]].Value
+	}
 }
 
 global currentlySelectedIndex := 1
@@ -287,6 +380,7 @@ HandleListChange(*) {
 	guiItems["InstancesNameBox"].Value := Settings.Instances[currentlySelectedIndex].Name
 	guiItems["InstancesPortBox"].Value := Settings.Instances[currentlySelectedIndex].Port
 	guiItems["InstancesNameBox"].Opt(((settingsLocked || currentlySelectedIndex = 1) ? "+ReadOnly" : "-ReadOnly"))
+	guiItems["InstancesPortBox"].Opt(((settingsLocked || currentlySelectedIndex = 1) ? "+ReadOnly" : "-ReadOnly"))
 	myLink := "https://localhost:" . Settings.Instances[(Settings["Fleet"].SyncSettings = 1 ? 1 : currentlySelectedIndex)].Port+1
 	guiItems["InstancesLinkBox"].Text :=  '<a href="' . myLink . '">' . myLink . '</a>'
 }
@@ -322,15 +416,20 @@ HandleSettingsLock(*) {
 		textBoxes := [ "PathsApolloBox"]
 		checkBoxes := ["FleetAutoStartCheckBox", "FleetSyncVolCheckBox", "FleetRemoveDisconnectCheckbox", "AndroidReverseTetheringCheckbox", "AndroidMicCheckbox", "AndroidCamCheckbox", "FleetSyncCheckbox"]
 		Buttons := ["InstancesButtonDelete", "InstancesButtonAdd", "PathsApolloBrowseButton", "PathsApolloResetButton"]
-
-		for textBox in textBoxes
-			guiItems[textbox].Opt(settingsLocked ? "+ReadOnly" : "-ReadOnly")
-		guiItems["InstancesNameBox"].Opt(((settingsLocked || currentlySelectedIndex = 1) ? "+ReadOnly" : "-ReadOnly"))
-
+		Selectors := ["AndroidMicSelector", "AndroidCamSelector"]
+		Controls := ["AndroidMicCheckbox", "AndroidCamCheckbox"]
+		instanceBoxes := ["InstancesNameBox", "InstancesPortBox"]
 		for checkBox in checkBoxes
 			guiItems[checkBox].Enabled := (settingsLocked ? false : true)
 		for button in Buttons
 			guiItems[button].Enabled := (settingsLocked ? false : true)
+		for textBox in textBoxes
+			guiItems[textbox].Opt(settingsLocked ? "+ReadOnly" : "-ReadOnly")
+		for textBox in instanceBoxes
+			guiItems[textBox].Opt(((settingsLocked || currentlySelectedIndex = 1) ? "+ReadOnly" : "-ReadOnly"))
+		for i, selector in Selectors
+			guiItems[selector].Enabled := settingsLocked ? 0 : guiItems[Controls[i]].Value
+
 		if settingsLocked{
 			SaveSettingsFile(settingsFile)
 			HandleReloadButton()
