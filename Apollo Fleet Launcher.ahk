@@ -41,33 +41,15 @@ ConfRead(FilePath, Param := "", Default := "") {
         return confMap
     }
 }
-ConfWrite(FilePath, Key, Value) {
-    lines := []
-    keyFound := false
 
-    ; If file exists, read all lines
-    if FileExist(FilePath) {
-        Loop Read, FilePath
-        {
-            line := A_LoopReadLine
-            if RegExMatch(line, "^\s*" . Key . "\s*=", &match) {
-                ; Key found, replace the line
-                lines.Push(Key . " = " . Value)
-                keyFound := true
-            } else {
-                lines.Push(line)
-            }
-        }
-    }
-    
-    ; If key wasn't found, add it
-    if (!keyFound) {
-        lines.Push(Key . " = " . Value)
-    }
-
-    ; Write back all lines
-    FileDelete FilePath  ; Remove old file
-    FileAppend lines.Join("`n"), FilePath
+ConfWrite(configFile, configMap) {
+	lines := ""
+	for Key, Value in configMap
+			lines.=(Key . " = " . Value . "`n")
+	; Write back all lines
+	if FileExist(configFile)
+		FileDelete configFile  ; Remove old file
+	FileAppend lines, configFile
 }
 
 LoadSettingsFile(settingsFile) {
@@ -89,30 +71,42 @@ LoadSettingsFile(settingsFile) {
 
 
 	DefaultApolloPath := "C:\Program Files\Apollo"
-	;DefaultConfigPath := "C:\Program Files\Apollo\config"
+	DefaultConfigPath := A_ScriptDir . "\config"
 	DefaultADBPath := A_ScriptDir . "\platform-tools"
 	Settings["Paths"].Apollo  := IniRead(settingsFile, "Paths", "Apollo", DefaultApolloPath)
-	;Settings["Paths"].Config  := IniRead(settingsFile, "Paths", "Config", DefaultConfigPath)
+	Settings["Paths"].Config  := IniRead(settingsFile, "Paths", "Config", DefaultConfigPath)
 	Settings["Paths"].ADBTools  := IniRead(settingsFile, "Paths", "ADB", DefaultADBPath)
 	
 
-	Settings["Fleet"].AutoStart := IniRead(settingsFile, "Fleet Options", "Auto Start", 1)
+	Settings["Fleet"].AutoLaunch := IniRead(settingsFile, "Fleet Options", "Auto Launch", 1)
 	Settings["Fleet"].SyncVolume := IniRead(settingsFile, "Fleet Options", "Sync Volume Levels", 1)
 	Settings["Fleet"].RemoveDisconnected := IniRead(settingsFile, "Fleet Options", "Remove Disconnected", 1)
 	Settings["Fleet"].SyncSettings := IniRead(settingsFile, "Fleet Options", "Sync Settings", 1)
 
 	Settings["Android"].ReverseTethering  := IniRead(settingsFile, "Android Clients", "Reverse Tethering", 1)
+	Settings["Android"].gnirehtetPID := IniRead(settingsFile, "Android Clients", "Last gnirehtetPID", "")  
 	Settings["Android"].MicEnable  := IniRead(settingsFile, "Android Clients", "Mic Enable", 0)
 	Settings["Android"].MicDeviceID  := IniRead(settingsFile, "Android Clients", "Mic Device Serial", "")
+	Settings["Android"].scrcpyMicPID := IniRead(settingsFile, "Android Clients", "Last scrcpyMicPID", "")  
 	Settings["Android"].CamEnable  := IniRead(settingsFile, "Android Clients", "Cam Enable", 0)
 	Settings["Android"].CamDeviceID  := IniRead(settingsFile, "Android Clients", "Cam Device Serial", "")
+	Settings["Android"].scrcpyCamPID := IniRead(settingsFile, "Android Clients", "Last scrcpyCamPID", "")  
 
-	defaultConfFile :=DefaultApolloPath . "\config\sunshine.conf"
+
+	defaultConfFile := Settings["Paths"].Apollo . "\config\sunshine.conf"
 	instance := {} ; Create a new object for each instance
 	instance.index := 0
 	instance.id := 0
 	instance.Name := ConfRead(defaultConfFile, "sunshine_name", "default instance")
 	instance.Port := ConfRead(defaultConfFile, "port", "47989")
+	instance.Enabled := 0
+	instance.LastKnownPID := 0
+	instance.LastConfigUpdate := 0
+	instance.LastReadLogLine := 0
+	instance.configFile := Settings["Paths"].Apollo . '\config\sunshine.conf'
+	instance.logFile := Settings["Paths"].Apollo . '\config\sunshine.log'
+	instance.stateFile := Settings["Paths"].Apollo . '\config\sunshine.json'
+
 	; instance.Audio := IniRead(settingsFile, section, "Port", "") TODO
 	instance.Settings := ConfRead(defaultConfFile)
 	Settings.Instances.Push(instance) ; Add the instance object to the Settings.Instances array
@@ -127,9 +121,16 @@ LoadSettingsFile(settingsFile) {
             instance := {} ; Create a new object for each instance
 			instance.index := index
             instance.id := IsNumber(SubStr(section, 9 )) ? SubStr(section, 9 ) : index
-            instance.Name := IniRead(settingsFile, section, "Name", "")
-            instance.Port := IniRead(settingsFile, section, "Port", "")
-			instance.LastKnownPID := IniRead(settingsFile, section, "Last PID", "")
+            instance.Name := IniRead(settingsFile, section, "Name", "instance" . index)
+            instance.Port := IniRead(settingsFile, section, "Port", 10000 + index * 1000)
+			instance.Enabled := IniRead(settingsFile, section, "Enabled", 1)
+			instance.LastKnownPID := IniRead(settingsFile, section, "LastKnownPID", 0)
+			instance.LastConfigUpdate := IniRead(settingsFile, section, "LastConfigUpdate", 0)
+			instance.LastReadLogLine := IniRead(settingsFile, section, "LastReadLogLine", 0)
+
+			instance.configFile := Settings["Paths"].Config . '\fleet-' . instance.id . '.conf'
+			instance.logFile := Settings["Paths"].Config . '\fleet-' . instance.id . '.log'
+			instance.stateFile := Settings["Paths"].Config . '\fleet-' . instance.id . '.json'
             ; instance.Audio := IniRead(settingsFile, section, "Port", "") TODO
             Settings.Instances.Push(instance) ; Add the instance object to the Settings.Instances array
 			index := index + 1
@@ -154,25 +155,30 @@ SaveSettingsFile(settingsFile) {
     IniWrite(Settings["Window"].yPos, settingsFile, "Fleet Manager Window", "yPos")
     IniWrite(Settings["Window"].lastState, settingsFile, "Fleet Manager Window", "lastState")
 	IniWrite(Settings["Window"].logShow, settingsFile, "Fleet Manager Window", "Show Logs")
-
+	IniWrite("", settingsFile, "Fleet Manager Window", "")
 
     ; Paths
     IniWrite(Settings["Paths"].Apollo, settingsFile, "Paths", "Apollo")
-    ;IniWrite(Settings["Paths"].Config, settingsFile, "Paths", "Config")
+    IniWrite(Settings["Paths"].Config, settingsFile, "Paths", "Config")
     IniWrite(Settings["Paths"].ADBTools, settingsFile, "Paths", "ADB")
 
     ; Fleet Options
-    IniWrite(Settings["Fleet"].AutoStart, settingsFile, "Fleet Options", "Auto Start")
+    IniWrite(Settings["Fleet"].AutoLaunch, settingsFile, "Fleet Options", "Auto Launch")
     IniWrite(Settings["Fleet"].SyncVolume, settingsFile, "Fleet Options", "Sync Volume Levels")
     IniWrite(Settings["Fleet"].RemoveDisconnected, settingsFile, "Fleet Options", "Remove Disconnected")
     IniWrite(Settings["Fleet"].SyncSettings, settingsFile, "Fleet Options", "Sync Settings")
 
     ; Android Clients
     IniWrite(Settings["Android"].ReverseTethering, settingsFile, "Android Clients", "Reverse Tethering")
+	IniWrite(Settings["Android"].gnirehtetPID, settingsFile, "Android Clients", "Last gnirehtetPID")
     IniWrite(Settings["Android"].MicEnable, settingsFile, "Android Clients", "Mic Enable")
 	IniWrite(Settings["Android"].MicDeviceID, settingsFile, "Android Clients", "Mic Device Serial")
+	IniWrite(Settings["Android"].scrcpyMicPID, settingsFile, "Android Clients", "Last scrcpyMicPID")
+
 	IniWrite(Settings["Android"].CamEnable, settingsFile, "Android Clients", "Cam Enable")
     IniWrite(Settings["Android"].CamDeviceID, settingsFile, "Android Clients", "Cam Device Serial")
+	IniWrite(Settings["Android"].scrcpyCamPID, settingsFile, "Android Clients", "Last scrcpyCamPID")
+
 
     ; Instances
     for instance in Settings.Instances {
@@ -180,7 +186,10 @@ SaveSettingsFile(settingsFile) {
         	sectionName := "Instance" instance.id
 			IniWrite(instance.Name, settingsFile, sectionName, "Name")
 			IniWrite(instance.Port, settingsFile, sectionName, "Port")
-			IniWrite(instance.LastKnownPID, settingsFile, sectionName, "Last PID")
+			IniWrite(instance.Enabled, settingsFile, sectionName, "Enabled")
+			IniWrite(instance.LastKnownPID, settingsFile, sectionName, "LastKnownPID")
+			IniWrite(instance.LastConfigUpdate, settingsFile, sectionName, "LastConfigUpdate")
+			IniWrite(instance.LastReadLogLine, settingsFile, sectionName, "LastReadLogLine")
 			; IniWrite(instance.Audio, settingsFile, sectionName, "Audio") ; TODO
 
 		}
@@ -208,7 +217,7 @@ InitmyGui() {
 	guiItems["ButtonLogsShow"] := myGui.Add("Button", "x520 y101 w50 h40", "Show Logs")
 	guiItems["ButtonMinimize"] := myGui.Add("Button", "x520 y150 w50 h40", "Minimize")
 	myGui.Add("GroupBox", "x318 y0 w196 h90", "Fleet Options")
-	guiItems["FleetAutoStartCheckBox"] := myGui.Add("CheckBox", "x334 y16 w162 h23", "Auto Start Multi Instance")
+	guiItems["FleetAutoLaunchCheckBox"] := myGui.Add("CheckBox", "x334 y16 w162 h23", "Auto Launch Multi Instance")
 	guiItems["FleetSyncVolCheckBox"] := myGui.Add("CheckBox", "x334 y40 w162 h23", "Sync Volume Levels")
 	guiItems["FleetRemoveDisconnectCheckbox"] := myGui.Add("CheckBox", "x334 y64 w167 h23", "Remove on Disconnect")
 	myGui.Add("GroupBox", "x318 y96 w196 h95", "Android Clients")
@@ -249,7 +258,7 @@ InitTray(){
 }
 ReflectSettings(){
 	global myGui, guiItems, currentlySelectedIndex
-	guiItems["FleetAutoStartCheckBox"].Value := Settings["Fleet"].AutoStart
+	guiItems["FleetAutoLaunchCheckBox"].Value := Settings["Fleet"].AutoLaunch
 	guiItems["FleetSyncVolCheckBox"].Value := Settings["Fleet"].SyncVolume
 	guiItems["FleetRemoveDisconnectCheckbox"].Value := Settings["Fleet"].RemoveDisconnected
 	guiItems["FleetSyncCheckbox"].Value := Settings["Fleet"].SyncSettings
@@ -277,7 +286,7 @@ InitmyGuiEvents(){
 	guiItems["AndroidMicCheckbox"].OnEvent("Click", HandleAndroidSelector) ; (*)=> guiItems["AndroidMicSelector"].Enabled := guiItems["AndroidMicCheckbox"].Value)
 	guiItems["AndroidCamCheckbox"].OnEvent("Click", HandleAndroidSelector) ; (*)=> guiItems["AndroidCamSelector"].Enabled := guiItems["AndroidMicCheckbox"].Value)
 
-	guiItems["FleetAutoStartCheckBox"].OnEvent("Click", (*) => Settings["Fleet"].AutoStart := guiItems["FleetAutoStartCheckBox"].Value)
+	guiItems["FleetAutoLaunchCheckBox"].OnEvent("Click", (*) => Settings["Fleet"].AutoLaunch := guiItems["FleetAutoLaunchCheckBox"].Value)
 	guiItems["FleetSyncVolCheckBox"].OnEvent("Click", (*) => Settings["Fleet"].SyncVolume := guiItems["FleetSyncVolCheckBox"].Value)
 	guiItems["FleetRemoveDisconnectCheckbox"].OnEvent("Click", (*) => Settings["Fleet"].RemoveDisconnected := guiItems["FleetRemoveDisconnectCheckbox"].Value)
 	guiItems["FleetSyncCheckbox"].OnEvent("Click", HandleFleetSyncCheck)
@@ -293,6 +302,10 @@ HandleFleetSyncCheck(*){
 	global Settings, guiItems
 	Settings["Fleet"].SyncSettings := guiItems["FleetSyncCheckbox"].Value
 	HandleListChange()
+	for instance in Settings.Instances
+		if instance.Enabled = 1 
+			if FileExist(instance.configFile)
+				FileDelete(instance.configFile)
 }
 RefreshInstancesList(){
 	global guiItems
@@ -334,6 +347,13 @@ HandleInstanceAddButton(*){
 	instance.id := instance.index
 	instance.Port := instance.id = 1 ? 10000 : Settings.Instances[-1].port + 1000
 	instance.Name := "Instance " . instance.Port
+	instance.Enabled := 1
+	instance.LastKnownPID := 0
+	instance.LastConfigUpdate := 0
+	instance.LastReadLogLine := 0
+	instance.configFile := Settings["Paths"].Config . '\fleet-' . instance.id . '.conf'
+	instance.logFile := Settings["Paths"].Config . '\fleet-' . instance.id . '.log'
+	instance.stateFile := Settings["Paths"].Config . '\fleet-' . instance.id . '.json'
 	Settings.Instances.Push(instance) ; Add the instance object to the Settings.Instances array
 	RefreshInstancesList()
 	guiItems["InstancesListBox"].Choose(instance.index + 1)
@@ -376,7 +396,7 @@ HandleAndroidSelector(*) {
 global currentlySelectedIndex := 1
 HandleListChange(*) {
 	global guiItems, Settings, currentlySelectedIndex
-	currentlySelectedIndex := guiItems["InstancesListBox"].Value
+	currentlySelectedIndex := guiItems["InstancesListBox"].Value = 0 ? 1 : guiItems["InstancesListBox"].Value
 	guiItems["InstancesNameBox"].Value := Settings.Instances[currentlySelectedIndex].Name
 	guiItems["InstancesPortBox"].Value := Settings.Instances[currentlySelectedIndex].Port
 	guiItems["InstancesNameBox"].Opt(((settingsLocked || currentlySelectedIndex = 1) ? "+ReadOnly" : "-ReadOnly"))
@@ -397,63 +417,53 @@ HandleLogsButton(*) {
 HandleReloadButton(*) {
 	global settingsLocked
 	if settingsLocked {
-		; actual reload proccedure
+		; TODO Actually reload the script here
 		return
 	}
 	else {
 		ReflectSettings()
 		HandleSettingsLock()
+		MsgBox("Cancel")
+		; TODO Implement staging settings which will be discarded here if not applied in apply button
 	}
 	Sleep (100)
 }
 global settingsLocked := false
 HandleSettingsLock(*) {
     global guiItems, settingsLocked
-	if ValidateSettings() {
-		settingsLocked := !settingsLocked   ; Toggle lock state
-		guiItems["ButtonLockSettings"].Text := settingsLocked ? "🔒" : "Apply"
-		guiItems["ButtonReload"].Text := settingsLocked ? "Reload" : "Cancel"
-		textBoxes := [ "PathsApolloBox"]
-		checkBoxes := ["FleetAutoStartCheckBox", "FleetSyncVolCheckBox", "FleetRemoveDisconnectCheckbox", "AndroidReverseTetheringCheckbox", "AndroidMicCheckbox", "AndroidCamCheckbox", "FleetSyncCheckbox"]
-		Buttons := ["InstancesButtonDelete", "InstancesButtonAdd", "PathsApolloBrowseButton", "PathsApolloResetButton"]
-		Selectors := ["AndroidMicSelector", "AndroidCamSelector"]
-		Controls := ["AndroidMicCheckbox", "AndroidCamCheckbox"]
-		instanceBoxes := ["InstancesNameBox", "InstancesPortBox"]
-		for checkBox in checkBoxes
-			guiItems[checkBox].Enabled := (settingsLocked ? false : true)
-		for button in Buttons
-			guiItems[button].Enabled := (settingsLocked ? false : true)
-		for textBox in textBoxes
-			guiItems[textbox].Opt(settingsLocked ? "+ReadOnly" : "-ReadOnly")
-		for textBox in instanceBoxes
-			guiItems[textBox].Opt(((settingsLocked || currentlySelectedIndex = 1) ? "+ReadOnly" : "-ReadOnly"))
-		for i, selector in Selectors
-			guiItems[selector].Enabled := settingsLocked ? 0 : guiItems[Controls[i]].Value
 
-		if settingsLocked{
-			SaveSettingsFile(settingsFile)
-			HandleReloadButton()
-		}
-	}
-	else {
-		MsgBox("Invalid Setting: `"`" `nReason: `"`"", "Apollo Fleet Launcher - Error", "4144 T3")
-		return
+	settingsLocked := !settingsLocked   ; Toggle lock state
+	guiItems["ButtonLockSettings"].Text := settingsLocked ? "🔒" : "Save"
+	guiItems["ButtonReload"].Text := settingsLocked ? "Reload" : "Cancel"
+	textBoxes := [ "PathsApolloBox"]
+	checkBoxes := ["FleetAutoLaunchCheckBox", "FleetSyncVolCheckBox", "FleetRemoveDisconnectCheckbox", "AndroidReverseTetheringCheckbox", "AndroidMicCheckbox", "AndroidCamCheckbox", "FleetSyncCheckbox"]
+	Buttons := ["InstancesButtonDelete", "InstancesButtonAdd", "PathsApolloBrowseButton", "PathsApolloResetButton"]
+	Selectors := ["AndroidMicSelector", "AndroidCamSelector"]
+	Controls := ["AndroidMicCheckbox", "AndroidCamCheckbox"]
+	instanceBoxes := ["InstancesNameBox", "InstancesPortBox"]
+	for checkBox in checkBoxes
+		guiItems[checkBox].Enabled := (settingsLocked ? false : true)
+	for button in Buttons
+		guiItems[button].Enabled := (settingsLocked ? false : true)
+	for textBox in textBoxes
+		guiItems[textbox].Opt(settingsLocked ? "+ReadOnly" : "-ReadOnly")
+	for textBox in instanceBoxes
+		guiItems[textBox].Opt(((settingsLocked || currentlySelectedIndex = 1) ? "+ReadOnly" : "-ReadOnly"))
+	for i, selector in Selectors
+		guiItems[selector].Enabled := settingsLocked ? 0 : guiItems[Controls[i]].Value
+
+	if settingsLocked {
+		HandleReloadButton()
+		; TODO Implement staging settings which will be saved here if applied using apply button
+		SaveSettingsFile(settingsFile)
+		; TODO Add the (Apply) procedures to actually 
 	}
 	Sleep (100)
 }
-
-global settingsValid := false,invalidSettings:= [], invalidReasons := []
-ValidateSettings() {
-	global myGui, Settings, settingsFile
-	global settingsValid
-	settingsValid := true
-	return True
-}
-
 ExitMyApp() {
 	Sleep(100) ; Give time to save state
-	global myGui, Settings
 	SaveSettingsFile(settingsFile)
+	global myGui, Settings
 	myGui.Destroy()
 	ExitApp()
 }
@@ -474,9 +484,6 @@ MinimizemyGui(*) {
     myGui.Hide()
 	Sleep (100)
 }
-
-
-
 RestoremyGui() {
 	global myGui
 	h := (Settings["Window"].logShow = 0 ? " h198" : "h600")
@@ -489,9 +496,7 @@ RestoremyGui() {
 	Settings["Window"].lastState := 1
 	Sleep (100)
 }
-
 ShowmyGui() {
-	global myGui, Settings
 	if (Settings["Window"].lastState = 1) {
 		RestoremyGui()
 	}
@@ -499,9 +504,6 @@ ShowmyGui() {
 		return
 	Sleep (100)
 }
-
-
-; ───── Tray Icon Click Handler ─────
 OnMessage(0x404, TrayIconHandler)
 TrayIconHandler(wParam, lParam, msg, hwnd) {
 	global myGui
@@ -514,12 +516,97 @@ TrayIconHandler(wParam, lParam, msg, hwnd) {
     }
 }
 
+FleetInit(*){
+	global Settings
+
+	if !DirExist(Settings["Paths"].Config)
+		DirCreate(Settings["Paths"].Config)
+	configDir := Settings["Paths"].Config
+	Loop Files configDir . '\*.*' {
+		fileIdentified := false
+		for instance in Settings.Instances{
+
+			if A_LoopFileFullPath = instance.configFile || A_LoopFileFullPath = instance.logFile || A_LoopFileFullPath = instance.stateFile   {
+				fileIdentified := true
+				break
+			}
+		}
+		if !fileIdentified
+			FileDelete(A_LoopFileFullPath)
+	}
+
+	baseConf := Map()
+	if (Settings["Fleet"].SyncSettings) {
+		defaultConfFile := Settings["Paths"].Apollo . "\config\sunshine.conf"
+		baseConf := ConfRead(defaultConfFile)
+		if baseConf.Has("sunshine_name") 
+			baseConf.Delete("sunshine_name") 
+		if baseConf.Has("port")
+			baseConf.Delete("port")
+	}
+
+	for instance in Settings.Instances {
+		if (instance.Enabled = 1) {
+			if !(Settings["Fleet"].SyncSettings) && FileExist(instance.configFile)
+				thisConf:= ConfRead(instance.configFile)
+			else
+				thisConf := baseConf.Clone()
+			thisConf.set("sunshine_name", instance.Name, "port", instance.Port)
+			if !FileExist(instance.configFile) || !(FileGetTime(instance.configFile, "M" ) = instance.LastConfigUpdate)
+				ConfWrite(instance.configFile, thisConf)
+			instance.LastConfigUpdate := FileGetTime(instance.configFile, "M" ) ; TODO implement this: only update if there's need/change
+		}
+	}
+	; TODO Validate settings and reset invalid ones, clear invalid instances
+	; TODO Keep the last remembered PIDs if they are still running
+	; test them "maybe wget or sorta" 
+	; kill the rest 
+
+	; if AutoLaunch is set, check for schduleded task, add it if missing, enable it if disabled
+	; else disable it
 
 
+	MsgBox("Hi")
+	if Settings["Fleet"].AutoLaunch
+		SetTimer LogWatchDog, -1
 
+	if Settings["Fleet"].SyncVolume || Settings["Fleet"].RemoveDisconnected
+		SetTimer LogWatchDog, 10
 
+	if Settings["Android"].MicEnable || Settings["Android"].CamEnable
+		SetTimer ADBWatchDog, 100
 
+	if Settings["Fleet"].SyncVolume
+		SetTimer FleetSyncVolume, 100
 
+	if Settings["Fleet"].SyncSettings
+		SetTimer FleetSyncSettings, 100
+
+}
+
+FleetLaunch(*){
+
+}
+
+LogWatchDog(*){
+
+}
+
+FleetSyncVolume(*){
+
+}
+
+FleetRemoveDisconnected(*){
+
+}
+
+FleetSyncSettings(*){
+
+}
+
+ADBWatchDog(*){
+
+}
 
 settingsFile := A_ScriptDir "\state.ini"
 
@@ -530,6 +617,8 @@ ReflectSettings()
 ShowmyGui()
 InitmyGuiEvents()
 InitTray()
+
+SetTimer FleetInit, -1
 
 ; ───── Keep script alive ─────
 While true
