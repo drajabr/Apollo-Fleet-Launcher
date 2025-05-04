@@ -210,10 +210,9 @@ InitmyGui() {
 	guiItems["AndroidMicSelector"] := myGui.Add("ComboBox", "x382 y136 w122", [])
 	guiItems["AndroidCamCheckbox"] := myGui.Add("CheckBox", "x334 y164 ", "Cam:")
 	guiItems["AndroidCamSelector"] := myGui.Add("ComboBox", "x382 y160 w122", [])
-	guiItems["PathsApolloBox"] := myGui.Add("Edit", "x56 y24 w172 h23")
+	guiItems["PathsApolloBox"] := myGui.Add("Edit", "x56 y24 w209 h23")
 	myGui.Add("Text", "x16 y28", "Apollo:")
-	guiItems["PathsApolloBrowseButton"] := myGui.Add("Button", "x230 y24 w33 h23", "📂")
-	guiItems["PathsApolloResetButton"] := myGui.Add("Button", "x270 y24 w27 h23", "✖")
+	guiItems["PathsApolloBrowseButton"] := myGui.Add("Button", "x267 y24 w30 h25", "📂")
 	myGui.Add("GroupBox", "x8 y0 w300 h192", "Instances")
 	guiItems["InstancesListBox"] := myGui.Add("ListBox", "x16 y66 w100 h82 +0x100 Choose1")
 	myGui.Add("Text", "x126 y70", "Name:")
@@ -442,7 +441,7 @@ HandleReloadButton(*) {
 stagedSettingsWaiting(){
 	global Settings, stagedSettings
 	for group in Settings {
-		if group != "Window" {
+		if !(group = "Window") {
 			for setting in Settings[group].OwnProps() {
 				if type(Settings[group].%setting%) = "String" && Settings[group].%setting% != stagedSettings[group].%setting%
 					return true
@@ -473,7 +472,7 @@ ApplyLockState(){
 	global settingsLocked, guiItems
 	textBoxes := [ "PathsApolloBox"]
 	checkBoxes := ["FleetAutoLaunchCheckBox", "FleetSyncVolCheckBox", "FleetRemoveDisconnectCheckbox", "AndroidReverseTetheringCheckbox", "AndroidMicCheckbox", "AndroidCamCheckbox", "FleetSyncCheckbox"]
-	Buttons := ["InstancesButtonDelete", "InstancesButtonAdd", "PathsApolloBrowseButton", "PathsApolloResetButton"]
+	Buttons := ["InstancesButtonDelete", "InstancesButtonAdd", "PathsApolloBrowseButton"]
 	Selectors := ["AndroidMicSelector", "AndroidCamSelector"]
 	Controls := ["AndroidMicCheckbox", "AndroidCamCheckbox"]
 	instanceBoxes := ["InstancesNameBox", "InstancesPortBox"]
@@ -498,7 +497,8 @@ HandleSettingsLock(*) {
 	} else if stagedSettingsWaiting(){
 		; hence we need to save settings
 		SaveSettingsFile(settingsFile, stagedSettings)
-		LoadSettingsFile(settingsFile, Settings)
+		Settings := stagedSettings.Clone()
+		Sleep (100)
 		HandleSettingsLock()
 		return
 		; Maybe add settings.bak to restore in case new settings didn't work or so
