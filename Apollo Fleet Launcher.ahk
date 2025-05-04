@@ -571,7 +571,7 @@ FleetInit(*){
 	if !DirExist(Settings["Paths"].Config)	
 		DirCreate(Settings["Paths"].Config)
 	configDir := Settings["Paths"].Config
-	Loop Files configDir . '\*.*' {
+	Loop Files configDir . '\*.*' {	; to delete any unexpected file "such as residual config/log"
 		fileIdentified := false
 		for instance in Settings["Fleet"].Instances{
 
@@ -610,9 +610,10 @@ FleetInit(*){
 	; TODO Keep the last remembered PIDs if they are still running
 	; test them "maybe wget or sorta" 
 	; kill the rest 
-
+	
 	; if AutoLaunch is set, check for schduleded task, add it if missing, enable it if disabled
-	; else disable it
+	; else disable it ;;; EDIT: AutoLaunch will be used to determine if we launch these instances or not at all
+	;							TODO Introduce Auto run at startup setting to specifically do that 
 
 
 	if Settings["Fleet"].AutoLaunch
