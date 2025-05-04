@@ -1,5 +1,5 @@
 # Apollo-Fleet-Launcher
-Multi Instance manager for @ClassicOldSong/Apollo
+Multi Instance manager for [@ClassicOldSong/Apollo](https://github.com/ClassicOldSong/Apollo)
 
 > [!WARNING]
 >  [WIP] The following are the planned functionality and their current status:
