@@ -52,11 +52,10 @@ ConfWrite(configFile, configMap) {
 	FileAppend lines, configFile
 }
 
-LoadSettingsFile(settingsFile) {
-	global Settings := Map()
+LoadSettingsFile(settingsFile, Settings) {
     Settings["FleetManager"] := {}, Settings["Window"] := {}
 	Settings["Paths"] := {}, Settings["Fleet"] := {}, Settings["Android"] := {}
-	Settings.Instances := []
+	Settings["Fleet"].Instances := []
 
 	;Settings["FleetManager"].SchduledService	; TODO
 	;Settings["FleetManager"].StartMinimized	; TODO
@@ -108,8 +107,7 @@ LoadSettingsFile(settingsFile) {
 	instance.stateFile := Settings["Paths"].Apollo . '\config\sunshine.json'
 
 	; instance.Audio := IniRead(settingsFile, section, "Port", "") TODO
-	instance.Settings := ConfRead(defaultConfFile)
-	Settings.Instances.Push(instance) ; Add the instance object to the Settings.Instances array
+	Settings["Fleet"].Instances.Push(instance) ; Add the instance object to the Settings["Fleet"].Instances array
 
 
     ; Iterate through all sections, focusing on "instance"
@@ -132,13 +130,12 @@ LoadSettingsFile(settingsFile) {
 			instance.logFile := Settings["Paths"].Config . '\fleet-' . instance.id . '.log'
 			instance.stateFile := Settings["Paths"].Config . '\fleet-' . instance.id . '.json'
             ; instance.Audio := IniRead(settingsFile, section, "Port", "") TODO
-            Settings.Instances.Push(instance) ; Add the instance object to the Settings.Instances array
+            Settings["Fleet"].Instances.Push(instance) ; Add the instance object to the Settings["Fleet"].Instances array
 			index := index + 1
         }
     }
 }
-SaveSettingsFile(settingsFile) {
-    global Settings
+SaveSettingsFile(settingsFile, Settings) {
     if FileExist(settingsFile)
         FileDelete(settingsFile)
 	FileAppend "", settingsFile
@@ -181,7 +178,7 @@ SaveSettingsFile(settingsFile) {
 
 
     ; Instances
-    for instance in Settings.Instances {
+    for instance in Settings["Fleet"].Instances {
 		if instance.id > 0 {
         	sectionName := "Instance" instance.id
 			IniWrite(instance.Name, settingsFile, sectionName, "Name")
@@ -195,19 +192,12 @@ SaveSettingsFile(settingsFile) {
 		}
     }
 }
-GetInstancesProperty(Instances, property) {
-    ; Initialize an empty array to store the requested property for each instance
-    values := []
-
-    ; Loop through each instance (element) in the Settings.Instances array
-    for instance in Settings.Instances {
-        ; Access the specific property (id, Name, or Port) for the current instance
-        values.push(instance.%property%)
-    }
-    ; Return the array of values (either id, Name, or Port)
-    return values
+AllInstancesArray(Settings){
+	instancesList := []  ; Create an empty array
+	for instance in stagedSettings["Fleet"].Instances 
+		instancesList.Push(instance.Name)  ; Add the Name property to the array
+	return instancesList
 }
-
 InitmyGui() {
 	global myGui, guiItems := Map()
 	TraySetIcon("shell32.dll", "19")
@@ -234,14 +224,14 @@ InitmyGui() {
 	guiItems["InstancesListBox"] := myGui.Add("ListBox", "x16 y66 w100 h82 +0x100 Choose1")
 	myGui.Add("Text", "x126 y70", "Name:")
 	guiItems["InstancesNameBox"] := myGui.Add("Edit", "x166 y65 w130 h23")
-	guiItems["InstancesNameBox"].Value := Settings.Instances[currentlySelectedIndex].Name
+	guiItems["InstancesNameBox"].Value := Settings["Fleet"].Instances[currentlySelectedIndex].Name
 	myGui.Add("Text", "x126 y98", "Port:")
 	guiItems["InstancesPortBox"] := myGui.Add("Edit", "x166 y92 w130 h23 +ReadOnly", "")
-	guiItems["InstancesPortBox"].Value := Settings.Instances[currentlySelectedIndex].Port
+	guiItems["InstancesPortBox"].Value := Settings["Fleet"].Instances[currentlySelectedIndex].Port
 	;myGui.Add("Text", "x126 y120 w54 h23", "Audio:")
 	;guiItems["InstancesAudioSelector"] := myGui.Add("ComboBox", "x166 y120 w130", [])
 	myGui.Add("Text", "x126 y126 ", "Link:")
-	myLink := "https://localhost:" . Settings.Instances[(Settings["Fleet"].SyncSettings = 1 ? 1 : currentlySelectedIndex)].Port+1
+	myLink := "https://localhost:" . Settings["Fleet"].Instances[(Settings["Fleet"].SyncSettings = 1 ? 1 : currentlySelectedIndex)].Port+1
 	guiItems["InstancesLinkBox"] := myGui.Add("Link", "x166 y126", '<a href="' . myLink . '">' . myLink . '</a>')
 	guiItems["FleetSyncCheckbox"] := myGui.Add("CheckBox", "x130 y155 w165 h23", " Copy Default Instance Settings")
 	guiItems["InstancesButtonAdd"] := myGui.Add("Button", "x49 y155 w71 h23", "Add")
@@ -250,13 +240,14 @@ InitmyGui() {
 	myGui.Title := "Apollo Fleet Launcher"
 }
 InitTray(){
+	global myGui
 	A_TrayMenu.Delete()
 	A_TrayMenu.Add("Show Manager", (*) => ShowmyGui())
 	A_TrayMenu.Add("Reload", (*) => MinimizemyGui())
 	A_TrayMenu.Add()
 	A_TrayMenu.Add("Exit", (*) => ExitMyApp())
 }
-ReflectSettings(){
+ReflectSettings(Settings){
 	global myGui, guiItems, currentlySelectedIndex
 	guiItems["FleetAutoLaunchCheckBox"].Value := Settings["Fleet"].AutoLaunch
 	guiItems["FleetSyncVolCheckBox"].Value := Settings["Fleet"].SyncVolume
@@ -271,7 +262,7 @@ ReflectSettings(){
 	guiItems["ButtonLogsShow"].Text := (Settings["Window"].logShow = 1 ? "Hide Logs" : "Show Logs")
 	;guiItems["InstancesAudioSelector"].Enabled :=0
 	guiItems["InstancesListBox"].Delete()
-	guiItems["InstancesListBox"].Add(GetInstancesProperty(Settings.Instances, "Name"))
+	guiItems["InstancesListBox"].Add(AllInstancesArray(Settings))
 }
 InitmyGuiEvents(){
 	global myGui, guiItems
@@ -282,13 +273,13 @@ InitmyGuiEvents(){
 	guiItems["ButtonLogsShow"].OnEvent("Click", HandleLogsButton)
 	guiItems["InstancesListBox"].OnEvent("Change", HandleListChange)
 
-	guiItems["AndroidReverseTetheringCheckbox"].OnEvent("Click", (*) => Settings["Android"].ReverseTethering := guiItems["AndroidReverseTetheringCheckbox"].Value)
+	guiItems["AndroidReverseTetheringCheckbox"].OnEvent("Click", HandleCheckBoxes) ; (*) => stagedSettings["Android"].ReverseTethering := guiItems["AndroidReverseTetheringCheckbox"].Value)
 	guiItems["AndroidMicCheckbox"].OnEvent("Click", HandleAndroidSelector) ; (*)=> guiItems["AndroidMicSelector"].Enabled := guiItems["AndroidMicCheckbox"].Value)
 	guiItems["AndroidCamCheckbox"].OnEvent("Click", HandleAndroidSelector) ; (*)=> guiItems["AndroidCamSelector"].Enabled := guiItems["AndroidMicCheckbox"].Value)
 
-	guiItems["FleetAutoLaunchCheckBox"].OnEvent("Click", (*) => Settings["Fleet"].AutoLaunch := guiItems["FleetAutoLaunchCheckBox"].Value)
-	guiItems["FleetSyncVolCheckBox"].OnEvent("Click", (*) => Settings["Fleet"].SyncVolume := guiItems["FleetSyncVolCheckBox"].Value)
-	guiItems["FleetRemoveDisconnectCheckbox"].OnEvent("Click", (*) => Settings["Fleet"].RemoveDisconnected := guiItems["FleetRemoveDisconnectCheckbox"].Value)
+	guiItems["FleetAutoLaunchCheckBox"].OnEvent("Click", HandleCheckBoxes) ; (*) => stagedSettings["Fleet"].AutoLaunch := guiItems["FleetAutoLaunchCheckBox"].Value)
+	guiItems["FleetSyncVolCheckBox"].OnEvent("Click", HandleCheckBoxes) ;(*) => stagedSettings["Fleet"].SyncVolume := guiItems["FleetSyncVolCheckBox"].Value)
+	guiItems["FleetRemoveDisconnectCheckbox"].OnEvent("Click", HandleCheckBoxes) ;(*) => stagedSettings["Fleet"].RemoveDisconnected := guiItems["FleetRemoveDisconnectCheckbox"].Value)
 	guiItems["FleetSyncCheckbox"].OnEvent("Click", HandleFleetSyncCheck)
 
 	guiItems["InstancesButtonAdd"].OnEvent("Click", HandleInstanceAddButton)
@@ -296,82 +287,89 @@ InitmyGuiEvents(){
 
 	guiItems["InstancesNameBox"].OnEvent("Change", HandleNameChange)
 	guiItems["InstancesPortBox"].OnEvent("LoseFocus", HandlePortChange)
-
+	
 }
+HandleCheckBoxes(*) {
+	global stagedSettings
+	stagedSettings["Android"].ReverseTethering := guiItems["AndroidReverseTetheringCheckbox"].Value
+	stagedSettings["Fleet"].AutoLaunch := guiItems["FleetAutoLaunchCheckBox"].Value
+	stagedSettings["Fleet"].SyncVolume := guiItems["FleetSyncVolCheckBox"].Value
+	stagedSettings["Fleet"].RemoveDisconnected := guiItems["FleetRemoveDisconnectCheckbox"].Value
+	UpdateButtonsLables()
+}
+
 HandleFleetSyncCheck(*){
-	global Settings, guiItems
-	Settings["Fleet"].SyncSettings := guiItems["FleetSyncCheckbox"].Value
+	global stagedSettings, guiItems
+	stagedSettings["Fleet"].SyncSettings := guiItems["FleetSyncCheckbox"].Value
 	HandleListChange()
-	for instance in Settings.Instances
-		if instance.Enabled = 1 
-			if FileExist(instance.configFile)
-				FileDelete(instance.configFile)
 }
 RefreshInstancesList(){
-	global guiItems
+	global guiItems, stagedSettings
 	guiItems["InstancesListBox"].Delete()
-	guiItems["InstancesListBox"].Add(GetInstancesProperty(Settings.Instances, "Name"))
+	guiItems["InstancesListBox"].Add(AllInstancesArray(stagedSettings))
+	UpdateButtonsLables()
 }
 HandlePortChange(*){
-	global Settings, guiItems
+	global stagedSettings, guiItems
 	selectedEntryIndex := guiItems["InstancesListBox"].Value
-	newPort := guiItems["InstancesPortBox"].Value = "" ? Settings.Instances[selectedEntryIndex].Port : guiItems["InstancesPortBox"].Value 
+	newPort := guiItems["InstancesPortBox"].Value = "" ? stagedSettings["Fleet"].Instances[selectedEntryIndex].Port : guiItems["InstancesPortBox"].Value 
 	valid := (1024 < newPort && newPort < 65000) ? true : false
-	for instance in Settings.Instances
+	for instance in stagedSettings["Fleet"].Instances
 		if (instance.Port = newPort)
 			valid := false
 	if valid {
-		Settings.Instances[selectedEntryIndex].Port := newPort
-		myLink := "https://localhost:" . Settings.Instances[(Settings["Fleet"].SyncSettings = 1 ? 1 : currentlySelectedIndex)].Port+1
+		stagedSettings["Fleet"].Instances[selectedEntryIndex].Port := newPort
+		myLink := "https://localhost:" . stagedSettings["Fleet"].Instances[(stagedSettings["Fleet"].SyncSettings = 1 ? 1 : currentlySelectedIndex)].Port+1
 		guiItems["InstancesLinkBox"].Text :=  '<a href="' . myLink . '">' . myLink . '</a>'	
 	} else {
-		guiItems["InstancesPortBox"].Value := Settings.Instances[currentlySelectedIndex].Port
+		guiItems["InstancesPortBox"].Value := stagedSettings["Fleet"].Instances[currentlySelectedIndex].Port
 	}
+	UpdateButtonsLables()
 }
 HandleNameChange(*){
-	global Settings, guiItems
+	global stagedSettings, guiItems
 	newName := guiItems["InstancesNameBox"].Value
 	selectedEntryIndex := guiItems["InstancesListBox"].Value
-	Settings.Instances[selectedEntryIndex].Name := newName
+	stagedSettings["Fleet"].Instances[selectedEntryIndex].Name := newName
 	RefreshInstancesList()
 	guiItems["InstancesListBox"].Choose(selectedEntryIndex)
 }
 HandleInstanceAddButton(*){
-	global Settings, guiItems
+	global stagedSettings, guiItems
 	
 	instance := {} ; Create a new object for each instance
-	instance.index := Settings.Instances[-1].index + 1
+	instance.index := stagedSettings["Fleet"].Instances[-1].index + 1
 	if (instance.index > 5){
 		MsgBox("Let's not add more than 5 instances for now.")
 	} else {
 	instance.id := instance.index
-	instance.Port := instance.id = 1 ? 10000 : Settings.Instances[-1].port + 1000
+	instance.Port := instance.id = 1 ? 10000 : stagedSettings["Fleet"].Instances[-1].port + 1000
 	instance.Name := "Instance " . instance.Port
 	instance.Enabled := 1
 	instance.LastKnownPID := 0
 	instance.LastConfigUpdate := 0
 	instance.LastReadLogLine := 0
-	instance.configFile := Settings["Paths"].Config . '\fleet-' . instance.id . '.conf'
-	instance.logFile := Settings["Paths"].Config . '\fleet-' . instance.id . '.log'
-	instance.stateFile := Settings["Paths"].Config . '\fleet-' . instance.id . '.json'
-	Settings.Instances.Push(instance) ; Add the instance object to the Settings.Instances array
+	instance.configFile := stagedSettings["Paths"].Config . '\fleet-' . instance.id . '.conf'
+	instance.logFile := stagedSettings["Paths"].Config . '\fleet-' . instance.id . '.log'
+	instance.stateFile := stagedSettings["Paths"].Config . '\fleet-' . instance.id . '.json'
+	stagedSettings["Fleet"].Instances.Push(instance) ; Add the instance object to the stagedSettings["Fleet"].Instances array
 	RefreshInstancesList()
-	guiItems["InstancesListBox"].Choose(instance.index + 1)
+	guiItems["InstancesListBox"].Choose(instance.index+1)
 	HandleListChange()
 	}
 	Sleep (200)
 }
 HandleInstanceDeleteButton(*){
-	global Settings, guiItems
+	global stagedSettings, guiItems
 	selectedEntryIndex := guiItems["InstancesListBox"].Value
 	if (selectedEntryIndex != 1){
-		Settings.Instances.RemoveAt(selectedEntryIndex) ; MUST USE REMOVEAT INSTEAD OF DELETE TO REMOVE THE ITEM COMPLETELY NOT JUST ITS VALUE
+		stagedSettings["Fleet"].Instances.RemoveAt(selectedEntryIndex) ; MUST USE REMOVEAT INSTEAD OF DELETE TO REMOVE THE ITEM COMPLETELY NOT JUST ITS VALUE
 		guiItems["InstancesListBox"].Delete(selectedEntryIndex)
-		guiItems["InstancesListBox"].Value := selectedEntryIndex - 1 
+		guiItems["InstancesListBox"].Choose(selectedEntryIndex - 1 )
 		HandleListChange()
-		Loop settings.Instances.Length { 	; Update instances index
-			settings.Instances[A_Index].index := A_Index - 1
-			settings.Instances[A_Index].id := A_Index - 1
+		Loop stagedSettings["Fleet"].Instances.Length { 	; Update instances index
+			stagedSettings["Fleet"].Instances[A_Index].index := A_Index - 1
+			stagedSettings["Fleet"].Instances[A_Index].id := A_Index - 1
 			; TODO: the id is enough, remove index later
 		}
 	}
@@ -380,7 +378,7 @@ HandleInstanceDeleteButton(*){
 	Sleep (200)
 }
 HandleAndroidSelector(*) {
-	global Settings
+	global stagedSettings
 	Selectors := ["AndroidMicSelector", "AndroidCamSelector"]
 	Controls := ["AndroidMicCheckbox", "AndroidCamCheckbox"]
 	enableSettings := ["MicEnable", "CamEnable"]
@@ -388,21 +386,23 @@ HandleAndroidSelector(*) {
 	Loop Selectors.Length {
 		guiItems[Selectors[A_index]].Enabled := settingsLocked ? 0 : guiItems[Controls[A_index]].Value
 
-		Settings["Android"].%enableSettings[A_index]% := guiItems[Controls[A_index]].Value
-        Settings["Android"].%idSettings[A_index]% := guiItems[Selectors[A_index]].Value
+		stagedSettings["Android"].%enableSettings[A_index]% := guiItems[Controls[A_index]].Value
+        stagedSettings["Android"].%idSettings[A_index]% := guiItems[Selectors[A_index]].Value
 	}
+	UpdateButtonsLables()
 }
 
 global currentlySelectedIndex := 1
 HandleListChange(*) {
-	global guiItems, Settings, currentlySelectedIndex
+	global guiItems, stagedSettings, currentlySelectedIndex
 	currentlySelectedIndex := guiItems["InstancesListBox"].Value = 0 ? 1 : guiItems["InstancesListBox"].Value
-	guiItems["InstancesNameBox"].Value := Settings.Instances[currentlySelectedIndex].Name
-	guiItems["InstancesPortBox"].Value := Settings.Instances[currentlySelectedIndex].Port
+	guiItems["InstancesNameBox"].Value := stagedSettings["Fleet"].Instances[currentlySelectedIndex].Name
+	guiItems["InstancesPortBox"].Value := stagedSettings["Fleet"].Instances[currentlySelectedIndex].Port
 	guiItems["InstancesNameBox"].Opt(((settingsLocked || currentlySelectedIndex = 1) ? "+ReadOnly" : "-ReadOnly"))
 	guiItems["InstancesPortBox"].Opt(((settingsLocked || currentlySelectedIndex = 1) ? "+ReadOnly" : "-ReadOnly"))
-	myLink := "https://localhost:" . Settings.Instances[(Settings["Fleet"].SyncSettings = 1 ? 1 : currentlySelectedIndex)].Port+1
+	myLink := "https://localhost:" . stagedSettings["Fleet"].Instances[(stagedSettings["Fleet"].SyncSettings = 1 ? 1 : currentlySelectedIndex)].Port+1
 	guiItems["InstancesLinkBox"].Text :=  '<a href="' . myLink . '">' . myLink . '</a>'
+	UpdateButtonsLables()
 }
 HandleLogsButton(*) {
 	global guiItems, Settings
@@ -412,29 +412,59 @@ HandleLogsButton(*) {
     Settings["Window"].xPos := x
     Settings["Window"].yPos := y
 	RestoremyGui()
-	Sleep (100)
+	Sleep (200)
 }
 HandleReloadButton(*) {
-	global settingsLocked
-	if settingsLocked {
-		; TODO Actually reload the script here
-		return
-	}
+	global settingsLocked, stagedSettings, Settings
+	;if settingsLocked && stagedSettingsWaiting() {
+	;	if (stagedSettings["Fleet"].SyncSettings != Settings["Fleet"].SyncSettings) {
+	;		for instance in stagedSettings["Fleet"].Instances
+	;			if instance.Enabled = 1 && FileExist(instance.configFile)
+	;				FileDelete(instance.configFile)
+	;	}
+	;	Reload
+	;} TODO : MAYBE Add a 3rd state in between Locked/Reload > Unlocked/Cancel > *Save/Cancel* > Apply/Discard > Lock / Reload ? 
+	if settingsLocked 
+		Reload
 	else {
-		ReflectSettings()
+		ReflectSettings(Settings)
 		HandleSettingsLock()
-		MsgBox("Cancel")
-		; TODO Implement staging settings which will be discarded here if not applied in apply button
+		LoadSettingsFile(settingsFile, stagedSettings)
 	}
-	Sleep (100)
+	Sleep (200)
 }
-global settingsLocked := false
-HandleSettingsLock(*) {
-    global guiItems, settingsLocked
-
-	settingsLocked := !settingsLocked   ; Toggle lock state
-	guiItems["ButtonLockSettings"].Text := settingsLocked ? "🔒" : "Save"
-	guiItems["ButtonReload"].Text := settingsLocked ? "Reload" : "Cancel"
+stagedSettingsWaiting(){
+	global Settings, stagedSettings
+	for group in Settings {
+		if group != "Window" {
+			for setting in Settings[group].OwnProps() {
+				if type(Settings[group].%setting%) = "String" && Settings[group].%setting% != stagedSettings[group].%setting%
+					return true
+				else if type(Settings[group].%setting%) = "Array" && Settings[group].%setting%.Length != stagedSettings[group].%setting%.Length
+					return true
+				else if type(Settings[group].%setting%) = "Array" {
+					inst := 1
+					Loop Settings[group].%setting%.Length {
+						if (inst > 0)
+							for inSetting in Settings[group].%setting%[inst].OwnProps(){
+								if !(Settings[group].%setting%[inst].%inSetting% = stagedSettings[group].%setting%[inst].%inSetting%)
+									return true
+							}
+						inst := inst + 1
+					}
+				}
+			}
+		}
+	}
+	return false
+}
+UpdateButtonsLables(){
+	global guiItems, settingsLocked
+	guiItems["ButtonLockSettings"].Text := stagedSettingsWaiting() ? "Save" : settingsLocked ? "🔒" : "🔓" 
+	guiItems["ButtonReload"].Text := settingsLocked ?  "Reload" : "Cancel"
+}
+ApplyLockState(){
+	global settingsLocked, guiItems
 	textBoxes := [ "PathsApolloBox"]
 	checkBoxes := ["FleetAutoLaunchCheckBox", "FleetSyncVolCheckBox", "FleetRemoveDisconnectCheckbox", "AndroidReverseTetheringCheckbox", "AndroidMicCheckbox", "AndroidCamCheckbox", "FleetSyncCheckbox"]
 	Buttons := ["InstancesButtonDelete", "InstancesButtonAdd", "PathsApolloBrowseButton", "PathsApolloResetButton"]
@@ -451,18 +481,28 @@ HandleSettingsLock(*) {
 		guiItems[textBox].Opt(((settingsLocked || currentlySelectedIndex = 1) ? "+ReadOnly" : "-ReadOnly"))
 	for i, selector in Selectors
 		guiItems[selector].Enabled := settingsLocked ? 0 : guiItems[Controls[i]].Value
+}
+global settingsLocked := true
 
-	if settingsLocked {
-		HandleReloadButton()
-		; TODO Implement staging settings which will be saved here if applied using apply button
-		SaveSettingsFile(settingsFile)
-		; TODO Add the (Apply) procedures to actually 
+HandleSettingsLock(*) {
+    global guiItems, settingsLocked, Settings, stagedSettings, settingsFile
+	UpdateButtonsLables()
+	if !stagedSettingsWaiting() {
+		settingsLocked := !settingsLocked
+	} else if stagedSettingsWaiting(){
+		SaveSettingsFile(settingsFile, stagedSettings)
+		LoadSettingsFile(settingsFile, Settings)
+		HandleSettingsLock()
+		return
+		; Maybe add settings.bak to restore in case new settings didn't work or so
 	}
-	Sleep (100)
+	ApplyLockState()
+	UpdateButtonsLables()
+	Sleep (200)
 }
 ExitMyApp() {
-	Sleep(100) ; Give time to save state
-	SaveSettingsFile(settingsFile)
+	Sleep (200)
+	SaveSettingsFile(settingsFile, Settings)
 	global myGui, Settings
 	myGui.Destroy()
 	ExitApp()
@@ -482,7 +522,7 @@ MinimizemyGui(*) {
     Settings["Window"].lastState := 0
     ; Now hide the window
     myGui.Hide()
-	Sleep (100)
+	Sleep (200)
 }
 RestoremyGui() {
 	global myGui
@@ -494,7 +534,7 @@ RestoremyGui() {
 	else
 		myGui.Show("w580 " h)
 	Settings["Window"].lastState := 1
-	Sleep (100)
+	Sleep (200)
 }
 ShowmyGui() {
 	if (Settings["Window"].lastState = 1) {
@@ -502,7 +542,7 @@ ShowmyGui() {
 	}
 	else
 		return
-	Sleep (100)
+	Sleep (200)
 }
 OnMessage(0x404, TrayIconHandler)
 TrayIconHandler(wParam, lParam, msg, hwnd) {
@@ -518,13 +558,12 @@ TrayIconHandler(wParam, lParam, msg, hwnd) {
 
 FleetInit(*){
 	global Settings
-
 	if !DirExist(Settings["Paths"].Config)
 		DirCreate(Settings["Paths"].Config)
 	configDir := Settings["Paths"].Config
 	Loop Files configDir . '\*.*' {
 		fileIdentified := false
-		for instance in Settings.Instances{
+		for instance in Settings["Fleet"].Instances{
 
 			if A_LoopFileFullPath = instance.configFile || A_LoopFileFullPath = instance.logFile || A_LoopFileFullPath = instance.stateFile   {
 				fileIdentified := true
@@ -545,7 +584,7 @@ FleetInit(*){
 			baseConf.Delete("port")
 	}
 
-	for instance in Settings.Instances {
+	for instance in Settings["Fleet"].Instances {
 		if (instance.Enabled = 1) {
 			if !(Settings["Fleet"].SyncSettings) && FileExist(instance.configFile)
 				thisConf:= ConfRead(instance.configFile)
@@ -566,21 +605,20 @@ FleetInit(*){
 	; else disable it
 
 
-	MsgBox("Hi")
 	if Settings["Fleet"].AutoLaunch
 		SetTimer LogWatchDog, -1
 
 	if Settings["Fleet"].SyncVolume || Settings["Fleet"].RemoveDisconnected
-		SetTimer LogWatchDog, 10
+		SetTimer LogWatchDog, 100000
 
 	if Settings["Android"].MicEnable || Settings["Android"].CamEnable
-		SetTimer ADBWatchDog, 100
+		SetTimer ADBWatchDog, 100000
 
 	if Settings["Fleet"].SyncVolume
-		SetTimer FleetSyncVolume, 100
+		SetTimer FleetSyncVolume, 10000
 
 	if Settings["Fleet"].SyncSettings
-		SetTimer FleetSyncSettings, 100
+		SetTimer FleetSyncSettings, 100000
 
 }
 
@@ -609,11 +647,14 @@ ADBWatchDog(*){
 }
 
 settingsFile := A_ScriptDir "\state.ini"
+global Settings := Map(), stagedSettings := Map()
 
-LoadSettingsFile(settingsFile)
+LoadSettingsFile(settingsFile, Settings)
+LoadSettingsFile(settingsFile, stagedSettings)
+
 InitmyGui()
-HandleSettingsLock()
-ReflectSettings()
+ApplyLockState()
+ReflectSettings(Settings)
 ShowmyGui()
 InitmyGuiEvents()
 InitTray()
