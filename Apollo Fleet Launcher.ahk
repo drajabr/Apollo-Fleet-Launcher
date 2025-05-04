@@ -63,8 +63,8 @@ LoadSettingsFile(settingsFile, Settings) {
         FileAppend "", settingsFile
 
 	Settings["Window"].restorePosition := IniRead(settingsFile, "Fleet Manager Window", "Remember location", 1)
-    Settings["Window"].xPos := IniRead(settingsFile, "Fleet Manager Window", "xPos", 0)
-    Settings["Window"].yPos := IniRead(settingsFile, "Fleet Manager Window", "yPos", 0)
+    Settings["Window"].xPos := IniRead(settingsFile, "Fleet Manager Window", "xPos", (A_ScreenWidth - 580) / 2)
+    Settings["Window"].yPos := IniRead(settingsFile, "Fleet Manager Window", "yPos", (A_ScreenHeight - 198) / 2)
     Settings["Window"].lastState := IniRead(settingsFile, "Fleet Manager Window", "lastState", 1)
 	Settings["Window"].logShow := IniRead(settingsFile, "Fleet Manager Window", "Show Logs", 1)
 
@@ -140,12 +140,7 @@ SaveSettingsFile(settingsFile, Settings) {
         FileDelete(settingsFile)
 	FileAppend "", settingsFile
 	
-	if (Settings["Window"].restorePosition = 1 && DllCall("IsWindowVisible", "ptr", myGui.Hwnd) ){
-		WinGetPos(&x, &y, , , "ahk_id " myGui.Hwnd)
-		; Save position
-		Settings["Window"].xPos := x
-		Settings["Window"].yPos := y
-	}
+	UpdateWindowPosition()
     ; Window State
     IniWrite(Settings["Window"].restorePosition, settingsFile, "Fleet Manager Window", "Remember location")
 	IniWrite(Settings["Window"].xPos, settingsFile, "Fleet Manager Window", "xPos")
@@ -241,7 +236,7 @@ InitmyGui() {
 InitTray(){
 	global myGui
 	A_TrayMenu.Delete()
-	A_TrayMenu.Add("Show Manager", (*) => RestoremyGui())
+	A_TrayMenu.Add("Show Manager", (*) => ShowmyGui())
 	A_TrayMenu.Add("Reload", (*) => MinimizemyGui())
 	A_TrayMenu.Add()
 	A_TrayMenu.Add("Exit", (*) => ExitMyApp())
@@ -408,9 +403,12 @@ HandleListChange(*) {
 }
 UpdateWindowPosition(){
 	global Settings, myGui
-	WinGetPos(&x, &y, , , "ahk_id " myGui.Hwnd)
-    Settings["Window"].xPos := x
-    Settings["Window"].yPos := y
+	if (Settings["Window"].restorePosition = 1 && DllCall("IsWindowVisible", "ptr", myGui.Hwnd) ){
+		WinGetPos(&x, &y, , , "ahk_id " myGui.Hwnd)
+		; Save position
+		Settings["Window"].xPos := x
+		Settings["Window"].yPos := y
+	}
 }
 HandleLogsButton(*) {
 	global guiItems, Settings
@@ -431,7 +429,6 @@ HandleReloadButton(*) {
 	;	Reload
 	;} TODO : MAYBE Add a 3rd state in between Locked/Reload > Unlocked/Cancel > *Save/Cancel* > Apply/Discard > Lock / Reload ? 
 	if settingsLocked {
-		UpdateWindowPosition()
 		SaveSettingsFile(settingsFile, Settings)
 		Reload
 	}
@@ -535,8 +532,8 @@ MinimizemyGui(*) {
 RestoremyGui() {
 	global myGui, Settings
 	h := (Settings["Window"].logShow = 0 ? " h198" : "h600")
-	x := Settings["Window"].xPos < A_ScreenWidth ? Settings["Window"].xPos : A_ScreenWidth/2
-	y := Settings["Window"].yPos < A_ScreenHeight ? Settings["Window"].yPos : A_ScreenHeight/2
+	x := Settings["Window"].xPos < A_ScreenWidth ? Settings["Window"].xPos : (A_ScreenWidth - 580)/2 
+	y := Settings["Window"].yPos < A_ScreenHeight ? Settings["Window"].yPos : (A_ScreenHeight - h)/2
 	if (Settings["Window"].restorePosition = 1 & !((x+y) = 0)) 
 		myGui.Show("x" x " y" y " w580 " h)
 	else
@@ -547,7 +544,12 @@ RestoremyGui() {
 ShowmyGui() {
 	global myGui
 	if (Settings["Window"].lastState = 1) {
-		RestoremyGui()
+		if Settings["Window"].restorePosition = 1 {
+			Settings["Window"].restorePosition = 0
+			RestoremyGui()
+			Settings["Window"].restorePosition = 1
+		} else 
+			RestoremyGui()
 	}
 	else
 		return
