@@ -301,6 +301,9 @@ HandleCheckBoxes(*) {
 HandleFleetSyncCheck(*){
 	global stagedSettings, guiItems
 	stagedSettings["Fleet"].SyncSettings := guiItems["FleetSyncCheckbox"].Value
+	; change conf file name so its recognized as synced, also, to trigger delete for non-synced config "and vice versa" on next reload 
+	for instance in stagedSettings["Fleet"].Instances
+		instance.configFile := stagedSettings["Paths"].Config . '\fleet-' . instance.id . stagedSettings["Fleet"].SyncSettings ?  '-synced' : '' . '.conf'
 	HandleListChange()
 }
 RefreshInstancesList(){
@@ -404,13 +407,17 @@ HandleListChange(*) {
 	guiItems["InstancesLinkBox"].Text :=  '<a href="' . myLink . '">' . myLink . '</a>'
 	UpdateButtonsLables()
 }
+UpdateWindowPosition(){
+	global Settings, myGui
+	WinGetPos(&x, &y, , , "ahk_id " myGui.Hwnd)
+    Settings["Window"].xPos := x
+    Settings["Window"].yPos := y
+}
 HandleLogsButton(*) {
 	global guiItems, Settings
 	Settings["Window"].logShow := ! Settings["Window"].logShow
 	guiItems["ButtonLogsShow"].Text := (Settings["Window"].logShow = 1 ? "Hide Logs" : "Show Logs")
-	WinGetPos(&x, &y, , , "ahk_id " myGui.Hwnd)
-    Settings["Window"].xPos := x
-    Settings["Window"].yPos := y
+	UpdateWindowPosition()
 	RestoremyGui()
 	Sleep (200)
 }
@@ -424,8 +431,11 @@ HandleReloadButton(*) {
 	;	}
 	;	Reload
 	;} TODO : MAYBE Add a 3rd state in between Locked/Reload > Unlocked/Cancel > *Save/Cancel* > Apply/Discard > Lock / Reload ? 
-	if settingsLocked 
+	if settingsLocked {
+		UpdateWindowPosition()
+		SaveSettingsFile(settingsFile, Settings)
 		Reload
+	}
 	else {
 		ReflectSettings(Settings)
 		HandleSettingsLock()
@@ -489,7 +499,8 @@ HandleSettingsLock(*) {
 	UpdateButtonsLables()
 	if !stagedSettingsWaiting() {
 		settingsLocked := !settingsLocked
-	} else if stagedSettingsWaiting(){
+	} else if stagedSettingsWaiting(){	; hence we need to save settings
+		if Settings["Fleet"].SyncSettings != stagedSettings["Fleet"].SyncSettings
 		SaveSettingsFile(settingsFile, stagedSettings)
 		LoadSettingsFile(settingsFile, Settings)
 		HandleSettingsLock()
@@ -501,9 +512,10 @@ HandleSettingsLock(*) {
 	Sleep (200)
 }
 ExitMyApp() {
+	global myGui, Settings
+	UpdateWindowPosition()
 	Sleep (200)
 	SaveSettingsFile(settingsFile, Settings)
-	global myGui, Settings
 	myGui.Destroy()
 	ExitApp()
 }
@@ -514,11 +526,8 @@ MinimizemyGui(*) {
         return  ; Nothing to do
 
     ; Get position BEFORE hiding
-    WinGetPos(&x, &y, , , "ahk_id " myGui.Hwnd)
+	UpdateWindowPosition()
 
-    ; Save position
-    Settings["Window"].xPos := x
-    Settings["Window"].yPos := y
     Settings["Window"].lastState := 0
     ; Now hide the window
     myGui.Hide()
@@ -527,7 +536,7 @@ MinimizemyGui(*) {
 RestoremyGui() {
 	global myGui
 	h := (Settings["Window"].logShow = 0 ? " h198" : "h600")
-	x :=Settings["Window"].xPos
+	x := Settings["Window"].xPos
 	y := Settings["Window"].yPos 
 	if (Settings["Window"].restorePosition = 1 & !((x+y) = 0)) 
 		myGui.Show("x" x " y" y " w580 " h)
@@ -558,7 +567,8 @@ TrayIconHandler(wParam, lParam, msg, hwnd) {
 
 FleetInit(*){
 	global Settings
-	if !DirExist(Settings["Paths"].Config)
+	; clean and prepare conf directory
+	if !DirExist(Settings["Paths"].Config)	
 		DirCreate(Settings["Paths"].Config)
 	configDir := Settings["Paths"].Config
 	Loop Files configDir . '\*.*' {
@@ -573,7 +583,7 @@ FleetInit(*){
 		if !fileIdentified
 			FileDelete(A_LoopFileFullPath)
 	}
-
+	; import default conf if sync is ticked
 	baseConf := Map()
 	if (Settings["Fleet"].SyncSettings) {
 		defaultConfFile := Settings["Paths"].Apollo . "\config\sunshine.conf"
@@ -583,11 +593,11 @@ FleetInit(*){
 		if baseConf.Has("port")
 			baseConf.Delete("port")
 	}
-
+	; assign and create conf files if not created
 	for instance in Settings["Fleet"].Instances {
 		if (instance.Enabled = 1) {
 			if !(Settings["Fleet"].SyncSettings) && FileExist(instance.configFile)
-				thisConf:= ConfRead(instance.configFile)
+				thisConf:= ConfRead(instance.configFile)	; this will keep config file to retain user modified settings
 			else
 				thisConf := baseConf.Clone()
 			thisConf.set("sunshine_name", instance.Name, "port", instance.Port)
