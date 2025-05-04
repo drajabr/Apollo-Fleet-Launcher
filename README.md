@@ -35,6 +35,12 @@ This is intended to be a simple tool to setup and start multiple instances of [@
 Intending to achieve the same result as of my previous setup [@My-Sunshine-Setup](https://github.com/drajabr/My-Sunshine-setup) "which I screwed the last commit and got lazy to fix as I'm already getting close to get this functional" but with just one-click install and configuration.
 
 ## Preview
+
+
+https://github.com/user-attachments/assets/1c63ccff-df32-4b91-b838-d009cd771255
+
+
+
 This is a big milestone :) The UI is functional, but not yet the "backend" though its coming really soon :) .
 
 
