@@ -62,11 +62,11 @@ LoadSettingsFile(settingsFile, Settings) {
 	if !FileExist(settingsFile)
         FileAppend "", settingsFile
 
-	Settings["Window"].restorePosition := IniRead(settingsFile, "Fleet Manager Window", "Remember location", 1)
-    Settings["Window"].xPos := IniRead(settingsFile, "Fleet Manager Window", "xPos", (A_ScreenWidth - 580) / 2)
-    Settings["Window"].yPos := IniRead(settingsFile, "Fleet Manager Window", "yPos", (A_ScreenHeight - 198) / 2)
-    Settings["Window"].lastState := IniRead(settingsFile, "Fleet Manager Window", "lastState", 1)
-	Settings["Window"].logShow := IniRead(settingsFile, "Fleet Manager Window", "Show Logs", 1)
+	Settings["Window"].restorePosition := IniRead(settingsFile, "Window", "Remember location", 1)
+    Settings["Window"].xPos := IniRead(settingsFile, "Window", "xPos", (A_ScreenWidth - 580) / 2)
+    Settings["Window"].yPos := IniRead(settingsFile, "Window", "yPos", (A_ScreenHeight - 198) / 2)
+    Settings["Window"].lastState := IniRead(settingsFile, "Window", "lastState", 1)
+	Settings["Window"].logShow := IniRead(settingsFile, "Window", "Show Logs", 1)
 
 
 	DefaultApolloPath := "C:\Program Files\Apollo"
@@ -142,11 +142,11 @@ SaveSettingsFile(settingsFile, Settings) {
 	
 	UpdateWindowPosition()
     ; Window State
-    IniWrite(Settings["Window"].restorePosition, settingsFile, "Fleet Manager Window", "Remember location")
-	IniWrite(Settings["Window"].xPos, settingsFile, "Fleet Manager Window", "xPos")
-    IniWrite(Settings["Window"].yPos, settingsFile, "Fleet Manager Window", "yPos")
-    IniWrite(Settings["Window"].lastState, settingsFile, "Fleet Manager Window", "lastState")
-	IniWrite(Settings["Window"].logShow, settingsFile, "Fleet Manager Window", "Show Logs")
+    IniWrite(Settings["Window"].restorePosition, settingsFile, "Window", "Remember location")
+	IniWrite(Settings["Window"].xPos, settingsFile, "Window", "xPos")
+    IniWrite(Settings["Window"].yPos, settingsFile, "Window", "yPos")
+    IniWrite(Settings["Window"].lastState, settingsFile, "Window", "lastState")
+	IniWrite(Settings["Window"].logShow, settingsFile, "Window", "Show Logs")
 
     ; Paths
     IniWrite(Settings["Paths"].Apollo, settingsFile, "Paths", "Apollo")
@@ -403,7 +403,7 @@ HandleListChange(*) {
 }
 UpdateWindowPosition(){
 	global Settings, myGui
-	if (Settings["Window"].restorePosition = 1 && DllCall("IsWindowVisible", "ptr", myGui.Hwnd) ){
+	if (Settings["Window"].restorePosition && DllCall("IsWindowVisible", "ptr", myGui.Hwnd) ){
 		WinGetPos(&x, &y, , , "ahk_id " myGui.Hwnd)
 		; Save position
 		Settings["Window"].xPos := x
@@ -412,7 +412,7 @@ UpdateWindowPosition(){
 }
 HandleLogsButton(*) {
 	global guiItems, Settings
-	Settings["Window"].logShow := ! Settings["Window"].logShow
+	Settings["Window"].logShow := !Settings["Window"].logShow
 	guiItems["ButtonLogsShow"].Text := (Settings["Window"].logShow = 1 ? "Hide Logs" : "Show Logs")
 	UpdateWindowPosition()
 	RestoremyGui()
@@ -531,23 +531,25 @@ MinimizemyGui(*) {
 }
 RestoremyGui() {
 	global myGui, Settings
-	h := (Settings["Window"].logShow = 0 ? " h198" : "h600")
-	x := Settings["Window"].xPos < A_ScreenWidth ? Settings["Window"].xPos : (A_ScreenWidth - 580)/2 
-	y := Settings["Window"].yPos < A_ScreenHeight ? Settings["Window"].yPos : (A_ScreenHeight - h)/2
-	if (Settings["Window"].restorePosition = 1 & !((x+y) = 0)) 
-		myGui.Show("x" x " y" y " w580 " h)
+	h := (Settings["Window"].logShow = 0 ? 198 : 600)
+	xC := (A_ScreenWidth - 580)/2 
+	yC := (A_ScreenHeight - h)/2
+	x := Settings["Window"].xPos
+	y := Settings["Window"].yPos
+	if (Settings["Window"].restorePosition && (Settings["Window"].xPos < A_ScreenWidth && Settings["Window"].yPos < A_ScreenHeight)) 
+		myGui.Show("x" x " y" y " w580 h" h)
 	else
-		myGui.Show("x 0 y 0 w580 " h)
+		myGui.Show("x" xC " y" yC "w580 h" h)
 	Settings["Window"].lastState := 1
 	Sleep (200)
 }
 ShowmyGui() {
 	global myGui
 	if (Settings["Window"].lastState = 1) {
-		if Settings["Window"].restorePosition = 1 {
-			Settings["Window"].restorePosition = 0
+		if Settings["Window"].restorePosition {
+			Settings["Window"].restorePosition := false
 			RestoremyGui()
-			Settings["Window"].restorePosition = 1
+			Settings["Window"].restorePosition := true
 		} else 
 			RestoremyGui()
 	}
