@@ -65,8 +65,8 @@ LoadSettingsFile(settingsFile, Settings) {
 	Settings["Window"].restorePosition := IniRead(settingsFile, "Fleet Manager Window", "Remember location", 1)
     Settings["Window"].xPos := IniRead(settingsFile, "Fleet Manager Window", "xPos", 0)
     Settings["Window"].yPos := IniRead(settingsFile, "Fleet Manager Window", "yPos", 0)
-    Settings["Window"].lastState := IniRead(settingsFile, "Fleet Manager Window", "lastState", 0)
-	Settings["Window"].logShow := IniRead(settingsFile, "Fleet Manager Window", "Show Logs", 0)
+    Settings["Window"].lastState := IniRead(settingsFile, "Fleet Manager Window", "lastState", 1)
+	Settings["Window"].logShow := IniRead(settingsFile, "Fleet Manager Window", "Show Logs", 1)
 
 
 	DefaultApolloPath := "C:\Program Files\Apollo"
@@ -152,7 +152,6 @@ SaveSettingsFile(settingsFile, Settings) {
     IniWrite(Settings["Window"].yPos, settingsFile, "Fleet Manager Window", "yPos")
     IniWrite(Settings["Window"].lastState, settingsFile, "Fleet Manager Window", "lastState")
 	IniWrite(Settings["Window"].logShow, settingsFile, "Fleet Manager Window", "Show Logs")
-	IniWrite("", settingsFile, "Fleet Manager Window", "")
 
     ; Paths
     IniWrite(Settings["Paths"].Apollo, settingsFile, "Paths", "Apollo")
@@ -201,7 +200,7 @@ AllInstancesArray(Settings){
 InitmyGui() {
 	global myGui, guiItems := Map()
 	TraySetIcon("shell32.dll", "19")
-	myGui := Gui(" -MinimizeBox -MaximizeBox")
+	myGui := Gui("+AlwaysOnTop -MinimizeBox -MaximizeBox")
 	guiItems["ButtonLockSettings"] := myGui.Add("Button", "x520 y5 w50 h40", "🔒")
 	guiItems["ButtonReload"] := myGui.Add("Button", "x520 y50 w50 h40", "Reload")
 	guiItems["ButtonLogsShow"] := myGui.Add("Button", "x520 y101 w50 h40", "Show Logs")
@@ -242,7 +241,7 @@ InitmyGui() {
 InitTray(){
 	global myGui
 	A_TrayMenu.Delete()
-	A_TrayMenu.Add("Show Manager", (*) => ShowmyGui())
+	A_TrayMenu.Add("Show Manager", (*) => RestoremyGui())
 	A_TrayMenu.Add("Reload", (*) => MinimizemyGui())
 	A_TrayMenu.Add()
 	A_TrayMenu.Add("Exit", (*) => ExitMyApp())
@@ -499,8 +498,8 @@ HandleSettingsLock(*) {
 	UpdateButtonsLables()
 	if !stagedSettingsWaiting() {
 		settingsLocked := !settingsLocked
-	} else if stagedSettingsWaiting(){	; hence we need to save settings
-		if Settings["Fleet"].SyncSettings != stagedSettings["Fleet"].SyncSettings
+	} else if stagedSettingsWaiting(){
+		; hence we need to save settings
 		SaveSettingsFile(settingsFile, stagedSettings)
 		LoadSettingsFile(settingsFile, Settings)
 		HandleSettingsLock()
@@ -534,18 +533,19 @@ MinimizemyGui(*) {
 	Sleep (200)
 }
 RestoremyGui() {
-	global myGui
+	global myGui, Settings
 	h := (Settings["Window"].logShow = 0 ? " h198" : "h600")
-	x := Settings["Window"].xPos
-	y := Settings["Window"].yPos 
+	x := Settings["Window"].xPos < A_ScreenWidth ? Settings["Window"].xPos : A_ScreenWidth/2
+	y := Settings["Window"].yPos < A_ScreenHeight ? Settings["Window"].yPos : A_ScreenHeight/2
 	if (Settings["Window"].restorePosition = 1 & !((x+y) = 0)) 
 		myGui.Show("x" x " y" y " w580 " h)
 	else
-		myGui.Show("w580 " h)
+		myGui.Show("x 0 y 0 w580 " h)
 	Settings["Window"].lastState := 1
 	Sleep (200)
 }
 ShowmyGui() {
+	global myGui
 	if (Settings["Window"].lastState = 1) {
 		RestoremyGui()
 	}
@@ -571,7 +571,8 @@ FleetInit(*){
 	if !DirExist(Settings["Paths"].Config)	
 		DirCreate(Settings["Paths"].Config)
 	configDir := Settings["Paths"].Config
-	Loop Files configDir . '\*.*' {	; to delete any unexpected file "such as residual config/log"
+	; to delete any unexpected file "such as residual config/log"
+	Loop Files configDir . '\*.*' {
 		fileIdentified := false
 		for instance in Settings["Fleet"].Instances{
 
@@ -610,7 +611,7 @@ FleetInit(*){
 	; TODO Keep the last remembered PIDs if they are still running
 	; test them "maybe wget or sorta" 
 	; kill the rest 
-	
+
 	; if AutoLaunch is set, check for schduleded task, add it if missing, enable it if disabled
 	; else disable it ;;; EDIT: AutoLaunch will be used to determine if we launch these instances or not at all
 	;							TODO Introduce Auto run at startup setting to specifically do that 
