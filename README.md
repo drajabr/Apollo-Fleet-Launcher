@@ -1,19 +1,29 @@
 # Apollo-Fleet-Launcher
 Multi Instance manager for [@ClassicOldSong/Apollo](https://github.com/ClassicOldSong/Apollo)
 
+# What is it? 
+A simple tool to configure multiple instances of [@ClassicOldSong/Apollo](https://github.com/ClassicOldSong/Apollo) for streaming multi monitor mode, mainly targeting desktop use case where multi devices like android tablets can be used as Plug and play external monitor.
+
+## Preview
+https://github.com/user-attachments/assets/1c63ccff-df32-4b91-b838-d009cd771255
+
+
+# Current Status
+TLDR: Basic functionality: You can create multiple instance and it will start them on reload.
+
 > [!WARNING]
 >  [WIP] The following are the planned functionality and their current status:
 >  - [x] GUI: Basic functional GUI elements
 >  - [x] GUI: Load, Edit, and Save settings
 >  - [x] GUI: minimize, close, show/hide logs area
->  - [ ] UX: Auto setup schudles service
+>  - [ ] UX: Auto setup task scheduler service
 >  - [ ] UX: Logging overall
 >  - [ ] GUI: Add status tab
 >  - [ ] GUI: Dark/Light theme and follow system
 >  - [ ] GUI: Instead of msgbox, add small label bar to show warning/errors when they're raised
 >  - [x] Multi-instance: Add, remove, edit multi instance
 >  - [x] Multi-instance: Read and write config files
->  - [ ] Multi-instance: Automatically start instances
+>  - [X] Multi-instance: Automatically start instances
 >  - [ ] Multi-instance: test and preserve the already running instances (hopefully API keys/auth will be implemented to make this more robust than wget/curl test)
 >  - [ ] Multi-instance: Sync volume level (client volume level actually change if changing the volume from inside the host)
 >  - [ ] Multi-instance: Remove display on client disconnect
@@ -29,21 +39,4 @@ Multi Instance manager for [@ClassicOldSong/Apollo](https://github.com/ClassicOl
 >  - [ ] Experience-enhancement: Use virtual cam device instead of relying on full fledged OBS to do that (maybe use DroidCam app or sorta "would love to find foss way to do it too")
 >  - [ ] Extra: Auto launch from server side using ADB commands (bind devices to instances) with option to not start that instance until the device is connected
 >  - [ ] Super-Goal: ditch the project once these functionalities get implemented in Apollo, or maybe, just maybe, get this UI somehow to work as a plugin/addon for native apollo webUI, to initiate multi instances from there directly
-
-
-# What is it? 
-This is intended to be a simple tool to setup and start multiple instances of [@ClassicOldSong/Apollo](https://github.com/ClassicOldSong/Apollo) for streaming multi monitor mode, mainly targeting desktop use case where multi devices like android tablets can be used as Plug and play external monitor.
-
-Intending to achieve the same result as of my previous setup [@My-Sunshine-Setup](https://github.com/drajabr/My-Sunshine-setup) "which I screwed the last commit and got lazy to fix as I'm already getting close to get this functional" but with just one-click install and configuration.
-
-## Preview
-
-
-https://github.com/user-attachments/assets/1c63ccff-df32-4b91-b838-d009cd771255
-
-
-
-This is a big milestone :) The UI is functional, but not yet the "backend" though its coming really soon :) .
-
-
 
