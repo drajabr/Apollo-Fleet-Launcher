@@ -1,4 +1,4 @@
-# Apollo-Fleet-Launcher
+# Apollo Fleet Launcher
 A simple tool to configure multiple instances of [@ClassicOldSong/Apollo](https://github.com/ClassicOldSong/Apollo) for streaming multi monitor mode, mainly targeting desktop use case where multi devices like android tablets can be used as Plug and play external monitor.
 
 ## Preview
