@@ -132,7 +132,7 @@ LoadSettingsFile(settingsFile:="settings.ini", Settings:=Map()) {
 			instance.LastConfigUpdate := IniRead(settingsFile, section, "LastConfigUpdate", false)
 			instance.LastReadLogLine := IniRead(settingsFile, section, "LastReadLogLine", false)
 
-			instance.configFile := Settings["Paths"]["Config"] . '\fleet-' . (Settings["Fleet"]["SyncSettings"] = 1 ?  '-synced.conf' : '.conf')
+			instance.configFile := Settings["Paths"]["Config"] . '\fleet-' . instance.id . (Settings["Fleet"]["SyncSettings"] = 1 ?  '-synced.conf' : '.conf')
 			instance.logFile := Settings["Paths"]["Config"] . '\fleet-' . instance.id . '.log'
 			instance.stateFile := Settings["Paths"]["Config"] . '\fleet-' . instance.id . '.json'
             ; instance.Audio := IniRead(settingsFile, section, "Port", "") TODO
