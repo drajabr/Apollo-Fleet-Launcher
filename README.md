@@ -37,3 +37,16 @@ TLDR: Basic functionality: You can create multiple instance and it will start th
 >  - [ ] Extra: Auto launch from server side using ADB commands (bind devices to instances) with option to not start that instance until the device is connected
 >  - [ ] Super-Goal: ditch the project once these functionalities get implemented in Apollo, or maybe, just maybe, get this UI somehow to work as a plugin/addon for native apollo webUI, to initiate multi instances from there directly
 
+
+
+
+
+
+# Many thanks to:
+[@ClassicOldSong](https://github.com/ClassicOldSong) For his amazing work on [Apollo](https://github.com/ClassicOldSong/Apollo).
+
+[AutoHotKey](https://github.com/AutoHotkey) For making of this amazing tool [AHK](https://autohotkey.com/) FOSS AND AVAILABLE FOR FREE!.
+
+Everyone at [AHK Forums](https://www.autohotkey.com/boards/) for their contributions.
+
+[@CCCC-L](https://github.com/CCCC-L) For the [AHK v2 Actions template](https://github.com/CCCC-L/Action-Ahk2Exe).
