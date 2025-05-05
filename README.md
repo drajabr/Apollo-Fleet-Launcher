@@ -1,12 +1,10 @@
 # Apollo Fleet Launcher
 A simple tool to configure multiple instances of [@ClassicOldSong/Apollo](https://github.com/ClassicOldSong/Apollo) for streaming multi monitor mode, mainly targeting desktop use case where multi devices like android tablets can be used as Plug and play external monitor.
 
-## Preview
-https://github.com/user-attachments/assets/1c63ccff-df32-4b91-b838-d009cd771255
-
-
 # Current Status
 TLDR: Basic functionality: You can create multiple instance and it will start them on reload.
+
+[![Build](https://github.com/drajabr/Apollo-Fleet-Launcher/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/drajabr/Apollo-Fleet-Launcher/actions/workflows/main.yml)
 
 > [!WARNING]
 >  [WIP] The following are the planned functionality and their current status:
@@ -36,6 +34,9 @@ TLDR: Basic functionality: You can create multiple instance and it will start th
 >  - [ ] Experience-enhancement: Use virtual cam device instead of relying on full fledged OBS to do that (maybe use DroidCam app or sorta "would love to find foss way to do it too")
 >  - [ ] Extra: Auto launch from server side using ADB commands (bind devices to instances) with option to not start that instance until the device is connected
 >  - [ ] Super-Goal: ditch the project once these functionalities get implemented in Apollo, or maybe, just maybe, get this UI somehow to work as a plugin/addon for native apollo webUI, to initiate multi instances from there directly
+
+## Preview
+https://github.com/user-attachments/assets/1c63ccff-df32-4b91-b838-d009cd771255
 
 
 
