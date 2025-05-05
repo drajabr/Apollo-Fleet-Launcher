@@ -317,7 +317,7 @@ HandleFleetSyncCheck(*){
 	stagedSettings["Fleet"]["SyncSettings"] := guiItems["FleetSyncCheckbox"].Value
 	; change conf file name so its recognized as synced, also, to trigger delete for non-synced config "and vice versa" on next reload 
 	for instance in stagedSettings["Fleet"]["Instances"]
-		instance.configFile := stagedSettings["Paths"]["Config"] . '\fleet-' . instance.id . stagedSettings["Fleet"]["SyncSettings"] = 1 ?  '-synced.conf' : '.conf'
+		instance.configFile := stagedSettings["Paths"]["Config"] . '\fleet-' . instance.id . (stagedSettings["Fleet"]["SyncSettings"] = 1 ?  '-synced.conf' : '.conf')
 	HandleListChange()
 }
 RefreshInstancesList(){
@@ -564,6 +564,7 @@ HandleSettingsLock(*) {
 		SaveStagedSettings()
 		Sleep (100)
 		HandleSettingsLock()
+		MsgBox(activeSettings["Fleet"]["Instances"][2].configFile)
 		return
 		; Maybe add settings.bak to restore in case new settings didn't work or so
 	}
