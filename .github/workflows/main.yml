@@ -1,0 +1,2 @@
+- name: Compile AHKV2 Script
+  uses: CCCC-L/Action-Ahk2Exe@v1.0.0
