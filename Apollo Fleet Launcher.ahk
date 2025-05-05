@@ -79,6 +79,7 @@ LoadSettingsFile(settingsFile:="settings.ini", Settings:=Map()) {
 	DefaultConfigPath := A_ScriptDir . "\config"
 	DefaultADBPath := A_ScriptDir . "\platform-tools"
 	Settings["Paths"]["Apollo"]  := IniRead(settingsFile, "Paths", "Apollo", DefaultApolloPath)
+	Settings["Paths"]["apolloExe"] := Settings["Paths"]["Apollo"] . "\sunshine.exe"
 	Settings["Paths"]["Config"]  := IniRead(settingsFile, "Paths", "Config", DefaultConfigPath)
 	Settings["Paths"]["ADBTools"]  := IniRead(settingsFile, "Paths", "ADB", DefaultADBPath)
 	
@@ -778,6 +779,17 @@ SendSigInt(pid) {
     DllCall("FreeConsole")
     return true
 }
+
+RunGetPID(exePath, args := "", workingDir := "", flags := "Hide") {
+    pid := 0
+    Run(
+        A_ComSpec " /c " '"' exePath '"' . (args ? " " . args : ""),
+        workingDir := workingDir ? workingDir : SubStr(exePath, 1, InStr(exePath, "\",, -1) - 1),
+        flags,
+        &pid
+    )
+    return pid
+}
 FleetLaunchInstances(){
 	global savedSettings
 
@@ -793,7 +805,13 @@ FleetLaunchInstances(){
 	if (currentPIDs.Length > 0)
 		for pid in currentPIDs
 			SendSigInt(pid)
-	
+	Sleep(1000) ; keep it here for now, in case we could never kill existing pids 
+	exe := savedSettings["Paths"]["apolloExe"]
+	for instance in savedSettings["Fleet"]["Instances"]
+		if instance.Enabled 
+			instance.LastKnownPID := RunGetPID(exe, instance.configFile)
+
+
 }
 
 bootstrapSettings()
