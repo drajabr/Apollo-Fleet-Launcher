@@ -9,6 +9,8 @@ Multi Instance manager for [@ClassicOldSong/Apollo](https://github.com/ClassicOl
 >  - [ ] UX: Auto setup schudles service
 >  - [ ] UX: Logging overall
 >  - [ ] GUI: Add status tab
+>  - [ ] GUI: Dark/Light theme and follow system
+>  - [ ] GUI: Instead of msgbox, add small label bar to show warning/errors when they're raised
 >  - [x] Multi-instance: Add, remove, edit multi instance
 >  - [x] Multi-instance: Read and write config files
 >  - [ ] Multi-instance: Automatically start instances

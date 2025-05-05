@@ -65,7 +65,7 @@ LoadSettingsFile(settingsFile:="settings.ini", Settings:=Map()) {
 
 	
 	;Settings["Manager"]["SchduledService"]	; TODO
-	;Settings["Manager"]["StartMinimized"]	; TODO
+	;Settings["Manager"]["StartMinimized"]	; TODO as option in the UI instead of auto save it 
 	Settings["Manager"]["cmdReload"] := IniRead(settingsFile, "Manager", "cmdReload", 0)
 	
 	Settings["Window"]["restorePosition"] := IniRead(settingsFile, "Window", "restorePosition", 1)
@@ -112,7 +112,7 @@ LoadSettingsFile(settingsFile:="settings.ini", Settings:=Map()) {
 	instance.logFile := Settings["Paths"]["Apollo"] . '\config\sunshine.log'
 	instance.stateFile := Settings["Paths"]["Apollo"] . '\config\sunshine.json'
 
-	; instance.Audio := IniRead(settingsFile, section, "Port", "") TODO
+	; instance.Audio := IniRead(settingsFile, section, "Port", "") TODO Seperate audio device for each instance through gui
 	Settings["Fleet"]["Instances"].Push(instance) ; Add the instance object to the Settings["Fleet"]["Instances"] array
 
 
@@ -202,6 +202,7 @@ AllInstancesArray(Settings){
 	return instancesList
 }
 InitmyGui() {
+	;TODO implement dark theme and follow system theme if possible 
 	global myGui, guiItems := Map()
 	TraySetIcon("shell32.dll", "19")
 	myGui := Gui("+AlwaysOnTop -MinimizeBox -MaximizeBox")
@@ -210,8 +211,8 @@ InitmyGui() {
 	guiItems["ButtonLogsShow"] := myGui.Add("Button", "x520 y101 w50 h40", "Show Logs")
 	guiItems["ButtonMinimize"] := myGui.Add("Button", "x520 y150 w50 h40", "Minimize")
 	myGui.Add("GroupBox", "x318 y0 w196 h90", "Fleet Options")
-	guiItems["FleetAutoLaunchCheckBox"] := myGui.Add("CheckBox", "x334 y16 w162 h23", "Auto Launch Multi Instance")
-	guiItems["FleetSyncVolCheckBox"] := myGui.Add("CheckBox", "x334 y40 w162 h23", "Sync Volume Levels")
+	guiItems["FleetAutoLaunchCheckBox"] := myGui.Add("CheckBox", "x334 y16 w162 h23", "Auto Launch Fleet Instances")
+	guiItems["FleetSyncVolCheckBox"] := myGui.Add("CheckBox", "x334 y40 w162 h23", "Sync Device Volume Level")
 	guiItems["FleetRemoveDisconnectCheckbox"] := myGui.Add("CheckBox", "x334 y64 w167 h23", "Remove on Disconnect")
 	myGui.Add("GroupBox", "x318 y96 w196 h95", "Android Clients")
 	guiItems["AndroidReverseTetheringCheckbox"] := myGui.Add("CheckBox", "x334 y112 w139 h23", "ADB Reverse Tethering")
@@ -304,9 +305,13 @@ TrayIconHandler(wParam, lParam, msg, hwnd) {
 }
 
 HandleCheckBoxes(*) {
-	global sessionSettings
+	global sessionSettings, guiItems
 	sessionSettings["Android"]["ReverseTethering"] := guiItems["AndroidReverseTetheringCheckbox"].Value
 	sessionSettings["Fleet"]["AutoLaunch"] := guiItems["FleetAutoLaunchCheckBox"].Value
+	launchChildren := ["FleetSyncVolCheckBox", "FleetRemoveDisconnectCheckbox"]
+	launchChildrenLock := sessionSettings["Fleet"]["AutoLaunch"] = 0
+	for item in launchChildren
+		guiItems[item].Enabled := launchChildrenLock ? 0 : 1
 	sessionSettings["Fleet"]["SyncVolume"] := guiItems["FleetSyncVolCheckBox"].Value
 	sessionSettings["Fleet"]["RemoveDisconnected"] := guiItems["FleetRemoveDisconnectCheckbox"].Value
 	UpdateButtonsLables()
@@ -391,8 +396,9 @@ HandleInstanceDeleteButton(*){
 		}
 	}
 	else
-		MsgBox("Can't delete the default entry", "Apollo Fleet Launcher - Error", "4112 T3")
-		Sleep (100)
+		MsgBox("Can't delete the default entry", "Apollo Fleet Launcher - Error", "Owner" myGui.Hwnd " 4112 T2")
+	;TODO instead of msgbox, add a statubar like to show the error in there for few seconds/until new label/error is raised
+	Sleep (100)
 }
 HandleAndroidSelector(*) {
 	global sessionSettings
@@ -449,7 +455,7 @@ HandleReloadButton(*) {
 	;	Reload
 	;} TODO : MAYBE Add a 3rd state in between Locked/Reload > Unlocked/Cancel > *Save/Cancel* > Apply/Discard > Lock / Reload ? 
 	if settingsLocked {
-		SaveSettingsFile(savedSettings, settingsFile)
+		SaveSettingsFile(savedSettings)
 		Sleep(100)
 		Reload
 	}
@@ -530,15 +536,19 @@ UpdateButtonsLables(){
 ApplyLockState(){
 	global settingsLocked, guiItems
 	textBoxes := [ "PathsApolloBox"]
-	checkBoxes := ["FleetAutoLaunchCheckBox", "FleetSyncVolCheckBox", "FleetRemoveDisconnectCheckbox", "AndroidReverseTetheringCheckbox", "AndroidMicCheckbox", "AndroidCamCheckbox", "FleetSyncCheckbox"]
+	checkBoxes := ["FleetAutoLaunchCheckBox", "AndroidReverseTetheringCheckbox", "AndroidMicCheckbox", "AndroidCamCheckbox", "FleetSyncCheckbox"]
 	Buttons := ["InstancesButtonDelete", "InstancesButtonAdd", "PathsApolloBrowseButton"]
 	Selectors := ["AndroidMicSelector", "AndroidCamSelector"]
 	Controls := ["AndroidMicCheckbox", "AndroidCamCheckbox"]
 	instanceBoxes := ["InstancesNameBox", "InstancesPortBox"]
+	launchChildren := ["FleetSyncVolCheckBox", "FleetRemoveDisconnectCheckbox"]
+	launchChildrenLock := sessionSettings["Fleet"]["AutoLaunch"] = 0
+	for item in launchChildren
+		guiItems[item].Enabled := launchChildrenLock ? 0 : (settingsLocked ? 0 : 1)
 	for checkBox in checkBoxes
-		guiItems[checkBox].Enabled := (settingsLocked ? false : true)
+		guiItems[checkBox].Enabled := (settingsLocked ? 0 : 1)
 	for button in Buttons
-		guiItems[button].Enabled := (settingsLocked ? false : true)
+		guiItems[button].Enabled := (settingsLocked ? 0 : 1)
 	for textBox in textBoxes
 		guiItems[textbox].Opt(settingsLocked ? "+ReadOnly" : "-ReadOnly")
 	for textBox in instanceBoxes
@@ -554,7 +564,7 @@ SaveStagedSettings(){
 	sessionSettings["Window"] := savedSettings["Window"]
 }
 HandleSettingsLock(*) {
-    global guiItems, settingsLocked, savedSettings, sessionSettings, settingsFile
+    global guiItems, settingsLocked, savedSettings, sessionSettings
 	UpdateButtonsLables()
 	if !sessionSettingsWaiting() {
 		settingsLocked := !settingsLocked
@@ -577,7 +587,7 @@ ExitMyApp() {
 	UpdateWindowPosition()
 	sessionSettings["Manager"] := savedSettings["Manager"]
 	sessionSettings["Window"] := savedSettings["Window"]
-	SaveSettingsFile(savedSettings, settingsFile)
+	SaveSettingsFile(savedSettings)
 	Sleep (100)
 	myGui.Destroy()
 	ExitApp()
@@ -623,7 +633,7 @@ ShowmyGui() {
 	global myGui, savedSettings
 	if savedSettings["Manager"]["cmdReload"] = 1 {
 		savedSettings["Manager"]["cmdReload"] = 0
-		SaveSettingsFile(savedSettings, settingsFile)
+		SaveSettingsFile(savedSettings)
 		RestoremyGui()
 	} else if (savedSettings["Window"]["lastState"] = 1) {
 		if (savedSettings["Window"]["restorePosition"]){
@@ -638,8 +648,9 @@ ShowmyGui() {
 }
 
 
-FleetInit(*){
+FleetConfigInit(*){
 	global savedSettings
+	
 	; clean and prepare conf directory
 	if !DirExist(savedSettings["Paths"]["Config"])	
 		DirCreate(savedSettings["Paths"]["Config"])
@@ -679,17 +690,8 @@ FleetInit(*){
 				ConfWrite(instance.configFile, thisConf)
 			instance.LastConfigUpdate := FileGetTime(instance.configFile, "M" ) ; TODO implement this: only update if there's need/change
 		}
-	}
-	; TODO Validate settings and reset invalid ones, clear invalid instances
-	; TODO Keep the last remembered PIDs if they are still running
-	; test them "maybe wget or sorta" 
-	; kill the rest 
-
-	; if AutoLaunch is set, check for schduleded task, add it if missing, enable it if disabled
-	; else disable it ;;; EDIT: AutoLaunch will be used to determine if we launch these instances or not at all
-	;							TODO Introduce Auto run at startup setting to specifically do that 
-
-
+	} 
+	
 	if savedSettings["Fleet"]["AutoLaunch"]
 		SetTimer LogWatchDog, -1
 
@@ -708,48 +710,126 @@ FleetInit(*){
 }
 
 FleetLaunch(*){
-
 }
 
 LogWatchDog(*){
-
 }
 
 FleetSyncVolume(*){
-
 }
 
 FleetRemoveDisconnected(*){
-
 }
 
 FleetSyncSettings(*){
-
 }
 
 ADBWatchDog(*){
-
 }
 
 
 
-settingsFile := A_ScriptDir "\settings.ini"
+bootstrapSettings() {
+	global savedSettings := Map(), sessionSettings := Map()
 
-global savedSettings := Map(), sessionSettings := Map()
+	LoadSettingsFile(, sessionSettings)
+	SaveStagedSettings()
+	;MsgBox(sessionSettings["Fleet"]["Instances"][1].Name)
+}
+bootstrapGUI(){
+	global savedSettings
+	InitmyGui()
+	ApplyLockState()
+	ReflectSettings(savedSettings)
+	ShowmyGui()
+	InitmyGuiEvents()
+	InitTray()
+}
+PIDsListFromExeName(name) {
+    static wmi := ComObjGet("winmgmts:\\.\root\cimv2")
+    
+    if (name == "")
+        return
 
-LoadSettingsFile(settingsFile, sessionSettings)
-SaveStagedSettings()
-;MsgBox(sessionSettings["Fleet"]["Instances"][1].Name)
+    PIDs := []
+    for Process in wmi.ExecQuery("SELECT * FROM Win32_Process WHERE Name = '" name "'")
+        PIDs.Push(Process.processId)
 
-InitmyGui()
-ApplyLockState()
-ReflectSettings(savedSettings)
-ShowmyGui()
-InitmyGuiEvents()
-InitTray()
+    return PIDs 
+}
+SendSigInt(pid) {
+    ; 1. Tell this script to ignore Ctrl+C and Ctrl+Break
+    DllCall("SetConsoleCtrlHandler", "Ptr", 0, "UInt", 1)
 
-SetTimer FleetInit, -1
+    ; 2. Detach from current console, attach to target's
+    DllCall("FreeConsole")
+    if !DllCall("AttachConsole", "UInt", pid) {
+        MsgBox "Failed to attach to target console"
+        return false
+    }
+    ; 3. Send Ctrl+C (SIGINT) to all processes in that console (including the target)
+    if !DllCall("GenerateConsoleCtrlEvent", "UInt", 0, "UInt", 0) {
+        MsgBox "Failed to send SIGINT"
+        DllCall("FreeConsole")
+        return false
+    }
+    Sleep 200  ; Give the target process time to exit gracefully
+    ; 4. Detach again
+    DllCall("FreeConsole")
+    return true
+}
+FleetLaunchInstances(){
+	global savedSettings
 
+	; get currently running PIDs 
+	; terminate anything unknown to us
+	; if any PID is known try to test it and reuse it if it is still working "TODO maybe add option to start clean"
+	; TODO its time to make settings load/save work for single setting group
+	; start instances and register write PIDs in settings file 
+
+	; for now, lets just kill any exisiting proccess 
+
+	currentPIDs := PIDsListFromExeName("sunshine.exe")
+	if (currentPIDs.Length > 0)
+		for pid in currentPIDs
+			SendSigInt(pid)
+	
+}
+
+bootstrapSettings()
+bootstrapGUI()
+
+if savedSettings["Fleet"]["AutoLaunch"] {
+	; TODO Disable default service and create/enable ours 
+	FleetConfigInit()
+	FleetLaunchInstances()	; check previous ones > if they're valid keep them 
+	;timer 1000 FleetCheckInstances() ; this is a combination of instance check/ logmonitor for connected/disconnected events/ 
+	; if enabled, start timer 50 SyncVolume to try sync volume as soon as client connects, probably can verify it too "make it smart not dumb"
+	; if enabled, start timer 50 ForceClose to try send SIGINT to instance once client disconnected > the rest should be cought by FleetCheckInstances to relaunch it again "if it didn't relaunch by itself" 
+} 
+if savedSettings["Android"]["ReverseTethering"]{
+	; AndroidStartGnirehtet() ; check existing > test it > if invalid start new one, until this is a reload; kill it!
+	; timer 1000 AndroidCheckGnirehtet() Possibily we can do it smart way to check if its still alive/there's connections
+}
+if savedSettings["Android"]["MicEnable"] || savedSettings["Android"]["CamEnable"] {
+	; here we sadly need to kill every existing adb.exe process, possibly via kill-server adb command
+	; timer 1000 AndroidDevicesList() ; to keep track of currently connected, and disconnected devices with their IDs and time of connection/disconnection and previous time too "maybe we can do something smarter here too"
+	if savedSettings["Android"]["MicEnable"]{
+		; if the existing scrcpy proccess is ours, and it was created for the same devID keep it, until this is a reload; kill it!
+		; check if the micID is non-empty maybe we can do this in a loop as it doesn't really need reload to apply if changed
+		; if 
+	}
+}
 ; ───── Keep script alive ─────
 While true
     Sleep(100)
+
+	; TODO Validate settings and reset invalid ones, clear invalid instances
+	; TODO Keep the last remembered PIDs if they are still running
+	; test them "maybe wget or sorta" 
+	; kill the rest 
+
+	; if AutoLaunch is set, check for schduleded task, add it if missing, enable it if disabled
+	; else disable it ;;; EDIT: AutoLaunch will be used to determine if we launch these instances or not at all
+	;							TODO Introduce Auto run at startup setting to specifically do that 
+
