@@ -4,7 +4,7 @@ A simple tool to configure multiple instances of [@ClassicOldSong/Apollo](https:
 # Current Status
 [![Build](https://github.com/drajabr/Apollo-Fleet-Launcher/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/drajabr/Apollo-Fleet-Launcher/actions/workflows/main.yml)
 
-TLDR: Basic functionality: You can create multiple instance and it will start them on reload.
+TLDR: Basic functionality: You can create multiple instance and it will start them on reload. 
 
 
 > [!WARNING]
