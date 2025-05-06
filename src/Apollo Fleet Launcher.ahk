@@ -205,7 +205,7 @@ AllInstancesArray(Settings){
 InitmyGui() {
 	;TODO implement dark theme and follow system theme if possible 
 	global myGui, guiItems := Map()
-	TraySetIcon("shell32.dll", "19")
+	TraySetIcon("../assets/9.png")
 	myGui := Gui("+AlwaysOnTop -MinimizeBox -MaximizeBox")
 	guiItems["ButtonLockSettings"] := myGui.Add("Button", "x520 y5 w50 h40", "🔒")
 	guiItems["ButtonReload"] := myGui.Add("Button", "x520 y50 w50 h40", "Reload")

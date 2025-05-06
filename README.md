@@ -52,3 +52,5 @@ https://github.com/user-attachments/assets/1c63ccff-df32-4b91-b838-d009cd771255
 Everyone at [AHK Forums](https://www.autohotkey.com/boards/) for their contributions.
 
 [@CCCC-L](https://github.com/CCCC-L) For the [AHK v2 Actions template](https://github.com/CCCC-L/Action-Ahk2Exe).
+
+[@alfvar](https://github.com/alfvar) For adding icon support commit in his repo [AHK v2 Actions template](https://github.com/alfvar/action-ahk2exe)
