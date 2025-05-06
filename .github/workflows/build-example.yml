@@ -19,10 +19,10 @@ jobs:
       uses: CCCC-L/Action-Ahk2Exe@main
       with:
         in: "Apollo Fleet Launcher.ahk"
-        out: "dist/ApolloFleet-Launcher.exe"
+        out: "ApolloFleet-Launcher.exe"
 
     - name: Upload build artifact
       uses: actions/upload-artifact@v4
       with:
         name: ApolloFleet-Launcher.exe
-        path: dist/ApolloFleet-Launcher.exe
+        path: ApolloFleet-Launcher.exe
