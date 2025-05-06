@@ -1,9 +1,7 @@
 name: Build
 
 on:
-  push:
-    tags:
-      - 'v*'  # Only run on version tags like v1.0.0
+  push
 
 jobs:
   build:
