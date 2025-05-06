@@ -18,10 +18,10 @@ jobs:
     - name: Compile AHK script
       uses: drajabr/Action-Ahk2Exe@main
       with:
-        in: "src/Apollo Fleet Launcher.ahk"
+        in: "Apollo Fleet Launcher.ahk"
 
     - name: Upload build artifact
       uses: actions/upload-artifact@v4
       with:
         name: ApolloFleet
-        path: src/Apollo Fleet Launcher.exe
+        path: Apollo Fleet Launcher.exe
