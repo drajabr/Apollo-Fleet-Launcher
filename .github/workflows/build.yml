@@ -23,6 +23,9 @@ jobs:
         in: "src/Apollo Fleet Launcher.ahk"
         out: "dist/ApolloFleet-${{ env.VERSION }}.exe"
         icon: "assets/9.png"
+        
+    - name: List output files
+      run: Get-ChildItem -Recurse dist
 
     - name: Upload build artifact
       uses: actions/upload-artifact@v4
