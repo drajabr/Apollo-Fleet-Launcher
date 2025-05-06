@@ -22,7 +22,7 @@ jobs:
         out: "dist/ApolloFleet-Launcher.exe"
 
     - name: Upload build artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ApolloFleet-Launcher.exe
         path: dist/ApolloFleet-Launcher.exe
