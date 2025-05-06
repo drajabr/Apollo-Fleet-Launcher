@@ -18,11 +18,11 @@ jobs:
       run: echo "VERSION=$($env:GITHUB_REF -replace 'refs/tags/', '')" >> $env:GITHUB_ENV
 
     - name: Compile AHK script
-      uses: drajabr/Action-Ahk2Exe@main
-      with:
-        in: "src/Apollo Fleet Launcher.ahk"
-        out: "dist/ApolloFleet-${{ env.VERSION }}.exe"
-        icon: "assets/9.png"
+      run: |
+        & autohotkey\Ahk2Exe.exe /in "src/Apollo Fleet Launcher.ahk" `
+        /out "dist/ApolloFleet-${Env:VERSION}.exe" `
+        /icon "assets/9.png" `
+        /base "${Env:BaseFile}"
         
     - name: List output files
       run: Get-ChildItem -Recurse dist
