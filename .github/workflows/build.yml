@@ -2,7 +2,7 @@ name: Build
 
 on:
   push
-
+  
 jobs:
   build:
     runs-on: windows-latest
@@ -13,16 +13,19 @@ jobs:
 
     - name: Extract tag version
       id: version
-      run: echo "VERSION=$($env:GITHUB_REF -replace 'refs/tags/', '')" >> $env:GITHUB_ENV
+      shell: pwsh
+      run: |
+        $version = $env:GITHUB_REF -replace 'refs/tags/', ''
+        echo "VERSION=$version" >> $env:GITHUB_ENV
 
     - name: Compile AHK script
       uses: drajabr/Action-Ahk2Exe@main
       with:
         in: Apollo Fleet Launcher.ahk
-        out: ${{ github.workspace }}/Apollo Fleet Launcher.exe
+        out: Apollo Fleet Launcher.exe
 
     - name: Upload build artifact
       uses: actions/upload-artifact@v4
       with:
-        name: ApolloFleet
-        path: ${{ github.workspace }}/Apollo Fleet Launcher.exe
+        name: Apollo Fleet Launcher.exe
+        path: Apollo Fleet Launcher.exe
