@@ -2,7 +2,7 @@
 A simple tool to configure multiple instances of [@ClassicOldSong/Apollo](https://github.com/ClassicOldSong/Apollo) for streaming multi monitor mode, mainly targeting desktop use case where multi devices like android tablets can be used as Plug and play external monitor.
 
 # Current Status
-[![Build](https://github.com/drajabr/Apollo-Fleet-Launcher/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/drajabr/Apollo-Fleet-Launcher/actions/workflows/main.yml)
+[![Build](https://github.com/drajabr/Apollo-Fleet-Launcher/actions/workflows/build.yml/badge.svg)](https://github.com/drajabr/Apollo-Fleet-Launcher/actions/workflows/build.yml) [![Release](https://github.com/drajabr/Apollo-Fleet-Launcher/actions/workflows/release.yml/badge.svg)](https://github.com/drajabr/Apollo-Fleet-Launcher/actions/workflows/release.yml)
 
 TLDR: Basic functionality: You can create multiple instance and it will start them on reload. 
 
