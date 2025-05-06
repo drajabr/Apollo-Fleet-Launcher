@@ -16,10 +16,10 @@ jobs:
     - name: Ahk2Exe
       uses: CCCC-L/Action-Ahk2Exe@main
       with:
-        in: Apollo Fleet Manager.ahk
+        in: Apollo Fleet Launcher.ahk
 
     - name: Release
       uses: actions/upload-artifact@master
       with:
-        name: Apollo Fleet Manager
-        path: Apollo Fleet Manager.exe
+        name: Apollo Fleet Launcher
+        path: Apollo Fleet Launcher.exe
