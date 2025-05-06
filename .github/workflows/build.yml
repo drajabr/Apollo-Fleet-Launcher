@@ -25,7 +25,7 @@ jobs:
     - name: Compile AHK script
       uses: drajabr/Action-Ahk2Exe@main
       with:
-        in: src/Apollo Fleet Launcher.ahk
+        in: src/Apollo Fleet.ahk
         out: ${{ github.workspace }}/src/ApolloFleet-${{ env.VERSION }}.exe  # Use a fixed name during compilation
         icon: ${{ github.workspace }}/assets/9.ico
 

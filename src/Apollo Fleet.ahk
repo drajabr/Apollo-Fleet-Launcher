@@ -71,8 +71,8 @@ LoadSettingsFile(settingsFile:="settings.ini", Settings:=Map()) {
 	Settings["Window"]["restorePosition"] := IniRead(settingsFile, "Window", "restorePosition", 1)
 	Settings["Window"]["xPos"] := IniRead(settingsFile, "Window", "xPos", (A_ScreenWidth - 580) / 2)
 	Settings["Window"]["yPos"] := IniRead(settingsFile, "Window", "yPos", (A_ScreenHeight - 198) / 2)
-	Settings["Window"]["lastState"] := IniRead(settingsFile, "Window", "lastState", true)
-	Settings["Window"]["logShow"] := IniRead(settingsFile, "Window", "logShow", true)
+	Settings["Window"]["lastState"] := IniRead(settingsFile, "Window", "lastState", 1)
+	Settings["Window"]["logShow"] := IniRead(settingsFile, "Window", "logShow", 1)
 
 
 	DefaultApolloPath := "C:\Program Files\Apollo"
@@ -105,8 +105,8 @@ LoadSettingsFile(settingsFile:="settings.ini", Settings:=Map()) {
 	instance.id := 0
 	instance.Name := ConfRead(defaultConfFile, "sunshine_name", "default instance")
 	instance.Port := ConfRead(defaultConfFile, "port", "47989")
-	instance.Enabled := 0
-	instance.LastKnownPID := 0
+	instance.Enabled := Settings["Fleet"]["SyncSettings"] ? 1 : 0
+	instance.LastKnownPID := [0,0]
 	instance.LastConfigUpdate := 0
 	instance.LastReadLogLine := 0
 	instance.configFile := Settings["Paths"]["Apollo"] . '\config\sunshine.conf'
@@ -128,10 +128,10 @@ LoadSettingsFile(settingsFile:="settings.ini", Settings:=Map()) {
             instance.id := IsNumber(SubStr(section, 9 )) ? SubStr(section, 9 ) : index
             instance.Name := IniRead(settingsFile, section, "Name", "instance" . index)
             instance.Port := IniRead(settingsFile, section, "Port", 10000 + index * 1000)
-			instance.Enabled := IniRead(settingsFile, section, "Enabled", true)
-			instance.LastKnownPID := IniRead(settingsFile, section, "LastKnownPID", false)
-			instance.LastConfigUpdate := IniRead(settingsFile, section, "LastConfigUpdate", false)
-			instance.LastReadLogLine := IniRead(settingsFile, section, "LastReadLogLine", false)
+			instance.Enabled := IniRead(settingsFile, section, "Enabled", 1)
+			instance.LastKnownPID := IniRead(settingsFile, section, "LastKnownPID", [0,0])
+			instance.LastConfigUpdate := IniRead(settingsFile, section, "LastConfigUpdate", 0)
+			instance.LastReadLogLine := IniRead(settingsFile, section, "LastReadLogLine", 0)
 
 			instance.configFile := Settings["Paths"]["Config"] . '\fleet-' . instance.id . (Settings["Fleet"]["SyncSettings"] = 1 ?  '-synced.conf' : '.conf')
 			instance.logFile := Settings["Paths"]["Config"] . '\fleet-' . instance.id . '.log'
@@ -243,7 +243,7 @@ InitmyGui() {
 	guiItems["InstancesButtonAdd"] := myGui.Add("Button", "x49 y155 w71 h23", "Add")
 	guiItems["InstancesButtonDelete"] := myGui.Add("Button", "x16 y155 w27 h23", "✖")
 	guiItems["LogTextBox"] := myGui.Add("Edit", "x8 y199 w562 h393 -VScroll +ReadOnly")
-	myGui.Title := "Apollo Fleet Launcher"
+	myGui.Title := "Apollo Fleet Manager"
 }
 InitTray(){
 	global myGui
@@ -323,6 +323,7 @@ HandleCheckBoxes(*) {
 HandleFleetSyncCheck(*){
 	global sessionSettings, guiItems
 	sessionSettings["Fleet"]["SyncSettings"] := guiItems["FleetSyncCheckbox"].Value
+	sessionSettings["Fleet"]["Instances"][0].Enabled := sessionSettings["Fleet"]["SyncSettings"]
 	; change conf file name so its recognized as synced, also, to trigger delete for non-synced config "and vice versa" on next reload 
 	for instance in sessionSettings["Fleet"]["Instances"]
 		instance.configFile := sessionSettings["Paths"]["Config"] . '\fleet-' . instance.id . (sessionSettings["Fleet"]["SyncSettings"] = 1 ?  '-synced.conf' : '.conf')
@@ -338,10 +339,10 @@ HandlePortChange(*){
 	global sessionSettings, guiItems
 	selectedEntryIndex := guiItems["InstancesListBox"].Value
 	newPort := guiItems["InstancesPortBox"].Value = "" ? sessionSettings["Fleet"]["Instances"][selectedEntryIndex].Port : guiItems["InstancesPortBox"].Value 
-	valid := (1024 < newPort && newPort < 65000) ? true : false
+	valid := (1024 < newPort && newPort < 65000) ? 1 : 0
 	for instance in sessionSettings["Fleet"]["Instances"]
 		if (instance.Port = newPort)
-			valid := false
+			valid := 0
 	if valid {
 		sessionSettings["Fleet"]["Instances"][selectedEntryIndex].Port := newPort
 		myLink := "https://localhost:" . sessionSettings["Fleet"]["Instances"][(sessionSettings["Fleet"]["SyncSettings"] = 1 ? 1 : currentlySelectedIndex)].Port+1
@@ -371,7 +372,7 @@ HandleInstanceAddButton(*){
 	instance.Port := instance.id = 1 ? 10000 : sessionSettings["Fleet"]["Instances"][-1].port + 1000
 	instance.Name := "Instance " . instance.Port
 	instance.Enabled := 1
-	instance.LastKnownPID := 0
+	instance.LastKnownPID := [0,0]
 	instance.LastConfigUpdate := 0
 	instance.LastReadLogLine := 0
 	instance.configFile := sessionSettings["Paths"]["Config"] . '\fleet-' . instance.id . '.conf'
@@ -399,7 +400,7 @@ HandleInstanceDeleteButton(*){
 		}
 	}
 	else
-		MsgBox("Can't delete the default entry", "Apollo Fleet Launcher - Error", "Owner" myGui.Hwnd " 4112 T2")
+		MsgBox("Can't delete the default entry", "Apollo Fleet Manager - Error", "Owner" myGui.Hwnd " 4112 T2")
 	;TODO instead of msgbox, add a statubar like to show the error in there for few seconds/until new label/error is raised
 	Sleep (100)
 }
@@ -458,7 +459,7 @@ HandleReloadButton(*) {
 	;	Reload
 	;} TODO : MAYBE Add a 3rd state in between Locked/Reload > Unlocked/Cancel > *Save/Cancel* > Apply/Discard > Lock / Reload ? 
 	if settingsLocked {
-		SaveSettingsFile(savedSettings)
+		SaveSettingsFile(sessionSettings)
 		Sleep(100)
 		Reload
 	}
@@ -559,7 +560,7 @@ ApplyLockState(){
 	for i, selector in Selectors
 		guiItems[selector].Enabled := settingsLocked ? 0 : guiItems[Controls[i]].Value
 }
-global settingsLocked := true
+global settingsLocked := 1
 SaveStagedSettings(){
 	global sessionSettings, savedSettings
 	savedSettings := DeepClone(sessionSettings)
@@ -610,11 +611,11 @@ MinimizemyGui(*) {
 	Sleep (100)
 }
 RestoremyGui() {
-	global myGui, savedSettings
+	global myGui, sessionSettings
 
-	h := (savedSettings["Window"]["logShow"] = 0 ? 198 : 600)
-	x := savedSettings["Window"]["xPos"]
-	y := savedSettings["Window"]["yPos"]
+	h := (sessionSettings["Window"]["logShow"] = 0 ? 198 : 600)
+	x := sessionSettings["Window"]["xPos"]
+	y := sessionSettings["Window"]["yPos"]
 
 	xC := (A_ScreenWidth - 580)/2 
 	yC := (A_ScreenHeight - h)/2
@@ -633,16 +634,16 @@ RestoremyGui() {
 	Sleep (100)
 }
 ShowmyGui() {
-	global myGui, savedSettings
-	if savedSettings["Manager"]["cmdReload"] = 1 {
-		savedSettings["Manager"]["cmdReload"] = 0
-		SaveSettingsFile(savedSettings)
+	global myGui, sessionSettings
+	if sessionSettings["Manager"]["cmdReload"] = 1 {
+		sessionSettings["Manager"]["cmdReload"] = 0
+		SaveSettingsFile(sessionSettings)
 		RestoremyGui()
-	} else if (savedSettings["Window"]["lastState"] = 1) {
-		if (savedSettings["Window"]["restorePosition"]){
-			savedSettings["Window"]["restorePosition"] := 0
+	} else if (sessionSettings["Window"]["lastState"] = 1) {
+		if (sessionSettings["Window"]["restorePosition"]){
+			sessionSettings["Window"]["restorePosition"] := 0
 			RestoremyGui()
-			savedSettings["Window"]["restorePosition"] := 1
+			sessionSettings["Window"]["restorePosition"] := 1
 		} else
 			RestoremyGui()
 	} else
@@ -660,11 +661,11 @@ FleetConfigInit(*){
 	configDir := savedSettings["Paths"]["Config"]
 	; to delete any unexpected file "such as residual config/log"
 	Loop Files configDir . '\*.*' {
-		fileIdentified := false
+		fileIdentified := 0
 		for instance in savedSettings["Fleet"]["Instances"]{
 
 			if A_LoopFileFullPath = instance.configFile || A_LoopFileFullPath = instance.logFile || A_LoopFileFullPath = instance.stateFile   {
-				fileIdentified := true
+				fileIdentified := 1
 				break
 			}
 		}
@@ -768,29 +769,40 @@ SendSigInt(pid) {
     DllCall("FreeConsole")
     if !DllCall("AttachConsole", "UInt", pid) {
         MsgBox "Failed to attach to target console"
-        return false
+        return 0
     }
     ; 3. Send Ctrl+C (SIGINT) to all processes in that console (including the target)
     if !DllCall("GenerateConsoleCtrlEvent", "UInt", 0, "UInt", 0) {
         MsgBox "Failed to send SIGINT"
         DllCall("FreeConsole")
-        return false
+        return 0
     }
     Sleep 200  ; Give the target process time to exit gracefully
     ; 4. Detach again
     DllCall("FreeConsole")
-    return true
+    return 1
 }
 
-RunGetPID(exePath, args := "", workingDir := "", flags := "Hide") {
-    pid := 0
+RunAndGetPID(exePath, args := "", workingDir := "", flags := "Hide") {
+    consolePID := 0
+	apolloPID := 0
+	pids := []
     Run(
         A_ComSpec " /c " '"' exePath '"' . (args ? " " . args : ""),
         workingDir := workingDir ? workingDir : SubStr(exePath, 1, InStr(exePath, "\",, -1) - 1),
         flags,
-        &pid
-    )
-    return pid
+        &consolePID
+    ) ; TODO issue here is we get the console PID, not the PID for the processes itself
+	  ; HOW we will later keep the pid of the processes if we don't have it? TODO
+	  ; And we can't send SIGINT directly to the PID itself btw so in case of orphan PIDs will have to terminate it.
+	  ; DONE we just need to keep both console PID (used to send SIGINT) and apollo PID (to not kill it if still usable)
+	for process in ComObject("WbemScripting.SWbemLocator").ConnectServer().ExecQuery("Select * from Win32_Process where ParentProcessId=" consolePID)
+		if InStr(process.CommandLine, exePath) {
+			apolloPID := process.ProcessId
+			break
+		}
+		
+	return [consolePID, apolloPID]
 }
 FleetLaunchInstances(){
 	global savedSettings
@@ -806,14 +818,17 @@ FleetLaunchInstances(){
 	currentPIDs := PIDsListFromExeName("sunshine.exe")
 	if (currentPIDs.Length > 0)
 		for pid in currentPIDs
+			if pid in savedSettings["Fleet"]["Instances"]
 			SendSigInt(pid)
-	Sleep(1000) ; keep it here for now, in case we could never kill existing pids 
+	Sleep(1000) ; keep it here for now,  
 	exe := savedSettings["Paths"]["apolloExe"]
 	for instance in savedSettings["Fleet"]["Instances"]
 		if instance.Enabled 
-			instance.LastKnownPID := RunGetPID(exe, instance.configFile)
+			instance.LastKnownPID := RunAndGetPID(exe, instance.configFile)	; start the instance and keep its PID
+	MsgBox(savedSettings["Fleet"]["Instances"][1].LastKnownPID[2])
 
-
+	; HERE i figured out we need one more settings store, runtimeSettings, that is doesn't get overwritten when sessionSettings changed/discarded
+	; It will be useful for window, manager, and settings used for store for variables that doesn't tolerate changes being discarded! 
 }
 
 bootstrapSettings()
@@ -841,7 +856,7 @@ if savedSettings["Android"]["MicEnable"] || savedSettings["Android"]["CamEnable"
 	}
 }
 ; ───── Keep script alive ─────
-While true
+While 1
     Sleep(100)
 
 	; TODO Validate settings and reset invalid ones, clear invalid instances
