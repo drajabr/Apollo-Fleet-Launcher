@@ -1,9 +1,7 @@
 name: Build
 
 on:
-  push:
-    branches:
-      - main
+  push
 
 jobs:
   build:
@@ -11,15 +9,24 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
-    - name: Ahk2Exe
-      uses: CCCC-L/Action-Ahk2Exe@main
+    - name: Extract tag version
+      id: version
+      shell: pwsh
+      run: |
+        $version = $env:GITHUB_REF -replace 'refs/tags/', ''
+        echo "VERSION=$version" >> $env:GITHUB_ENV
+
+    - name: Compile AHK script
+      uses: drajabr/Action-Ahk2Exe@main
       with:
         in: Apollo Fleet Launcher.ahk
+        out: Apollo Fleet Launcher.exe
 
-    - name: Release
-      uses: actions/upload-artifact@master
+    - name: Upload build artifact
+      uses: actions/upload-artifact@v4
       with:
-        name: Apollo Fleet Launcher
+        name: Apollo Fleet Launcher.exe
         path: Apollo Fleet Launcher.exe
+        
