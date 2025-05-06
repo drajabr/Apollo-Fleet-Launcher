@@ -5,24 +5,21 @@ A simple tool to configure multiple instances of [@ClassicOldSong/Apollo](https:
 
 # Current Status
 * v0.0.1 - Preview release - basic functionality
-  * Create and save config files.
-  * Start multiple instances them on app start/reload.
-  * Minimize to tray and restore properly.
-
+  - [x] GUI: Basic functional GUI elements
+  - [x] GUI: Load, Edit, and Save settings
+  - [x] GUI: minimize, close, show/hide logs area
+  - [x] Multi-instance: Add, remove, edit multi instance
+  - [x] Multi-instance: Read and write config files
+  - [X] Multi-instance: Automatically start instances
 
 > [!WARNING]
 >  [WIP] The following are the planned functionality and their current status:
->  - [x] GUI: Basic functional GUI elements
->  - [x] GUI: Load, Edit, and Save settings
->  - [x] GUI: minimize, close, show/hide logs area
+
 >  - [ ] UX: Auto setup task scheduler service
 >  - [ ] UX: Logging overall
 >  - [ ] GUI: Add status tab
 >  - [ ] GUI: Dark/Light theme and follow system
 >  - [ ] GUI: Instead of msgbox, add small label bar to show warning/errors when they're raised
->  - [x] Multi-instance: Add, remove, edit multi instance
->  - [x] Multi-instance: Read and write config files
->  - [X] Multi-instance: Automatically start instances
 >  - [ ] Multi-instance: test and preserve the already running instances (hopefully API keys/auth will be implemented to make this more robust than wget/curl test)
 >  - [ ] Multi-instance: Sync volume level (client volume level actually change if changing the volume from inside the host)
 >  - [ ] Multi-instance: Remove display on client disconnect
@@ -30,7 +27,7 @@ A simple tool to configure multiple instances of [@ClassicOldSong/Apollo](https:
 >  - [ ] Android-clients: Maintain gnirehtet auto tunnel for reverse tethering
 >  - [ ] Android-clients: Use the device mic to the host using scrcpy
 >  - [ ] Android-clients: Start DroidCamX on the client to use it as a cam
->  - [x] Android-clients: Automate launch script to auto connect to the desired instance
+>  - [ ] Android-clients: Automate launch script to auto connect to the desired instance
 >  - [ ] Experience-enhancement: Make it easier to setup launch extra parameters (probably using another automate script? or consult @classicOldSong for ways to connect with just computer name and app name)
 >  - [ ] Experience-enhancement: Option to use AndroidMic as legacy devices (below Android 10 i guess where scrcpy mic recording is not supported)
 >  - [ ] Experience-enhancement: Option to use cam using scrcpy for Android12+ devices
