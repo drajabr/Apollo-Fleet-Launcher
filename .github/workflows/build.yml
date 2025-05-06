@@ -16,7 +16,7 @@ jobs:
       run: echo "VERSION=$($env:GITHUB_REF -replace 'refs/tags/', '')" >> $env:GITHUB_ENV
 
     - name: Compile AHK script
-      uses: CCCC-L/Action-Ahk2Exe@main
+      uses: drajabr/Action-Ahk2Exe@main
       with:
         in: "src/Apollo Fleet Launcher.ahk"
 
