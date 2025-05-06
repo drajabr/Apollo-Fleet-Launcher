@@ -2,7 +2,7 @@ name: Build
 
 on:
   push
-  
+
 jobs:
   build:
     runs-on: windows-latest
@@ -24,8 +24,18 @@ jobs:
         in: Apollo Fleet Launcher.ahk
         out: Apollo Fleet Launcher.exe
 
+    - name: Create a text file
+      run: |
+        echo "Hello from GitHub Actions!" > example.txt
+
     - name: Upload build artifact
       uses: actions/upload-artifact@v4
       with:
         name: Apollo Fleet Launcher.exe
         path: Apollo Fleet Launcher.exe
+        
+    - name: Upload file as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: example.txt
+        path: example.txt
