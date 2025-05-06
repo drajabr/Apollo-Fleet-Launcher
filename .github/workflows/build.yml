@@ -23,6 +23,7 @@ jobs:
       with:
         in: src/Apollo Fleet Launcher.ahk
         out: Apollo Fleet Launcher.exe
+        icon: assets/9.png
 
     - name: Upload build artifact
       uses: actions/upload-artifact@v4
