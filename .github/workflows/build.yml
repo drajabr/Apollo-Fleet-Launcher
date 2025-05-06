@@ -15,7 +15,7 @@ jobs:
 
     - name: Extract tag version
       id: version
-      run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+      run: echo "VERSION=$($env:GITHUB_REF -replace 'refs/tags/', '')" >> $env:GITHUB_ENV
 
     - name: Compile AHK script
       uses: drajabr/Action-Ahk2Exe@main
