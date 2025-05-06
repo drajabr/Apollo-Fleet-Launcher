@@ -30,7 +30,7 @@ jobs:
         powershell Compress-Archive -Path "ApolloFleet-Launcher.exe" -DestinationPath "ApolloFleet-Launcher-${{ env.VERSION }}.zip"
 
     - name: Upload build artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ahk-zip-${{ env.VERSION }}
         path: dist/ApolloFleet-Launcher-${{ env.VERSION }}.zip
