@@ -21,11 +21,11 @@ jobs:
       uses: drajabr/Action-Ahk2Exe@main
       with:
         in: "src/Apollo Fleet Launcher.ahk"
-        out: "../ApolloFleet-${{ env.VERSION }}.exe"
+        out: "ApolloFleet-${{ env.VERSION }}.exe"
         icon: "assets/9.png"
 
     - name: Upload build artifact
       uses: actions/upload-artifact@v4
       with:
         name: ApolloFleet-${{ env.VERSION }}
-        path: ApolloFleet-${{ env.VERSION }}.exe
+        path: src/ApolloFleet-${{ env.VERSION }}.exe
