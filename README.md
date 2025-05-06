@@ -4,7 +4,10 @@ A simple tool to configure multiple instances of [@ClassicOldSong/Apollo](https:
 [![Build](https://github.com/drajabr/Apollo-Fleet-Launcher/actions/workflows/build.yml/badge.svg)](https://github.com/drajabr/Apollo-Fleet-Launcher/actions/workflows/build.yml)
 
 # Current Status
-TLDR: Basic functionality: You can create multiple instance and it will start them on reload. 
+* v0.0.1 - Preview release - basic functionality
+  * Create and save config files.
+  * Start multiple instances them on app start/reload.
+  * Minimize to tray and restore properly.
 
 
 > [!WARNING]
