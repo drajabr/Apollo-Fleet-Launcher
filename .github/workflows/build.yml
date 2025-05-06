@@ -35,3 +35,5 @@ jobs:
         tag_name: ${{ env.VERSION }}
         files: |
           src/ApolloFleet-${{ env.VERSION }}.exe
+        prerelease: true  # This marks the release as a pre-release
+        generate_release_notes: true
