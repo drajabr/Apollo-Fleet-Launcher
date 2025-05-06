@@ -1,4 +1,8 @@
 *.config
 *.ini
 *.log
+<<<<<<< HEAD
 *.json
+=======
+*.json
+>>>>>>> 0f0e69cfab66e66f68f764320413f957daeb2c76
