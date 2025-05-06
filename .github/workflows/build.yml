@@ -1,7 +1,9 @@
-name: Build
+name: Install ahkv2 on Windows
 
 on:
-  push
+  push:
+    branches:
+      - main
 
 jobs:
   build:
@@ -9,33 +11,15 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v2
 
-    - name: Extract tag version
-      id: version
-      shell: pwsh
-      run: |
-        $version = $env:GITHUB_REF -replace 'refs/tags/', ''
-        echo "VERSION=$version" >> $env:GITHUB_ENV
-
-    - name: Compile AHK script
-      uses: drajabr/Action-Ahk2Exe@main
+    - name: Ahk2Exe
+      uses: CCCC-L/Action-Ahk2Exe@main
       with:
-        in: Apollo Fleet Launcher.ahk
-        out: Apollo Fleet Launcher.exe
+        in: Apollo Fleet Manager.ahk
 
-    - name: Create a text file
-      run: |
-        echo "Hello from GitHub Actions!" > example.txt
-
-    - name: Upload build artifact
-      uses: actions/upload-artifact@v4
+    - name: Release
+      uses: actions/upload-artifact@master
       with:
-        name: Apollo Fleet Launcher.exe
-        path: Apollo Fleet Launcher.exe
-        
-    - name: Upload file as artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: example.txt
-        path: example.txt
+        name: Apollo Fleet Manager
+        path: Apollo Fleet Manager.exe
