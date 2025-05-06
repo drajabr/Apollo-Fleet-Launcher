@@ -27,8 +27,9 @@ jobs:
         out: ${{ github.workspace }}/src/ApolloFleet-${{ env.VERSION }}.exe  # Use a fixed name during compilation
         icon: ${{ github.workspace }}/assets/9.ico
 
-    - name: Upload build artifact
-      uses: actions/upload-artifact@v4
+    - name: Create Release and Upload Asset
+      uses: softprops/action-gh-release@v2
       with:
-        name: Apollo Fleet Launcher v${{ env.VERSION }}
-        path: src/ApolloFleet-${{ env.VERSION }}.exe
+        tag_name: ${{ env.VERSION }}
+        files: |
+          src/ApolloFleet-${{ env.VERSION }}.exe
