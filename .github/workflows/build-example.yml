@@ -1,0 +1,28 @@
+name: Build AHK Script
+
+on:
+  push
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Extract tag version
+      id: version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+
+    - name: Compile AHK script
+      uses: CCCC-L/Action-Ahk2Exe@main
+      with:
+        in: "Apollo Fleet Launcher.ahk"
+        out: "dist/ApolloFleet-Launcher.exe"
+
+    - name: Upload build artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: ApolloFleet-Launcher.exe
+        path: dist/ApolloFleet-Launcher.exe
