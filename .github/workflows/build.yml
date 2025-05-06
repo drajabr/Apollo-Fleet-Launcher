@@ -27,5 +27,5 @@ jobs:
     - name: Upload build artifact
       uses: actions/upload-artifact@v4
       with:
-        name: ahk-zip-${{ env.VERSION }}
-        path: dist/ApolloFleet-Launcher-${{ env.VERSION }}.zip
+        name: ApolloFleet-${{ env.VERSION }}
+        path: dist/ApolloFleet-${{ env.VERSION }}.exe
