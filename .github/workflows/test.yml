@@ -27,7 +27,7 @@ jobs:
         New-Item -ItemType Directory -Force -Path $dest
         Copy-Item -Path "${{ github.workspace }}\README.md" -Destination $dest
 
-    - name: Compile AHK script
+    - name: Compile AHK script 
       uses: drajabr/Action-Ahk2Exe@main
       with:
         in: src/Apollo Fleet.ahk
