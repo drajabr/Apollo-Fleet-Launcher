@@ -38,9 +38,9 @@ jobs:
       uses: drajabr/actions-7-zip-win@main
       
       with:
-        in: ${{ github.workspace }}\ApolloFleet
+        in: ${{ github.workspace }}\ApolloFleet 
         out: ${{ github.workspace }}\ApolloFleet-${{ env.VERSION }}.exe
-        options: a -sfx"${{ github.workspace }}\7-Zip\7z.sfx"
+        options: a -sfx7z.sfx"
 
     - name: Upload test build artifacts
       uses: actions/upload-artifact@v4
