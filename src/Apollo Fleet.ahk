@@ -123,18 +123,6 @@ ReadSettingsGroup(File, group, Settings) {
             for section in sections {
                 if (SubStr(section, 1, 8) = "Instance") {
                     i := {}
-					i.id := IsNumber(SubStr(section, 9)) ? SubStr(section, 9) : index
-					i.Name := IniRead(File, section, "Name", "i" . index)
-					i.Port := IniRead(File, section, "Port", 10000 + index * 1000)
-					i.Enabled := IniRead(File, section, "Enabled", 1)
-					i.consolePID := IniRead(File, section, "consolePID", 0)
-					i.apolloPID := IniRead(File, section, "apolloPID", 0)
-					i.LastConfigUpdate := IniRead(File, section, "LastConfigUpdate", 0)
-					i.LastReadLogLine := IniRead(File, section, "LastReadLogLine", 0)
-					i.configFile := configp "\fleet-" i.id (synced ? "-synced.conf" : ".conf")
-					i.logFile := configp "\fleet-" i.id (synced ? "-synced.log" : ".log")
-					i.stateFile := synced ? f[1].stateFile : configp "\fleet-" i.id ".json"
-					f.Push(i)
 					if index = 0 {
 						; Read default instance (id = 0)
 						defConfigPath:= Settings["Paths"].Apollo . "\config"
@@ -146,7 +134,20 @@ ReadSettingsGroup(File, group, Settings) {
 						i.configFile := defConfigPath "\sunshine.conf"
 						i.logFile := defConfigPath "\sunshine.log"
 						i.stateFile := defConfigPath "\sunshine.json"
+					} else {
+					i.id := IsNumber(SubStr(section, 9)) ? SubStr(section, 9) : index
+					i.Name := IniRead(File, section, "Name", "i" . index)
+					i.Port := IniRead(File, section, "Port", 10000 + index * 1000)
+					i.Enabled := IniRead(File, section, "Enabled", 1)
+					i.configFile := configp "\fleet-" i.id (synced ? "-synced.conf" : ".conf")
+					i.logFile := configp "\fleet-" i.id (synced ? "-synced.log" : ".log")
+					i.stateFile := synced ? f[1].stateFile : configp "\fleet-" i.id ".json"
 					}
+					i.consolePID := IniRead(File, section, "consolePID", 0)
+					i.apolloPID := IniRead(File, section, "apolloPID", 0)
+					i.LastConfigUpdate := IniRead(File, section, "LastConfigUpdate", 0)
+					i.LastReadLogLine := IniRead(File, section, "LastReadLogLine", 0)
+					f.Push(i)
 					index += 1
                 }
             }
