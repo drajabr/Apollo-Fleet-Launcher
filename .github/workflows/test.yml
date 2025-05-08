@@ -35,7 +35,7 @@ jobs:
       uses: drajabr/actions-7-zip-win@main
       with:
         in: ${{ github.workspace }}
-        out: ApollFleet-${{ env.VERSION }}.exe
+        out: ${{ github.workspace }} \\ApollFleet-${{ env.VERSION }}.exe
         options: a -sfx
 
     - name: Upload test build artifacts
