@@ -42,7 +42,7 @@ jobs:
       with:
         in: ${{ github.workspace }}\ApolloFleet
         out: ${{ github.workspace }}\ApolloFleet-${{ env.VERSION }}.exe
-        options: a -sfx[7z.sfx]
+        options: a -sfx7z.sfx
 
     - name: Upload test build artifacts
       uses: actions/upload-artifact@v4
