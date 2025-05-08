@@ -118,31 +118,35 @@ ReadSettingsGroup(File, group, Settings) {
 			f := Settings["Fleet"]
             configp := Settings["Paths"].Config
             synced := Settings["Manager"].SyncSettings = 1
-            index := 0
+			i := {}
+			defConfigPath:= Settings["Paths"].Apollo . "\config"
+			defaultConfFile := defConfigPath "\sunshine.conf"
+			i.id := 0
+			i.Name := ConfRead(defaultConfFile, "sunshine_name", "Default")
+			i.Port := ConfRead(defaultConfFile, "port", "47989")
+			i.Enabled := Settings["Manager"].SyncSettings ? 1 : 0
+			i.configFile := defConfigPath "\sunshine.conf"
+			i.logFile := defConfigPath "\sunshine.log"
+			i.stateFile := defConfigPath "\sunshine.json"
+			i.consolePID := IniRead(File, "Instance0", "consolePID", 0)
+			i.apolloPID := IniRead(File, "Instance0", "apolloPID", 0)
+			i.LastConfigUpdate := IniRead(File, "Instance0", "LastConfigUpdate", 0)
+			i.LastReadLogLine := IniRead(File, "Instance0", "LastReadLogLine", 0)
+			f.Push(i)
+            index := 2
             sections := StrSplit(IniRead(File), "`n")
-            for section in sections {
+            for section in sections 
                 if (SubStr(section, 1, 8) = "Instance") {
+					if SubStr(section, -1)=0
+						continue
                     i := {}
-					if index = 0 {
-						; Read default instance (id = 0)
-						defConfigPath:= Settings["Paths"].Apollo . "\config"
-						defaultConfFile := defConfigPath "\sunshine.conf"
-						i.id := 0
-						i.Name := ConfRead(defaultConfFile, "sunshine_name", "default i")
-						i.Port := ConfRead(defaultConfFile, "port", "47989")
-						i.Enabled := Settings["Manager"].SyncSettings ? 1 : 0
-						i.configFile := defConfigPath "\sunshine.conf"
-						i.logFile := defConfigPath "\sunshine.log"
-						i.stateFile := defConfigPath "\sunshine.json"
-					} else {
-					i.id := IsNumber(SubStr(section, 9)) ? SubStr(section, 9) : index
+					i.id := IsNumber(SubStr(section, 9)) ? SubStr(section, -1) : index
 					i.Name := IniRead(File, section, "Name", "i" . index)
 					i.Port := IniRead(File, section, "Port", 10000 + index * 1000)
 					i.Enabled := IniRead(File, section, "Enabled", 1)
 					i.configFile := configp "\fleet-" i.id (synced ? "-synced.conf" : ".conf")
 					i.logFile := configp "\fleet-" i.id (synced ? "-synced.log" : ".log")
 					i.stateFile := synced ? f[1].stateFile : configp "\fleet-" i.id ".json"
-					}
 					i.consolePID := IniRead(File, section, "consolePID", 0)
 					i.apolloPID := IniRead(File, section, "apolloPID", 0)
 					i.LastConfigUpdate := IniRead(File, section, "LastConfigUpdate", 0)
@@ -150,7 +154,6 @@ ReadSettingsGroup(File, group, Settings) {
 					f.Push(i)
 					index += 1
                 }
-            }
     }
 }
 
@@ -224,8 +227,8 @@ WriteSettingsGroup(Settings, File, group) {
 				IniWrite(i.LastConfigUpdate, File, section, "LastConfigUpdate")
 				IniWrite(i.LastReadLogLine, File, section, "LastReadLogLine")
 				; IniWrite(i.Audio, File, section, "Audio") ; TODO
-				}
 			}
+	}
 }
 InitmyGui() {
 	;TODO implement dark theme and follow system theme if possible 
@@ -893,15 +896,22 @@ FleetLaunchFleet(){
 			i.apolloPID := pids[2]
 			newPID := 1
 		}
-	if newPID 
-		WriteSettingsFile(savedSettings, "Fleet")	; TODO here we need to selectively write the instances settings only
+	if newPID
+		UrgentSettingWrite(savedSettings, "Fleet")
 
 	;MsgBox(savedSettings["Fleet"][1].consolePID . ":" . savedSettings["Fleet"][1].apolloPID)
 
 	; modify our runtime things "that we must save" in savedSettings, and exclude those particular items/groups from being overwritten by userSettings
 	; Also, exclude these from UserSettingsWaiting() function so it doesn't stop us from saving them.
 }
-
+UrgentSettingWrite(srcSettings, group){
+	global savedSettings, userSettings
+	transientMap := Map()
+	transientMap := DeepClone(srcSettings)
+	savedSettings[group] := DeepClone(transientMap[group])
+	userSettings[group] := DeepClone(transientMap[group])
+	WriteSettingsFile(savedSettings)
+}
 bootstrapSettings()
 
 if savedSettings["Manager"].AutoLaunch {
