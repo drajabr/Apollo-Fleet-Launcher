@@ -42,7 +42,7 @@ jobs:
       with:
         in: ${{ github.workspace }}\ApolloFleet
         out: ${{ github.workspace }}\ApolloFleet-${{ env.VERSION }}.exe
-        options: a -sfx7z.sfx
+        options: a -sfx[7z.sfx]
   
     - name: Create Release and Upload Asset
       uses: softprops/action-gh-release@v2
