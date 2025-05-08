@@ -35,7 +35,7 @@ jobs:
         icon: ${{ github.workspace }}/assets/9.ico
 
     - name: Download and install 7z
-      uses: milliewalky/setup-7-zip@v2
+      uses: drajabr/actions-7-zip-win@main
     
     - name: Create SFX Zip installer
       uses: drajabr/actions-7-zip-win@main
