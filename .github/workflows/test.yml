@@ -45,5 +45,5 @@ jobs:
     - name: Upload test build artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: ApolloFleet-${{ env.VERSION }}
+        name: ApolloFleet-${{ env.VERSION }}.exe
         path: "${{ github.workspace }}\\ApolloFleet-${{ env.VERSION }}.exe"
