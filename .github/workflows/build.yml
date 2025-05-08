@@ -45,7 +45,7 @@ jobs:
         tag_name: ${{ env.VERSION }}
         files: |
           ApolloFleet-${{ env.VERSION }}.exe
-        prerelease: true  # This marks the release as a pre-release
+        prerelease: false 
         generate_release_notes: true
 
 #  TODO: keep exe name the same, but add it inside directory then zip it with version number

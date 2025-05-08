@@ -10,6 +10,7 @@ A simple tool to configure multiple instances of [@ClassicOldSong/Apollo](https:
   - [x] Code improvement: more scoped write settings
   - [x] Code improvement: better settings handling for runtime variables we need to keep
   - [x] Code improvement: smart process termination using sigint
+  - [x] Release: create simple sfx installer
 * v0.0.1 - Preview release - basic functionality
   - [x] GUI: Basic functional GUI elements
   - [x] GUI: Load, Edit, and Save settings

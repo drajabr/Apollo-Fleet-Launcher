@@ -20,6 +20,13 @@ jobs:
         $version = $env:GITHUB_SHA.Substring(0, 7)
         echo "VERSION=$version" >> $env:GITHUB_ENV
 
+    - name: Prepare build dir
+      shell: powershell
+      run: |
+        $dest = "${{ github.workspace }}\ApolloFleet"
+        New-Item -ItemType Directory -Force -Path $dest
+        Copy-Item -Path "${{ github.workspace }}\README.md" -Destination $dest
+
     - name: Compile AHK script
       uses: drajabr/Action-Ahk2Exe@main
       with:
