@@ -116,42 +116,38 @@ ReadSettingsGroup(File, group, Settings) {
         case "Fleet":
 		    Settings["Fleet"] := []
 			f := Settings["Fleet"]
-			apollop := Settings["Paths"].Apollo
             configp := Settings["Paths"].Config
             synced := Settings["Manager"].SyncSettings = 1
-			; Add default i manually (id = 0)
-			defaultConfFile := Settings["Paths"].Apollo . "\config\sunshine.conf"
-			i := {}
-			i.id := 0
-			i.Name := ConfRead(defaultConfFile, "sunshine_name", "default i")
-			i.Port := ConfRead(defaultConfFile, "port", "47989")
-			i.Enabled := Settings["Manager"].SyncSettings ? 1 : 0
-			i.consolePID := 0
-			i.apolloPID := 0
-			i.LastConfigUpdate := 0
-			i.LastReadLogLine := 0
-			i.configFile := apollop . '\config\sunshine.conf'
-			i.logFile := apollop . '\config\sunshine.log'
-			i.stateFile := apollop . '\config\sunshine.json'
-			f.Push(i)
-            index := 1
+            index := 0
             sections := StrSplit(IniRead(File), "`n")
             for section in sections {
                 if (SubStr(section, 1, 8) = "Instance") {
                     i := {}
-                    i.id := IsNumber(SubStr(section, 9)) ? SubStr(section, 9) : index
-                    i.Name := IniRead(File, section, "Name", "i" . index)
-                    i.Port := IniRead(File, section, "Port", 10000 + index * 1000)
-                    i.Enabled := IniRead(File, section, "Enabled", 1)
-                    i.consolePID := IniRead(File, section, "consolePID", 0)
-                    i.apolloPID := IniRead(File, section, "apolloPID", 0)
-                    i.LastConfigUpdate := IniRead(File, section, "LastConfigUpdate", 0)
-                    i.LastReadLogLine := IniRead(File, section, "LastReadLogLine", 0)
-                    i.configFile := configp "\fleet-" i.id (synced ? "-synced.conf" : ".conf")
-                    i.logFile := configp "\fleet-" i.id (synced ? "-synced.log" : ".log")
-                    i.stateFile := synced ? f[1].stateFile : configp "\fleet-" i.id ".json"
-                    f.Push(i)
-                    index += 1
+					i.id := IsNumber(SubStr(section, 9)) ? SubStr(section, 9) : index
+					i.Name := IniRead(File, section, "Name", "i" . index)
+					i.Port := IniRead(File, section, "Port", 10000 + index * 1000)
+					i.Enabled := IniRead(File, section, "Enabled", 1)
+					i.consolePID := IniRead(File, section, "consolePID", 0)
+					i.apolloPID := IniRead(File, section, "apolloPID", 0)
+					i.LastConfigUpdate := IniRead(File, section, "LastConfigUpdate", 0)
+					i.LastReadLogLine := IniRead(File, section, "LastReadLogLine", 0)
+					i.configFile := configp "\fleet-" i.id (synced ? "-synced.conf" : ".conf")
+					i.logFile := configp "\fleet-" i.id (synced ? "-synced.log" : ".log")
+					i.stateFile := synced ? f[1].stateFile : configp "\fleet-" i.id ".json"
+					f.Push(i)
+					if index = 0 {
+						; Read default instance (id = 0)
+						defConfigPath:= Settings["Paths"].Apollo . "\config"
+						defaultConfFile := defConfigPath "\sunshine.conf"
+						i.id := 0
+						i.Name := ConfRead(defaultConfFile, "sunshine_name", "default i")
+						i.Port := ConfRead(defaultConfFile, "port", "47989")
+						i.Enabled := Settings["Manager"].SyncSettings ? 1 : 0
+						i.configFile := defConfigPath "\sunshine.conf"
+						i.logFile := defConfigPath "\sunshine.log"
+						i.stateFile := defConfigPath "\sunshine.json"
+					}
+					index += 1
                 }
             }
     }
@@ -218,8 +214,6 @@ WriteSettingsGroup(Settings, File, group) {
                 if (SubStr(section, 1, 8) = "Instance")
 					IniDelete(File, section)
 			for i in Settings["Fleet"] {
-				if i.id = 0 
-					continue
 				section := "Instance" i.id
 				IniWrite(i.Name, File, section, "Name")
 				IniWrite(i.Port, File, section, "Port")
