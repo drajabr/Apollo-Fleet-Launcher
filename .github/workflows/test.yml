@@ -20,7 +20,6 @@ jobs:
         $version = $env:GITHUB_SHA.Substring(0, 7)
         echo "VERSION=$version" >> $env:GITHUB_ENV
 
-
     - name: Compile AHK script
       uses: drajabr/Action-Ahk2Exe@main
       with:
@@ -35,7 +34,7 @@ jobs:
       uses: drajabr/actions-7-zip-win@main
       with:
         in: ${{ github.workspace }}
-        out: ${{ github.workspace }}\ApollFleet-${{ env.VERSION }}.exe
+        out: ${{ github.workspace }}\ApolloFleet-${{ env.VERSION }}.exe
         options: a -sfx
 
     - name: Upload test build artifacts
