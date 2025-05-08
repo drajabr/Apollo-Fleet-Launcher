@@ -20,7 +20,7 @@ jobs:
         $version = $env:GITHUB_SHA.Substring(0, 7)
         echo "VERSION=$version" >> $env:GITHUB_ENV
 
-    - name: Prepare build dir
+    - name: Prepare build dir 
       shell: powershell
       run: |
         $dest = "${{ github.workspace }}\ApolloFleet"
