@@ -24,7 +24,7 @@ jobs:
       uses: drajabr/Action-Ahk2Exe@main
       with:
         in: src/Apollo Fleet.ahk
-        out: ${{ github.workspace }}/ApolloFleet.exe  # Use a fixed name during compilation
+        out: ${{ github.workspace }}/ApolloFleet/ApolloFleet.exe  # Use a fixed name during compilation
         icon: ${{ github.workspace }}/assets/9.ico
 
     - name: Download and install 7z
@@ -33,7 +33,7 @@ jobs:
     - name: Create SFX Zip installer
       uses: drajabr/actions-7-zip-win@main
       with:
-        in: ${{ github.workspace }}
+        in: ${{ github.workspace }}\ApolloFleet
         out: ${{ github.workspace }}\ApolloFleet-${{ env.VERSION }}.exe
         options: a -sfx
 
