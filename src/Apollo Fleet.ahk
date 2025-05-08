@@ -877,7 +877,7 @@ FleetLaunchFleet(){
 	currentPIDs := PIDsListFromExeName("sunshine.exe")
 	knownPIDs := []
 	for i in savedSettings["Fleet"]
-		if i.Enabled && (i.apolloPID > 0)
+		if i.Enabled
 			knownPIDs.Push(i.apolloPID)	
 	for pid in currentPIDs
 		if !ArrayHas(knownPIDs, pid)
