@@ -34,7 +34,7 @@ jobs:
         out: ${{ github.workspace }}/ApolloFleet/ApolloFleet.exe  # Use a fixed name during compilation
         icon: ${{ github.workspace }}/assets/9.ico
     
-    - name: Create SFX Zip installer 
+    - name: Create SFX Zip installer
       uses: drajabr/actions-7-zip-win@main
       
       with:
