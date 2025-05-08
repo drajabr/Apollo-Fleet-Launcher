@@ -27,7 +27,7 @@ jobs:
         New-Item -ItemType Directory -Force -Path $dest
         Copy-Item -Path "${{ github.workspace }}\README.md" -Destination $dest
 
-    - name: Compile AHK script 
+    - name: Compile AHK script
       uses: drajabr/Action-Ahk2Exe@main
       with:
         in: src/Apollo Fleet.ahk
@@ -36,6 +36,7 @@ jobs:
     
     - name: Create SFX Zip installer
       uses: drajabr/actions-7-zip-win@main
+      
       with:
         in: ${{ github.workspace }}\ApolloFleet
         out: ${{ github.workspace }}\ApolloFleet-${{ env.VERSION }}.exe
