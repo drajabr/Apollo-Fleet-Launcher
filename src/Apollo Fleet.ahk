@@ -246,7 +246,7 @@ InitmyGui() {
 	guiItems["ButtonLogsShow"] := myGui.Add("Button", "x520 y101 w50 h40", "Show Logs")
 	guiItems["ButtonMinimize"] := myGui.Add("Button", "x520 y150 w50 h40", "Minimize")
 	myGui.Add("GroupBox", "x318 y0 w196 h90", "Fleet Options")
-	guiItems["FleetAutoLaunchCheckBox"] := myGui.Add("CheckBox", "x334 y16 w162 h23", "Auto Launch Fleet Fleet")
+	guiItems["FleetAutoLaunchCheckBox"] := myGui.Add("CheckBox", "x334 y16 w162 h23", "Auto Launch Apollo Fleet")
 	guiItems["FleetSyncVolCheckBox"] := myGui.Add("CheckBox", "x334 y40 w162 h23", "Sync Device Volume Level")
 	guiItems["FleetRemoveDisconnectCheckbox"] := myGui.Add("CheckBox", "x334 y64 w167 h23", "Remove on Disconnect")
 	myGui.Add("GroupBox", "x318 y96 w196 h95", "Android Clients")
@@ -255,25 +255,26 @@ InitmyGui() {
 	guiItems["AndroidMicSelector"] := myGui.Add("ComboBox", "x382 y136 w122", [1,2,3])
 	guiItems["AndroidCamCheckbox"] := myGui.Add("CheckBox", "x334 y164 ", "Cam:")
 	guiItems["AndroidCamSelector"] := myGui.Add("ComboBox", "x382 y160 w122", [3,2,1])
-	guiItems["PathsApolloBox"] := myGui.Add("Edit", "x56 y24 w209 h23")
-	myGui.Add("Text", "x16 y28", "Apollo:")
-	guiItems["PathsApolloBrowseButton"] := myGui.Add("Button", "x267 y24 w30 h25", "📂")
+	guiItems["PathsApolloBox"] := myGui.Add("Edit", "x53 y16 w212 h23")
+	myGui.Add("Text", "x16 y21", "Apollo:")
+	guiItems["PathsApolloBrowseButton"] := myGui.Add("Button", "x267 y16 w30 h25", "📂")
 	myGui.Add("GroupBox", "x8 y0 w300 h192", "Fleet")
-	guiItems["FleetListBox"] := myGui.Add("ListBox", "x16 y66 w100 h82 +0x100 Choose1")
-	myGui.Add("Text", "x126 y70", "Name:")
-	guiItems["FleetNameBox"] := myGui.Add("Edit", "x166 y65 w130 h23")
+	guiItems["FleetListBox"] := myGui.Add("ListBox", "x16 y58 w100 h82 +0x100 Choose1")
+	myGui.Add("Text", "x123 y63", "Name:Port")
+	guiItems["FleetNameBox"] := myGui.Add("Edit", "x176 y58 w80 h23")
 	guiItems["FleetNameBox"].Value := savedSettings["Fleet"][1].Name
-	myGui.Add("Text", "x126 y98", "Port:")
-	guiItems["FleetPortBox"] := myGui.Add("Edit", "x166 y92 w130 h23 +ReadOnly", "")
+	guiItems["FleetPortBox"] := myGui.Add("Edit", "x256 y58 w40 h23 +ReadOnly", "")
 	guiItems["FleetPortBox"].Value := savedSettings["Fleet"][1].Port
-	;myGui.Add("Text", "x126 y120 w54 h23", "Audio:")
-	;guiItems["FleetAudioSelector"] := myGui.Add("ComboBox", "x166 y120 w130", [])
-	myGui.Add("Text", "x126 y126 ", "Link:")
+	myGui.Add("Text", "x123 y90", "Audio :")
+	guiItems["FleetAudioSelector"] := myGui.Add("ComboBox", "x176 y87 w120", [])
+	myGui.Add("Text", "x123 y118 ", "Link:")
 	myLink := "https://localhost:" . savedSettings["Fleet"][(savedSettings["Manager"].SyncSettings = 1 ? 1 : currentlySelectedIndex)].Port+1
-	guiItems["FleetLinkBox"] := myGui.Add("Link", "x166 y126", '<a href="' . myLink . '">' . myLink . '</a>')
-	guiItems["FleetSyncCheckbox"] := myGui.Add("CheckBox", "x130 y155 w165 h23", " Copy Default Instance Settings")
-	guiItems["FleetButtonAdd"] := myGui.Add("Button", "x49 y155 w71 h23", "Add")
-	guiItems["FleetButtonDelete"] := myGui.Add("Button", "x16 y155 w27 h23", "✖")
+	guiItems["FleetLinkBox"] := myGui.Add("Link", "x176 y118", '<a href="' . myLink . '">' . myLink . '</a>')
+	myGui.Add("Text", "x123 y145 ", "Other Settings:")
+	guiItems["FleetSyncCheckbox"] := myGui.Add("CheckBox", "x196 y145", "Copy from Default")
+	guiItems["FleetButtonAdd"] := myGui.Add("Button", "x43 y142 w75 h23", "Add")
+	guiItems["FleetButtonDelete"] := myGui.Add("Button", "x14 y142 w27 h23", "✖")
+	guiItems["StatusArea"] := myGui.Add("Text", "x16 y172 ", "✅ Apollo    ❎ Gnirehtet    ❎ AndroidMic    ❎ AndroidCam")
 	guiItems["LogTextBox"] := myGui.Add("Edit", "x8 y199 w562 h393 -VScroll +ReadOnly")
 	myGui.Title := "Apollo Fleet Manager"
 }
@@ -335,9 +336,18 @@ InitmyGuiEvents(){
 
 	guiItems["FleetNameBox"].OnEvent("Change", HandleNameChange)
 	guiItems["FleetPortBox"].OnEvent("LoseFocus", HandlePortChange)
+	guiItems["FleetPortBox"].OnEvent("Change", StrictPortLimits)
 	OnMessage(0x404, TrayIconHandler)
 }
-
+StrictPortLimits(*){
+	p := guiItems["FleetPortBox"]
+	if !IsNumber(p.Value)
+		p.Value := 10000
+	else if p.Value < 0
+		p.Value := 10000
+	else if p.Value > 65000
+		p.Value := 65000
+}
 TrayIconHandler(wParam, lParam, msg, hwnd) {
 	global myGui
     if (lParam = 0x202)  ; Left click tray icon
