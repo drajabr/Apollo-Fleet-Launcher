@@ -870,14 +870,7 @@ ArrayHas(arr, val) {
 FleetLaunchFleet(){
 	global savedSettings
 
-	; get currently running PIDs 
-	; terminate anything unknown to us
-	; if any PID is known try to test it and reuse it if it is still working "TODO maybe add option to start clean"
-	; TODO its time to make settings load/save work for single setting group
-	; start is and register write PIDs in settings file 
-
-	; for now, lets just kill any exisiting proccess 
-
+	; get currently running PIDs terminate anything unknown to us
 	currentPIDs := PIDsListFromExeName("sunshine.exe")
 	knownPIDs := []
 	for i in savedSettings["Fleet"]
@@ -890,7 +883,7 @@ FleetLaunchFleet(){
 	exe := savedSettings["Paths"].apolloExe
 	newPID := 0
 	for i in savedSettings["Fleet"]
-		if (i.Enabled && !ProcessExist(i.apolloPID)){
+		if (i.Enabled && !ProcessExist(i.apolloPID)){	; TODO add test for the instance if it responds or not, also, may check if display is connected deattach it/force exit? 
 			pids := RunAndGetPIDs(exe, i.configFile)
 			i.consolePID := pids[1]
 			i.apolloPID := pids[2]
@@ -898,11 +891,7 @@ FleetLaunchFleet(){
 		}
 	if newPID
 		UrgentSettingWrite(savedSettings, "Fleet")
-
 	;MsgBox(savedSettings["Fleet"][1].consolePID . ":" . savedSettings["Fleet"][1].apolloPID)
-
-	; modify our runtime things "that we must save" in savedSettings, and exclude those particular items/groups from being overwritten by userSettings
-	; Also, exclude these from UserSettingsWaiting() function so it doesn't stop us from saving them.
 }
 UrgentSettingWrite(srcSettings, group){
 	global savedSettings, userSettings
@@ -917,7 +906,7 @@ bootstrapSettings()
 if savedSettings["Manager"].AutoLaunch {
 	; TODO Disable default service and create/enable ours 
 	FleetConfigInit()
-	FleetLaunchFleet()	; check previous ones > if they're valid keep them 
+	FleetLaunchFleet()
 	;timer 1000 FleetCheckFleet() ; this is a combination of i check/ logmonitor for connected/disconnected events/ 
 	; if enabled, start timer 50 SyncVolume to try sync volume as soon as client connects, probably can verify it too "make it smart not dumb"
 	; if enabled, start timer 50 ForceClose to try send SIGINT to i once client disconnected > the rest should be cought by FleetCheckFleet to relaunch it again "if it didn't relaunch by itself" 
