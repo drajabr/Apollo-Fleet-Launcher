@@ -241,40 +241,49 @@ InitmyGui() {
 		TraySetIcon("../assets/9.ico")
 	}
 	myGui := Gui("+AlwaysOnTop -MinimizeBox -MaximizeBox")
+
 	guiItems["ButtonLockSettings"] := myGui.Add("Button", "x520 y5 w50 h40", "🔒")
 	guiItems["ButtonReload"] := myGui.Add("Button", "x520 y50 w50 h40", "Reload")
 	guiItems["ButtonLogsShow"] := myGui.Add("Button", "x520 y101 w50 h40", "Show Logs")
 	guiItems["ButtonMinimize"] := myGui.Add("Button", "x520 y150 w50 h40", "Minimize")
+
 	myGui.Add("GroupBox", "x318 y0 w196 h90", "Fleet Options")
 	guiItems["FleetAutoLaunchCheckBox"] := myGui.Add("CheckBox", "x334 y16 w162 h23", "Auto Launch Apollo Fleet")
 	guiItems["FleetSyncVolCheckBox"] := myGui.Add("CheckBox", "x334 y40 w162 h23", "Sync Device Volume Level")
 	guiItems["FleetRemoveDisconnectCheckbox"] := myGui.Add("CheckBox", "x334 y64 w167 h23", "Remove on Disconnect")
+
 	myGui.Add("GroupBox", "x318 y96 w196 h95", "Android Clients")
 	guiItems["AndroidReverseTetheringCheckbox"] := myGui.Add("CheckBox", "x334 y112 w139 h23", "ADB Reverse Tethering")
 	guiItems["AndroidMicCheckbox"] := myGui.Add("CheckBox", "x334 y140 ", "Mic:")
 	guiItems["AndroidMicSelector"] := myGui.Add("ComboBox", "x382 y136 w122", [1,2,3])
 	guiItems["AndroidCamCheckbox"] := myGui.Add("CheckBox", "x334 y164 ", "Cam:")
 	guiItems["AndroidCamSelector"] := myGui.Add("ComboBox", "x382 y160 w122", [3,2,1])
+
+	myGui.Add("GroupBox", "x8 y0 w300 h192", "Fleet")
 	guiItems["PathsApolloBox"] := myGui.Add("Edit", "x53 y16 w212 h23")
 	myGui.Add("Text", "x16 y21", "Apollo:")
 	guiItems["PathsApolloBrowseButton"] := myGui.Add("Button", "x267 y16 w30 h25", "📂")
-	myGui.Add("GroupBox", "x8 y0 w300 h192", "Fleet")
-	guiItems["FleetListBox"] := myGui.Add("ListBox", "x16 y58 w100 h82 +0x100 Choose1")
-	myGui.Add("Text", "x123 y63", "Name:Port")
-	guiItems["FleetNameBox"] := myGui.Add("Edit", "x176 y58 w80 h23")
-	guiItems["FleetNameBox"].Value := savedSettings["Fleet"][1].Name
-	guiItems["FleetPortBox"] := myGui.Add("Edit", "x256 y58 w40 h23 +ReadOnly", "")
-	guiItems["FleetPortBox"].Value := savedSettings["Fleet"][1].Port
-	myGui.Add("Text", "x123 y90", "Audio :")
-	guiItems["FleetAudioSelector"] := myGui.Add("ComboBox", "x176 y87 w120", [])
-	myGui.Add("Text", "x123 y118 ", "Link:")
+
+	guiItems["FleetListBox"] := myGui.Add("ListBox", "x16 y50 w100 h82 +0x100 Choose1")
+	myGui.Add("Text", "x123 y54", "Name:Port")
+	guiItems["FleetNameBox"] := myGui.Add("Edit", "x176 y48 w80 h23")
+	guiItems["FleetPortBox"] := myGui.Add("Edit", "x256 y48 w40 h23 +ReadOnly", "")
+
+	myGui.Add("Text", "x123 y82", "Audio :")
+	guiItems["FleetAudioSelector"] := myGui.Add("ComboBox", "x176 y79 w120", [])
+
+	myGui.Add("Text", "x123 y110 ", "Link:")
 	myLink := "https://localhost:" . savedSettings["Fleet"][(savedSettings["Manager"].SyncSettings = 1 ? 1 : currentlySelectedIndex)].Port+1
-	guiItems["FleetLinkBox"] := myGui.Add("Link", "x176 y118", '<a href="' . myLink . '">' . myLink . '</a>')
-	myGui.Add("Text", "x123 y145 ", "Other Settings:")
-	guiItems["FleetSyncCheckbox"] := myGui.Add("CheckBox", "x196 y145", "Copy from Default")
-	guiItems["FleetButtonAdd"] := myGui.Add("Button", "x43 y142 w75 h23", "Add")
-	guiItems["FleetButtonDelete"] := myGui.Add("Button", "x14 y142 w27 h23", "✖")
+	guiItems["FleetLinkBox"] := myGui.Add("Link", "x176 y110", '<a href="' . myLink . '">' . myLink . '</a>')
+
+	myGui.Add("Text", "x123 y137 ", "Other Settings:")
+	guiItems["FleetSyncCheckbox"] := myGui.Add("CheckBox", "x196 y137", "Copy from Default")
+
+	guiItems["FleetButtonAdd"] := myGui.Add("Button", "x43 y134 w75 h23", "Add")
+	guiItems["FleetButtonDelete"] := myGui.Add("Button", "x14 y134 w27 h23", "✖")
+
 	guiItems["StatusArea"] := myGui.Add("Text", "x16 y172 ", "✅ Apollo    ❎ Gnirehtet    ❎ AndroidMic    ❎ AndroidCam")
+
 	guiItems["LogTextBox"] := myGui.Add("Edit", "x8 y199 w562 h393 -VScroll +ReadOnly")
 	myGui.Title := "Apollo Fleet Manager"
 }
@@ -304,6 +313,8 @@ ReflectSettings(Settings){
 	;guiItems["FleetAudioSelector"].Enabled :=0
 	guiItems["FleetListBox"].Delete()
 	guiItems["FleetListBox"].Add(AllFleetArray(Settings))
+	guiItems["FleetNameBox"].Value := savedSettings["Fleet"][currentlySelectedIndex].Name
+	guiItems["FleetPortBox"].Value := savedSettings["Fleet"][currentlySelectedIndex].Port
 }
 AllFleetArray(Settings){
 	isList := []  ; Create an empty array
@@ -423,7 +434,7 @@ HandleInstanceAddButton(*){
 		MsgBox("Let's not add more than 5 is for now.")
 	} else {
 	i.Port := i.id = 1 ? 10000 : userSettings["Fleet"][-1].port + 1000
-	i.Name := "Instance " . i.Port
+	i.Name := "Instance " . i.id
 	i.Enabled := 1
 	i.consolePID := 0
 	i.apolloPID := 0
