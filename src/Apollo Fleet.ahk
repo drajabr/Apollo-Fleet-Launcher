@@ -687,7 +687,6 @@ ShowmyGui() {
 	global myGui, userSettings
 	if savedSettings["Window"].cmdReload = 1 {
 		savedSettings["Window"].cmdReload = 0
-		 ;TODO revise this 
 		RestoremyGui()
 	} else if (savedSettings["Window"].lastState = 1) {
 		if (savedSettings["Window"].restorePosition){
@@ -706,9 +705,10 @@ FleetConfigInit(*){
 	global savedSettings
 	
 	; clean and prepare conf directory
-	if !DirExist(savedSettings["Paths"].Config)	
-		DirCreate(savedSettings["Paths"].Config)
-	configDir := savedSettings["Paths"].Config
+	p := savedSettings["Paths"]
+	if !DirExist(p.Config)	
+		DirCreate(p.Config)
+	configDir := p.Config
 	; to delete any unexpected file "such as residual config/log"
 	Loop Files configDir . '\*.*' {
 		fileIdentified := 0
@@ -724,7 +724,7 @@ FleetConfigInit(*){
 	; import default conf if sync is ticked
 	baseConf := Map()
 	if (savedSettings["Manager"].SyncSettings) {
-		defaultConfFile := savedSettings["Paths"].Apollo . "\config\sunshine.conf"
+		defaultConfFile := p.Apollo . "\config\sunshine.conf"
 		baseConf := ConfRead(defaultConfFile)
 		if baseConf.Has("sunshine_name") 
 			baseConf.Delete("sunshine_name") 
@@ -732,6 +732,7 @@ FleetConfigInit(*){
 			baseConf.Delete("port")
 	}
 	; assign and create conf files if not created
+	newConf := false
 	for i in savedSettings["Fleet"] {
 		if (i.Enabled = 1) {
 			if !(savedSettings["Manager"].SyncSettings) && FileExist(i.configFile)
@@ -739,48 +740,16 @@ FleetConfigInit(*){
 			else
 				thisConf := DeepClone(baseConf)
 			thisConf.set("sunshine_name", i.Name, "port", i.Port)
-			if !FileExist(i.configFile) || !(FileGetTime(i.configFile, "M" ) = i.LastConfigUpdate)
+			if !FileExist(i.configFile) || !(FileGetTime(i.configFile, "M" ) = i.LastConfigUpdate){
 				ConfWrite(i.configFile, thisConf)
-			i.LastConfigUpdate := FileGetTime(i.configFile, "M" ) ; TODO implement this: only update if there's need/change
+				i.LastConfigUpdate := FileGetTime(i.configFile, "M" )
+				newConf := true
+			}
 		}
 	}
-	
-	if savedSettings["Manager"].AutoLaunch
-		SetTimer LogWatchDog, -1
-
-	if savedSettings["Manager"].SyncVolume || savedSettings["Manager"].RemoveDisconnected
-		SetTimer LogWatchDog, 100000
-
-	if savedSettings["Android"].MicEnable || savedSettings["Android"].CamEnable
-		SetTimer ADBWatchDog, 100000
-
-	if savedSettings["Manager"].SyncVolume
-		SetTimer FleetSyncVolume, 10000
-
-	if savedSettings["Manager"].SyncSettings
-		SetTimer FleetSyncSettings, 100000
-
+	if newConf
+		UrgentSettingWrite(savedSettings, "Fleet")
 }
-
-FleetLaunch(*){
-}
-
-LogWatchDog(*){
-}
-
-FleetSyncVolume(*){
-}
-
-FleetRemoveDisconnected(*){
-}
-
-FleetSyncSettings(*){
-}
-
-ADBWatchDog(*){
-}
-
-
 
 bootstrapSettings() {
 	global savedSettings := Map(), userSettings := Map(), runtimeSettings := Map()
@@ -839,10 +808,7 @@ RunAndGetPIDs(exePath, args := "", workingDir := "", flags := "Hide") {
         flags,
         &consolePID
     )
-	sleep 1 ; TODO issue here is we get the console PID, not the PID for the processes itself
-	  ; HOW we will later keep the pid of the processes if we don't have it? TODO
-	  ; And we can't send SIGINT directly to the PID itself btw so in case of orphan PIDs will have to terminate it.
-	  ; DONE we just need to keep both console PID (used to send SIGINT) and apollo PID (to not kill it if still usable)
+	Sleep(10)
 	for process in ComObject("WbemScripting.SWbemLocator").ConnectServer().ExecQuery("Select * from Win32_Process where ParentProcessId=" consolePID)
 		if InStr(process.CommandLine, exePath) {
 			apolloPID := process.ProcessId
@@ -884,7 +850,7 @@ FleetLaunchFleet(){
 	newPID := 0
 	for i in savedSettings["Fleet"]
 		if (i.Enabled && !ProcessExist(i.apolloPID)){	; TODO add test for the instance if it responds or not, also, may check if display is connected deattach it/force exit? 
-			pids := RunAndGetPIDs(exe, i.configFile)
+			pids := RunAndGetPIDs(exe, i.configFile . i,)
 			i.consolePID := pids[1]
 			i.apolloPID := pids[2]
 			newPID := 1
@@ -910,7 +876,30 @@ if savedSettings["Manager"].AutoLaunch {
 	;timer 1000 FleetCheckFleet() ; this is a combination of i check/ logmonitor for connected/disconnected events/ 
 	; if enabled, start timer 50 SyncVolume to try sync volume as soon as client connects, probably can verify it too "make it smart not dumb"
 	; if enabled, start timer 50 ForceClose to try send SIGINT to i once client disconnected > the rest should be cought by FleetCheckFleet to relaunch it again "if it didn't relaunch by itself" 
+
+	if savedSettings["Manager"].SyncVolume || savedSettings["Manager"].RemoveDisconnected || savedSettings["Manager"].SyncSettings
+		SetTimer LogWatchDog, 100000
+	
+	FleetLaunch(*){
+	}
+	
+	LogWatchDog(*){
+	}
+	
+	FleetSyncVolume(*){
+	}
+	
+	FleetRemoveDisconnected(*){
+	}
+	
+	FleetSyncSettings(*){
+	}
+	
+	ADBWatchDog(*){
+	}
+	
 } 
+
 if savedSettings["Android"].ReverseTethering{
 	; AndroidStartGnirehtet() ; check existing > test it > if invalid start new one, until this is a reload; kill it!
 	; timer 1000 AndroidCheckGnirehtet() Possibily we can do it smart way to check if its still alive/there's connections
@@ -932,9 +921,6 @@ While 1
     Sleep(100)
 
 	; TODO Validate settings and reset invalid ones, clear invalid is
-	; TODO Keep the last remembered PIDs if they are still running
-	; test them "maybe wget or sorta" 
-	; kill the rest 
 
 	; if AutoLaunch is set, check for schduleded task, add it if missing, enable it if disabled
 	; else disable it ;;; EDIT: AutoLaunch will be used to determine if we launch these is or not at all
