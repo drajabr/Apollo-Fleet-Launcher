@@ -270,7 +270,7 @@ InitmyGui() {
 	guiItems["FleetPortBox"] := myGui.Add("Edit", "x256 y48 w40 h23 +ReadOnly", "")
 
 	myGui.Add("Text", "x123 y82", "Audio :")
-	guiItems["FleetAudioSelector"] := myGui.Add("ComboBox", "x176 y79 w120", [])
+	guiItems["FleetAudioSelector"] := myGui.Add("ComboBox", "x176 y79 w120")
 
 	myGui.Add("Text", "x123 y110 ", "Link:")
 	myLink := "https://localhost:" . savedSettings["Fleet"][(savedSettings["Manager"].SyncSettings = 1 ? 1 : currentlySelectedIndex)].Port+1
@@ -493,6 +493,7 @@ HandleListChange(*) {
 	guiItems["FleetPortBox"].Value := userSettings["Fleet"][currentlySelectedIndex].Port
 	guiItems["FleetNameBox"].Opt(((settingsLocked || currentlySelectedIndex = 1) ? "+ReadOnly" : "-ReadOnly"))
 	guiItems["FleetPortBox"].Opt(((settingsLocked || currentlySelectedIndex = 1) ? "+ReadOnly" : "-ReadOnly"))
+	guiItems["FleetAudioSelector"].Enabled := (settingsLocked || currentlySelectedIndex = 1) ? 0 : 1
 	myLink := "https://localhost:" . userSettings["Fleet"][(userSettings["Manager"].SyncSettings = 1 ? 1 : currentlySelectedIndex)].Port+1
 	guiItems["FleetLinkBox"].Text :=  '<a href="' . myLink . '">' . myLink . '</a>'
 	UpdateButtonsLables()
@@ -620,29 +621,48 @@ UpdateButtonsLables(){
 	guiItems["ButtonLockSettings"].Text := UserSettingsWaiting() ? "Save" : settingsLocked ? "🔒" : "🔓" 
 	guiItems["ButtonReload"].Text := settingsLocked ?  "Reload" : "Cancel"
 }
-ApplyLockState(){
-	global settingsLocked, guiItems
-	textBoxes := [ "PathsApolloBox"]
+ApplyLockState() {
+	global settingsLocked, guiItems, userSettings, currentlySelectedIndex
+
+	isEnabled(cond := true) => cond ? 1 : 0
+	isReadOnly(cond := true) => cond ? "+ReadOnly" : "-ReadOnly"
+
+	textBoxes := ["PathsApolloBox"]
 	checkBoxes := ["FleetAutoLaunchCheckBox", "AndroidReverseTetheringCheckbox", "AndroidMicCheckbox", "AndroidCamCheckbox", "FleetSyncCheckbox"]
-	Buttons := ["FleetButtonDelete", "FleetButtonAdd", "PathsApolloBrowseButton"]
-	Selectors := ["AndroidMicSelector", "AndroidCamSelector"]
-	Controls := ["AndroidMicCheckbox", "AndroidCamCheckbox"]
-	iBoxes := ["FleetNameBox", "FleetPortBox"]
+	buttons := ["FleetButtonDelete", "FleetButtonAdd", "PathsApolloBrowseButton"]
+	androidSelectors := Map(
+		"AndroidMicSelector", "AndroidMicCheckbox",
+		"AndroidCamSelector", "AndroidCamCheckbox"
+	)
+	inputBoxes := ["FleetNameBox", "FleetPortBox"]
+	inputSelectors := ["FleetAudioSelector"]
 	launchChildren := ["FleetSyncVolCheckBox", "FleetRemoveDisconnectCheckbox"]
+
 	launchChildrenLock := userSettings["Manager"].AutoLaunch = 0
+	readOnlyFleet := settingsLocked || currentlySelectedIndex = 1
+
 	for item in launchChildren
-		guiItems[item].Enabled := launchChildrenLock ? 0 : (settingsLocked ? 0 : 1)
-	for checkBox in checkBoxes
-		guiItems[checkBox].Enabled := (settingsLocked ? 0 : 1)
-	for button in Buttons
-		guiItems[button].Enabled := (settingsLocked ? 0 : 1)
-	for textBox in textBoxes
-		guiItems[textbox].Opt(settingsLocked ? "+ReadOnly" : "-ReadOnly")
-	for textBox in iBoxes
-		guiItems[textBox].Opt(((settingsLocked || currentlySelectedIndex = 1) ? "+ReadOnly" : "-ReadOnly"))
-	for i, selector in Selectors
-		guiItems[selector].Enabled := settingsLocked ? 0 : guiItems[Controls[i]].Value
+		guiItems[item].Enabled := isEnabled(!settingsLocked && !launchChildrenLock)
+
+	for checkbox in checkBoxes
+		guiItems[checkbox].Enabled := isEnabled(!settingsLocked)
+
+	for button in buttons
+		guiItems[button].Enabled := isEnabled(!settingsLocked)
+
+	for box in textBoxes
+		guiItems[box].Opt(isReadOnly(settingsLocked))
+
+	for box in inputBoxes
+		guiItems[box].Opt(isReadOnly(readOnlyFleet))
+
+	for selector in inputSelectors
+		guiItems[selector].Enabled := isEnabled(!readOnlyFleet)
+
+	for selector, chkbox in androidSelectors
+		guiItems[selector].Enabled := isEnabled(!settingsLocked && guiItems[chkbox].Value)
 }
+
 SaveUserSettings(){
 	global userSettings, savedSettings
 	; TODO verify settings before save? 
