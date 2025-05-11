@@ -127,7 +127,9 @@ ReadSettingsGroup(File, group, Settings) {
 			i.Enabled := Settings["Manager"].SyncSettings ? 1 : 0
 			i.configFile := defConfigPath "\sunshine.conf"
 			i.logFile := defConfigPath "\sunshine.log"
-			i.stateFile := defConfigPath "\sunshine.json"
+			i.stateFile := defConfigPath "\sunshine_state.json"
+			i.appsFile := defConfigPath "\apps.json"
+			i.credFile := defConfigPath "\sunshine_state.json"
 			i.consolePID := IniRead(File, "Instance0", "consolePID", 0)
 			i.apolloPID := IniRead(File, "Instance0", "apolloPID", 0)
 			i.LastConfigUpdate := IniRead(File, "Instance0", "LastConfigUpdate", 0)
@@ -146,7 +148,9 @@ ReadSettingsGroup(File, group, Settings) {
 					i.Enabled := IniRead(File, section, "Enabled", 1)
 					i.configFile := configp "\fleet-" i.id (synced ? "-synced.conf" : ".conf")
 					i.logFile := configp "\fleet-" i.id (synced ? "-synced.log" : ".log")
-					i.stateFile := synced ? f[1].stateFile : configp "\fleet-" i.id ".json"
+					i.stateFile := synced ? f[1].stateFile : configp "\state-" i.id ".json"
+					i.appsFile := synced ? f[1].appsFile : configp "\apps-" i.id ".json"
+					i.credFile := synced ? f[1].credFile : configp "\state-" i.id ".json"
 					i.consolePID := IniRead(File, section, "consolePID", 0)
 					i.apolloPID := IniRead(File, section, "apolloPID", 0)
 					i.LastConfigUpdate := IniRead(File, section, "LastConfigUpdate", 0)
@@ -620,6 +624,7 @@ ApplyLockState(){
 }
 SaveUserSettings(){
 	global userSettings, savedSettings
+	; TODO verify settings before save? 
 	savedSettings := DeepClone(userSettings)
 }
 global settingsLocked := 1
@@ -700,49 +705,64 @@ ShowmyGui() {
 	Sleep (100)
 }
 
+SetIfChanged(map, key, newValue) {
+    if map.Get(key,0) != newValue {
+        map.set(key, newValue)
+        return true
+    }
+    return false
+}
 
 FleetConfigInit(*){
 	global savedSettings
 	
 	; clean and prepare conf directory
 	p := savedSettings["Paths"]
+	m := savedSettings["Manager"]
+	f := savedSettings["Fleet"]
 	if !DirExist(p.Config)	
 		DirCreate(p.Config)
 	configDir := p.Config
 	; to delete any unexpected file "such as residual config/log"
+	knownFiles := []
+	fileTypes := ["configFile","stateFile", "appsFile", "credFile"]
+	for i in f
+		for file in fileTypes
+			knownFiles.Push(i.%file%)
+
 	Loop Files configDir . '\*.*' {
-		fileIdentified := 0
-		for i in savedSettings["Fleet"]{
-			if A_LoopFileFullPath = i.configFile || A_LoopFileFullPath = i.logFile || A_LoopFileFullPath = i.stateFile   {
-				fileIdentified := 1
-				break
-			}
-		}
-		if !fileIdentified
+		if !ArrayHas(knownFiles, A_LoopFileFullPath)
 			FileDelete(A_LoopFileFullPath)
 	}
 	; import default conf if sync is ticked
 	baseConf := Map()
-	if (savedSettings["Manager"].SyncSettings) {
+	if (m.SyncSettings) {
 		defaultConfFile := p.Apollo . "\config\sunshine.conf"
 		baseConf := ConfRead(defaultConfFile)
-		if baseConf.Has("sunshine_name") 
-			baseConf.Delete("sunshine_name") 
-		if baseConf.Has("port")
-			baseConf.Delete("port")
+		excludeOptions := ["sunshine_name", "port", "file_state", "credentials_file", "file_apps"]
+		for option in excludeOptions
+			if baseConf.Has(option) 
+				baseConf.Delete(option) 
 	}
 	; assign and create conf files if not created
+	optionMap := Map(
+		"sunshine_name", "Name",
+		"port", "Port",
+		"file_state", "stateFile",
+		"credentials_file", "credFile",
+		"file_apps", "appsFile"
+	)
 	newConf := false
-	for i in savedSettings["Fleet"] {
+	for i in f {
 		if (i.Enabled = 1) {
-			if !(savedSettings["Manager"].SyncSettings) && FileExist(i.configFile)
-				thisConf:= ConfRead(i.configFile)	; this will keep config file to retain user modified settings
-			else
-				thisConf := DeepClone(baseConf)
-			thisConf.set("sunshine_name", i.Name, "port", i.Port)
-			if !FileExist(i.configFile) || !(FileGetTime(i.configFile, "M" ) = i.LastConfigUpdate){
+			configChange := m.SyncSettings ? f[1].LastConfigUpdate = FileGetTime(f[1].configFile, "M") ? false : true : false
+			thisConf := (!m.SyncSettings && FileExist(i.configFile)) ? ConfRead(i.configFile) : DeepClone(baseConf)
+			for option, key in optionMap {
+				if SetIfChanged(thisConf, option, i.%key%)
+					configChange := true
+			}
+			if !FileExist(i.configFile) || configChange {
 				ConfWrite(i.configFile, thisConf)
-				i.LastConfigUpdate := FileGetTime(i.configFile, "M" )
 				newConf := true
 			}
 		}
@@ -850,7 +870,7 @@ FleetLaunchFleet(){
 	newPID := 0
 	for i in savedSettings["Fleet"]
 		if (i.Enabled && !ProcessExist(i.apolloPID)){	; TODO add test for the instance if it responds or not, also, may check if display is connected deattach it/force exit? 
-			pids := RunAndGetPIDs(exe, i.configFile . i,)
+			pids := RunAndGetPIDs(exe, i.configFile)
 			i.consolePID := pids[1]
 			i.apolloPID := pids[2]
 			newPID := 1
