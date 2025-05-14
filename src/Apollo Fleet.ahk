@@ -140,6 +140,7 @@ ReadSettingsGroup(File, group, Settings) {
 			i.credFile := defConfigPath "\sunshine_state.json"
 			i.consolePID := IniRead(File, "Instance0", "consolePID", 0)
 			i.apolloPID := IniRead(File, "Instance0", "apolloPID", 0)
+			i.AudioDevice := "Default"
 			i.LastConfigUpdate := IniRead(File, "Instance0", "LastConfigUpdate", 0)
 			i.LastReadLogLine := IniRead(File, "Instance0", "LastReadLogLine", 0)
 			f.Push(i)
@@ -162,6 +163,7 @@ ReadSettingsGroup(File, group, Settings) {
 					i.credFile := i.Synced ? f[1].credFile : configp "\state-" i.id ".json"
 					i.consolePID := IniRead(File, section, "consolePID", 0)
 					i.apolloPID := IniRead(File, section, "apolloPID", 0)
+					i.AudioDevice := IniRead(File, section, "AudioDevice", "Default")
 					i.LastConfigUpdate := IniRead(File, section, "LastConfigUpdate", 0)
 					i.LastReadLogLine := IniRead(File, section, "LastReadLogLine", 0)
 					f.Push(i)
@@ -238,6 +240,7 @@ WriteSettingsGroup(Settings, File, group) {
 				IniWrite(i.Synced, File, section, "Synced")
 				IniWrite(i.consolePID, File, section, "consolePID")
 				IniWrite(i.apolloPID, File, section, "apolloPID")
+				IniWrite(i.AudioDevice, File, section, "AudioDevice")
 				IniWrite(i.LastConfigUpdate, File, section, "LastConfigUpdate")
 				IniWrite(i.LastReadLogLine, File, section, "LastReadLogLine")
 				; IniWrite(i.Audio, File, section, "Audio") ; TODO
@@ -265,9 +268,9 @@ InitmyGui() {
 	myGui.Add("GroupBox", "x318 y96 w196 h95", "Android Clients")
 	guiItems["AndroidReverseTetheringCheckbox"] := myGui.Add("CheckBox", "x334 y112 w139 h23", "ADB Reverse Tethering")
 	guiItems["AndroidMicCheckbox"] := myGui.Add("CheckBox", "x334 y140 ", "Mic:")
-	guiItems["AndroidMicSelector"] := myGui.Add("ComboBox", "x382 y136 w122", [1,2,3])
+	guiItems["AndroidMicSelector"] := myGui.Add("DropDownList", "x382 y136 w122 Choose1", ["none"])
 	guiItems["AndroidCamCheckbox"] := myGui.Add("CheckBox", "x334 y164 ", "Cam:")
-	guiItems["AndroidCamSelector"] := myGui.Add("ComboBox", "x382 y160 w122", [3,2,1])
+	guiItems["AndroidCamSelector"] := myGui.Add("DropDownList", "x382 y160 w122 Choose1", ["none"])
 
 	myGui.Add("GroupBox", "x8 y0 w300 h192", "Fleet")
 	guiItems["PathsApolloBox"] := myGui.Add("Edit", "x53 y16 w212 h23")
@@ -280,18 +283,18 @@ InitmyGui() {
 	guiItems["InstancePortBox"] := myGui.Add("Edit", "x256 y48 w40 h23 +ReadOnly", "")
 
 	myGui.Add("Text", "x123 y82", "Audio :")
-	guiItems["InstanceAudioSelector"] := myGui.Add("ComboBox", "x176 y79 w120 +Limit")
+	guiItems["InstanceAudioSelector"] := myGui.Add("DropDownList", "x176 y79 w120 Choose1", ["Default"])
 
 	myGui.Add("Text", "x123 y110 ", "Link:")
 	myLink := "https://localhost:" . savedSettings["Fleet"][(savedSettings["Manager"].SyncSettings = 1 ? 1 : currentlySelectedIndex)].Port+1
 	guiItems["FleetLinkBox"] := myGui.Add("Link", "x176 y110", '<a href="' . myLink . '">' . myLink . '</a>')
 
 	myGui.Add("Text", "x123 y137 ", "Other Settings:")
-	guiItems["FleetSyncCheckbox"] := myGui.Add("CheckBox", "x196 y137", "Mirror from Default")
+	guiItems["InstanceSyncCheckbox"] := myGui.Add("CheckBox", "x196 y137", "Clone from Default")
 
 	guiItems["FleetButtonAdd"] := myGui.Add("Button", "x43 y134 w75 h23", "Add")
 	guiItems["FleetButtonDelete"] := myGui.Add("Button", "x14 y134 w27 h23", "✖")
-
+	; TODO actually functional status area, 
 	guiItems["StatusArea"] := myGui.Add("Text", "x16 y172 ", "✅ Apollo    ❎ Gnirehtet    ❎ AndroidMic    ❎ AndroidCam")
 
 	guiItems["LogTextBox"] := myGui.Add("Edit", "x8 y199 w562 h393 -VScroll +ReadOnly")
@@ -313,7 +316,6 @@ ReflectSettings(Settings){
 	guiItems["FleetAutoLaunchCheckBox"].Value := m.AutoLaunch
 	guiItems["FleetSyncVolCheckBox"].Value := m.SyncVolume
 	guiItems["FleetRemoveDisconnectCheckbox"].Value := m.RemoveDisconnected
-	guiItems["FleetSyncCheckbox"].Value := f[currentlySelectedIndex].Synced
 	guiItems["AndroidReverseTetheringCheckbox"].Value := a.ReverseTethering
 	guiItems["AndroidMicCheckbox"].Value := a.MicEnable
 	guiItems["AndroidMicSelector"].Value := a.MicDeviceID
@@ -323,15 +325,18 @@ ReflectSettings(Settings){
 	guiItems["ButtonLogsShow"].Text := (Settings["Window"].logShow = 1 ? "Hide Logs" : "Show Logs")
 	;guiItems["InstanceAudioSelector"].Enabled :=0
 	guiItems["FleetListBox"].Delete()
-	guiItems["FleetListBox"].Add(AllFleetArray(Settings))
+	guiItems["FleetListBox"].Add(EveryInstanceProp(Settings))
 	guiItems["InstanceNameBox"].Value := savedSettings["Fleet"][currentlySelectedIndex].Name
 	guiItems["InstancePortBox"].Value := savedSettings["Fleet"][currentlySelectedIndex].Port
+	guiItems["InstanceSyncCheckbox"].Value := f[currentlySelectedIndex].Synced 
+	RefreshAudioSelector()
+	guiItems["InstanceAudioSelector"].Text := f[currentlySelectedIndex].AudioDevice
 	UpdateButtonsLables()
 }
-AllFleetArray(Settings){
+EveryInstanceProp(Settings, prop:="Name"){
 	isList := []  ; Create an empty array
 	for i in Settings["Fleet"] 
-		isList.Push(i.Name)  ; Add the Name property to the array
+		isList.Push(i.%prop%)  ; Add the Name property to the array
 	return isList
 }
 InitmyGuiEvents(){
@@ -352,7 +357,7 @@ InitmyGuiEvents(){
 	guiItems["FleetAutoLaunchCheckBox"].OnEvent("Click", HandleCheckBoxes) ; (*) => userSettings["Manager"].AutoLaunch := guiItems["FleetAutoLaunchCheckBox"].Value)
 	guiItems["FleetSyncVolCheckBox"].OnEvent("Click", HandleCheckBoxes) ;(*) => userSettings["Manager"].SyncVolume := guiItems["FleetSyncVolCheckBox"].Value)
 	guiItems["FleetRemoveDisconnectCheckbox"].OnEvent("Click", HandleCheckBoxes) ;(*) => userSettings["Manager"].RemoveDisconnected := guiItems["FleetRemoveDisconnectCheckbox"].Value)
-	guiItems["FleetSyncCheckbox"].OnEvent("Click", HandleFleetSyncCheck)
+	guiItems["InstanceSyncCheckbox"].OnEvent("Click", HandleFleetSyncCheck)
 
 	guiItems["FleetButtonAdd"].OnEvent("Click", HandleInstanceAddButton)
 	guiItems["FleetButtonDelete"].OnEvent("Click", HandleInstanceDeleteButton)
@@ -364,10 +369,20 @@ InitmyGuiEvents(){
 	OnMessage(0x404, TrayIconHandler)
 }
 HandleAudioSelector(*){
+	global userSettings, 
+	i := userSettings["Fleet"][currentlySelectedIndex]
+	i.AudioDevice := guiItems["InstanceAudioSelector"].Text	; TODO devices list array and index instead of text, or maybe its just fine to use text? 
+}
+RefreshAudioSelector(*){
 	global guiItems
-
-	guiItems["InstanceAudioSelector"].Value := ["Unset", "Speaker", "Virtual Audio Device"]
-
+	selection := guiItems["InstanceAudioSelector"].Text
+	guiItems["InstanceAudioSelector"].Delete()
+	devicesList := ["Default"]
+	for device in EveryInstanceProp(userSettings, "AudioDevice")	; TODO: Get the actual devices here, if the previously configure device is absent revert to default? 
+		if !(ArrayHas(devicesList, device))
+			devicesList.Push(device)
+	guiItems["InstanceAudioSelector"].Add(devicesList)
+	guiItems["InstanceAudioSelector"].Text := selection
 }
 StrictPortLimits(*){
 	p := guiItems["InstancePortBox"]
@@ -411,7 +426,7 @@ HandleFleetSyncCheck(*){
 	configp := userSettings["Paths"].Config
 	
 	i := f[currentlySelectedIndex]
-	i.Synced := guiItems["FleetSyncCheckbox"].Value
+	i.Synced := guiItems["InstanceSyncCheckbox"].Value
 
 	if i.id = 0{
 		m.SyncSettings := i.Synced
@@ -436,7 +451,7 @@ HandleFleetSyncCheck(*){
 RefreshFleetList(){
 	global guiItems, userSettings
 	guiItems["FleetListBox"].Delete()
-	guiItems["FleetListBox"].Add(AllFleetArray(userSettings))
+	guiItems["FleetListBox"].Add(EveryInstanceProp(userSettings))
 	UpdateButtonsLables()
 }
 HandlePortChange(*){
@@ -479,6 +494,7 @@ HandleInstanceAddButton(*){
 	i.Name := "Instance " . i.id
 	i.Enabled := 1
 	i.Synced := synced
+	i.AudioDevice := "Default"
 	i.configFile := configp "\fleet-" i.id (i.Synced ? "-synced.conf" : ".conf")
 	i.logFile := configp "\fleet-" i.id (i.Synced ? "-synced.log" : ".log")
 	i.stateFile := i.Synced ? f[1].stateFile : configp "\state-" i.id ".json"
@@ -533,16 +549,23 @@ HandleAndroidSelector(*) {
 global currentlySelectedIndex := 1
 HandleListChange(*) {
 	global guiItems, userSettings, currentlySelectedIndex
-	currentlySelectedIndex := guiItems["FleetListBox"].Value = 0 ? 1 : guiItems["FleetListBox"].Value > userSettings["Fleet"].Length ? userSettings["Fleet"].Length : guiItems["FleetListBox"].Value
-	guiItems["InstanceNameBox"].Value := userSettings["Fleet"][currentlySelectedIndex].Name
-	guiItems["InstancePortBox"].Value := userSettings["Fleet"][currentlySelectedIndex].Port
+	currentlySelectedIndex := guiItems["FleetListBox"].Value = 0 ? 1 : guiItems["FleetListBox"].Value
+	i := userSettings["Fleet"][currentlySelectedIndex]
+	guiItems["InstanceNameBox"].Value := i.Name
+	guiItems["InstancePortBox"].Value := i.Port
 	guiItems["InstanceNameBox"].Opt(((settingsLocked || currentlySelectedIndex = 1) ? "+ReadOnly" : "-ReadOnly"))
 	guiItems["InstancePortBox"].Opt(((settingsLocked || currentlySelectedIndex = 1) ? "+ReadOnly" : "-ReadOnly"))
 	guiItems["InstanceAudioSelector"].Enabled := (settingsLocked || currentlySelectedIndex = 1) ? 0 : 1
 	myLink := "https://localhost:" . userSettings["Fleet"][(userSettings["Manager"].SyncSettings = 1 ? 1 : currentlySelectedIndex)].Port+1
 	guiItems["FleetLinkBox"].Text :=  '<a href="' . myLink . '">' . myLink . '</a>'
 
-	guiItems["FleetSyncCheckbox"].Value := userSettings["Fleet"][currentlySelectedIndex].Synced
+	guiItems["InstanceSyncCheckbox"].Value := i.Synced
+	try
+		guiItems["InstanceAudioSelector"].Text := i.AudioDevice
+	catch
+		guiItems["InstanceAudioSelector"].Value := 0
+
+	
 	UpdateButtonsLables()
 }
 UpdateWindowPosition(){
@@ -668,7 +691,7 @@ UpdateButtonsLables(){
 	global guiItems, settingsLocked
 	guiItems["ButtonLockSettings"].Text := UserSettingsWaiting() ? "Save" : settingsLocked ? "🔒" : "🔓" 
 	guiItems["ButtonReload"].Text := settingsLocked ?  "Reload" : "Cancel"
-	guiItems["FleetSyncCheckbox"].Text := currentlySelectedIndex = 1 ? userSettings["Manager"].SyncSettings ? "Mirror by Default" : "Ignore by Default" : "Copy from Default"
+	guiItems["InstanceSyncCheckbox"].Text := currentlySelectedIndex = 1 ? userSettings["Manager"].SyncSettings ? "Clone by Default" : "Ignore by Default" : "Copy from Default"
 }
 ApplyLockState() {
 	global settingsLocked, guiItems, userSettings, currentlySelectedIndex
@@ -677,7 +700,7 @@ ApplyLockState() {
 	isReadOnly(cond := true) => cond ? "+ReadOnly" : "-ReadOnly"
 
 	textBoxes := ["PathsApolloBox"]
-	checkBoxes := ["FleetAutoLaunchCheckBox", "AndroidReverseTetheringCheckbox", "AndroidMicCheckbox", "AndroidCamCheckbox", "FleetSyncCheckbox"]
+	checkBoxes := ["FleetAutoLaunchCheckBox", "AndroidReverseTetheringCheckbox", "AndroidMicCheckbox", "AndroidCamCheckbox", "InstanceSyncCheckbox"]
 	buttons := ["FleetButtonDelete", "FleetButtonAdd", "PathsApolloBrowseButton"]
 	androidSelectors := Map(
 		"AndroidMicSelector", "AndroidMicCheckbox",
@@ -723,6 +746,9 @@ HandleSettingsLock(*) {
 	UpdateButtonsLables()
 	if !UserSettingsWaiting() {
 		settingsLocked := !settingsLocked
+		if !settingsLocked {
+			RefreshAudioSelector()
+		}
 	} else {
 		currentlySelectedIndex := 1
 		HandleListChange()
@@ -831,7 +857,7 @@ FleetConfigInit(*){
 	if (m.SyncSettings) {
 		defaultConfFile := p.Apollo . "\config\sunshine.conf"
 		baseConf := ConfRead(defaultConfFile)
-		excludeOptions := ["sunshine_name", "port", "file_state", "credentials_file", "file_apps"]
+		excludeOptions := ["sunshine_name", "port", "file_state", "credentials_file", "file_apps"]	; TODO: Audio device
 		for option in excludeOptions
 			if baseConf.Has(option) 
 				baseConf.Delete(option) 
@@ -843,7 +869,7 @@ FleetConfigInit(*){
 		"file_state", "stateFile",
 		"credentials_file", "credFile",
 		"file_apps", "appsFile"
-	)
+	)	; TODO: Audio device and its consequences; the mute option/ and or others
 	newConf := false
 	for i in f {
 		if (i.Enabled = 1) {
