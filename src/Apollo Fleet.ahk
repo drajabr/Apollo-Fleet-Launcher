@@ -277,7 +277,7 @@ InitmyGui() {
 	guiItems["FleetPortBox"] := myGui.Add("Edit", "x256 y48 w40 h23 +ReadOnly", "")
 
 	myGui.Add("Text", "x123 y82", "Audio :")
-	guiItems["FleetAudioSelector"] := myGui.Add("ComboBox", "x176 y79 w120")
+	guiItems["FleetAudioSelector"] := myGui.Add("ComboBox", "x176 y79 w120 +Limit")
 
 	myGui.Add("Text", "x123 y110 ", "Link:")
 	myLink := "https://localhost:" . savedSettings["Fleet"][(savedSettings["Manager"].SyncSettings = 1 ? 1 : currentlySelectedIndex)].Port+1
@@ -355,7 +355,14 @@ InitmyGuiEvents(){
 	guiItems["FleetNameBox"].OnEvent("Change", HandleNameChange)
 	guiItems["FleetPortBox"].OnEvent("LoseFocus", HandlePortChange)
 	guiItems["FleetPortBox"].OnEvent("Change", StrictPortLimits)
+	guiItems["FleetAudioSelector"].OnEvent("Change", HandleAudioSelector)
 	OnMessage(0x404, TrayIconHandler)
+}
+HandleAudioSelector(*){
+	global guiItems
+
+	guiItems["FleetAudioSelector"].Value := ["Unset", "Speaker", "Virtual Audio Device"]
+
 }
 StrictPortLimits(*){
 	p := guiItems["FleetPortBox"]
@@ -457,13 +464,13 @@ HandleInstanceAddButton(*){
 	}
 	Sleep (100)
 }
-HandleInstanceDeleteButton(*){
-	global userSettings, guiItems
-	selectedEntryIndex := guiItems["FleetListBox"].Value
-	if (selectedEntryIndex != 1){
-		userSettings["Fleet"].RemoveAt(selectedEntryIndex) ; MUST USE REMOVEAT INSTEAD OF DELETE TO REMOVE THE ITEM COMPLETELY NOT JUST ITS VALUE
-		guiItems["FleetListBox"].Delete(selectedEntryIndex)
-		guiItems["FleetListBox"].Choose(selectedEntryIndex - 1 )
+HandleInstanceDeleteButton(*){ 
+	global userSettings, guiItems, currentlySelectedIndex
+	if (currentlySelectedIndex != 1){
+		userSettings["Fleet"].RemoveAt(currentlySelectedIndex) ; MUST USE REMOVEAT INSTEAD OF DELETE TO REMOVE THE ITEM COMPLETELY NOT JUST ITS VALUE
+		guiItems["FleetListBox"].Delete(currentlySelectedIndex)
+		nextChoice := currentlySelectedIndex <= userSettings["Fleet"].Length ? currentlySelectedIndex : currentlySelectedIndex - 1
+		guiItems["FleetListBox"].Choose(nextChoice)
 		HandleListChange()
 		Loop userSettings["Fleet"].Length { 	; Update is index
 			userSettings["Fleet"][A_Index].id := A_Index - 1
@@ -495,7 +502,7 @@ HandleAndroidSelector(*) {
 global currentlySelectedIndex := 1
 HandleListChange(*) {
 	global guiItems, userSettings, currentlySelectedIndex
-	currentlySelectedIndex := guiItems["FleetListBox"].Value = 0 ? 1 : guiItems["FleetListBox"].Value
+	currentlySelectedIndex := guiItems["FleetListBox"].Value > userSettings["Fleet"].Length ? userSettings["Fleet"].Length : guiItems["FleetListBox"].Value
 	guiItems["FleetNameBox"].Value := userSettings["Fleet"][currentlySelectedIndex].Name
 	guiItems["FleetPortBox"].Value := userSettings["Fleet"][currentlySelectedIndex].Port
 	guiItems["FleetNameBox"].Opt(((settingsLocked || currentlySelectedIndex = 1) ? "+ReadOnly" : "-ReadOnly"))
@@ -524,7 +531,7 @@ HandleLogsButton(*) {
 	Sleep (100)
 }
 HandleReloadButton(*) {
-	global settingsLocked, userSettings, savedSettings
+	global settingsLocked, userSettings, savedSettings, currentlySelectedIndex
 	;if settingsLocked && UserSettingsWaiting() {
 	;	if (userSettings["Manager"].SyncSettings != userSettings["Manager"].SyncSettings) {
 	;		for i in userSettings["Fleet"]
@@ -541,6 +548,7 @@ HandleReloadButton(*) {
 		Reload
 	}
 	else {
+		currentlySelectedIndex := 1
 		ReflectSettings(savedSettings)
 		HandleSettingsLock()
 		bootstrapSettings()
@@ -960,7 +968,7 @@ SetupFleetTask() {
         ExitApp
     }
 
-    if savedSettings["Manager"].AutoLaunch {  ; Replace with savedSettings["Manager"].AutoLaunch
+    if savedSettings["Manager"].AutoLaunch {
         if !TaskExists(taskName) {
             CreateScheduledTask(taskName, exePath)
         } else if !TaskEnabled(taskName) {
@@ -1053,13 +1061,13 @@ DisableScheduledTask(name) {
 ; Step 1 Load settings
 bootstrapSettings()
 
-; Check if admin and setup scheduled task
+; Step 2 Check if admin and setup scheduled task
 SetupFleetTask()
 
-; Step 2 Setup and show GUI
+; Step 3 Setup and show GUI
 bootstrapGUI()
 
-; Step 3 Prepare and launch fleet if enabled
+; Step 4 Prepare and launch fleet if enabled
 if savedSettings["Manager"].AutoLaunch {
 	; TODO Disable default service and create/enable ours
 	FleetConfigInit()
