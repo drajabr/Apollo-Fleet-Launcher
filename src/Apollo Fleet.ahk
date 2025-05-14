@@ -132,6 +132,7 @@ ReadSettingsGroup(File, group, Settings) {
 			i.Name := ConfRead(defaultConfFile, "sunshine_name", "Default")
 			i.Port := ConfRead(defaultConfFile, "port", "47989")
 			i.Enabled := Settings["Manager"].SyncSettings ? 1 : 0
+			i.Synced := synced
 			i.configFile := defConfigPath "\sunshine.conf"
 			i.logFile := defConfigPath "\sunshine.log"
 			i.stateFile := defConfigPath "\sunshine_state.json"
@@ -153,11 +154,12 @@ ReadSettingsGroup(File, group, Settings) {
 					i.Name := IniRead(File, section, "Name", "i" . index)
 					i.Port := IniRead(File, section, "Port", 10000 + index * 1000)
 					i.Enabled := IniRead(File, section, "Enabled", 1)
-					i.configFile := configp "\fleet-" i.id (synced ? "-synced.conf" : ".conf")
-					i.logFile := configp "\fleet-" i.id (synced ? "-synced.log" : ".log")
-					i.stateFile := synced ? f[1].stateFile : configp "\state-" i.id ".json"
-					i.appsFile := synced ? f[1].appsFile : configp "\apps-" i.id ".json"
-					i.credFile := synced ? f[1].credFile : configp "\state-" i.id ".json"
+					i.Synced := IniRead(File, section, "Synced", synced )
+					i.configFile := configp "\fleet-" i.id (i.Synced ? "-synced.conf" : ".conf")
+					i.logFile := configp "\fleet-" i.id (i.Synced ? "-synced.log" : ".log")
+					i.stateFile := i.Synced ? f[1].stateFile : configp "\state-" i.id ".json"
+					i.appsFile := i.Synced ? f[1].appsFile : configp "\apps-" i.id ".json"
+					i.credFile := i.Synced ? f[1].credFile : configp "\state-" i.id ".json"
 					i.consolePID := IniRead(File, section, "consolePID", 0)
 					i.apolloPID := IniRead(File, section, "apolloPID", 0)
 					i.LastConfigUpdate := IniRead(File, section, "LastConfigUpdate", 0)
@@ -233,6 +235,7 @@ WriteSettingsGroup(Settings, File, group) {
 				IniWrite(i.Name, File, section, "Name")
 				IniWrite(i.Port, File, section, "Port")
 				IniWrite(i.Enabled, File, section, "Enabled")
+				IniWrite(i.Synced, File, section, "Synced")
 				IniWrite(i.consolePID, File, section, "consolePID")
 				IniWrite(i.apolloPID, File, section, "apolloPID")
 				IniWrite(i.LastConfigUpdate, File, section, "LastConfigUpdate")
@@ -273,11 +276,11 @@ InitmyGui() {
 
 	guiItems["FleetListBox"] := myGui.Add("ListBox", "x16 y50 w100 h82 +0x100 Choose1")
 	myGui.Add("Text", "x123 y54", "Name:Port")
-	guiItems["FleetNameBox"] := myGui.Add("Edit", "x176 y48 w80 h23")
-	guiItems["FleetPortBox"] := myGui.Add("Edit", "x256 y48 w40 h23 +ReadOnly", "")
+	guiItems["InstanceNameBox"] := myGui.Add("Edit", "x176 y48 w80 h23")
+	guiItems["InstancePortBox"] := myGui.Add("Edit", "x256 y48 w40 h23 +ReadOnly", "")
 
 	myGui.Add("Text", "x123 y82", "Audio :")
-	guiItems["FleetAudioSelector"] := myGui.Add("ComboBox", "x176 y79 w120 +Limit")
+	guiItems["InstanceAudioSelector"] := myGui.Add("ComboBox", "x176 y79 w120 +Limit")
 
 	myGui.Add("Text", "x123 y110 ", "Link:")
 	myLink := "https://localhost:" . savedSettings["Fleet"][(savedSettings["Manager"].SyncSettings = 1 ? 1 : currentlySelectedIndex)].Port+1
@@ -306,10 +309,11 @@ ReflectSettings(Settings){
 	global myGui, guiItems
 	a := Settings["Android"]
 	m := Settings["Manager"]
+	f := Settings["Fleet"]
 	guiItems["FleetAutoLaunchCheckBox"].Value := m.AutoLaunch
 	guiItems["FleetSyncVolCheckBox"].Value := m.SyncVolume
 	guiItems["FleetRemoveDisconnectCheckbox"].Value := m.RemoveDisconnected
-	guiItems["FleetSyncCheckbox"].Value := m.SyncSettings
+	guiItems["FleetSyncCheckbox"].Value := f[currentlySelectedIndex].Synced
 	guiItems["AndroidReverseTetheringCheckbox"].Value := a.ReverseTethering
 	guiItems["AndroidMicCheckbox"].Value := a.MicEnable
 	guiItems["AndroidMicSelector"].Value := a.MicDeviceID
@@ -317,11 +321,12 @@ ReflectSettings(Settings){
 	guiItems["AndroidCamSelector"].Value := a.CamDeviceID
 	guiItems["PathsApolloBox"].Value := Settings["Paths"].Apollo
 	guiItems["ButtonLogsShow"].Text := (Settings["Window"].logShow = 1 ? "Hide Logs" : "Show Logs")
-	;guiItems["FleetAudioSelector"].Enabled :=0
+	;guiItems["InstanceAudioSelector"].Enabled :=0
 	guiItems["FleetListBox"].Delete()
 	guiItems["FleetListBox"].Add(AllFleetArray(Settings))
-	guiItems["FleetNameBox"].Value := savedSettings["Fleet"][currentlySelectedIndex].Name
-	guiItems["FleetPortBox"].Value := savedSettings["Fleet"][currentlySelectedIndex].Port
+	guiItems["InstanceNameBox"].Value := savedSettings["Fleet"][currentlySelectedIndex].Name
+	guiItems["InstancePortBox"].Value := savedSettings["Fleet"][currentlySelectedIndex].Port
+	UpdateButtonsLables()
 }
 AllFleetArray(Settings){
 	isList := []  ; Create an empty array
@@ -352,20 +357,20 @@ InitmyGuiEvents(){
 	guiItems["FleetButtonAdd"].OnEvent("Click", HandleInstanceAddButton)
 	guiItems["FleetButtonDelete"].OnEvent("Click", HandleInstanceDeleteButton)
 
-	guiItems["FleetNameBox"].OnEvent("Change", HandleNameChange)
-	guiItems["FleetPortBox"].OnEvent("LoseFocus", HandlePortChange)
-	guiItems["FleetPortBox"].OnEvent("Change", StrictPortLimits)
-	guiItems["FleetAudioSelector"].OnEvent("Change", HandleAudioSelector)
+	guiItems["InstanceNameBox"].OnEvent("Change", HandleNameChange)
+	guiItems["InstancePortBox"].OnEvent("LoseFocus", HandlePortChange)
+	guiItems["InstancePortBox"].OnEvent("Change", StrictPortLimits)
+	guiItems["InstanceAudioSelector"].OnEvent("Change", HandleAudioSelector)
 	OnMessage(0x404, TrayIconHandler)
 }
 HandleAudioSelector(*){
 	global guiItems
 
-	guiItems["FleetAudioSelector"].Value := ["Unset", "Speaker", "Virtual Audio Device"]
+	guiItems["InstanceAudioSelector"].Value := ["Unset", "Speaker", "Virtual Audio Device"]
 
 }
 StrictPortLimits(*){
-	p := guiItems["FleetPortBox"]
+	p := guiItems["InstancePortBox"]
 	if !IsNumber(p.Value)
 		p.Value := 10000
 	else if p.Value < 0
@@ -401,11 +406,31 @@ HandleCheckBoxes(*) {
 
 HandleFleetSyncCheck(*){
 	global userSettings, guiItems
-	userSettings["Manager"].SyncSettings := guiItems["FleetSyncCheckbox"].Value
-	userSettings["Fleet"][1].Enabled := userSettings["Manager"].SyncSettings
-	; change conf file name so its recognized as synced, also, to trigger delete for non-synced config "and vice versa" on next reload 
-	for i in userSettings["Fleet"]
-		i.configFile := userSettings["Paths"].Config . '\fleet-' . i.id . (userSettings["Manager"].SyncSettings = 1 ?  '-synced.conf' : '.conf')
+	m := userSettings["Manager"]
+	f := userSettings["Fleet"]
+	configp := userSettings["Paths"].Config
+	
+	i := f[currentlySelectedIndex]
+	i.Synced := guiItems["FleetSyncCheckbox"].Value
+
+	if i.id = 0{
+		m.SyncSettings := i.Synced
+		i.Enabled := m.SyncSettings
+		for otherI in f{
+			otherI.Synced := m.SyncSettings
+			otherI.configFile := configp "\fleet-" otherI.id (otherI.Synced ? "-synced.conf" : ".conf")
+			otherI.logFile := configp "\fleet-" otherI.id (otherI.Synced ? "-synced.log" : ".log")
+			otherI.stateFile := otherI.Synced ? f[1].stateFile : configp "\state-" otherI.id ".json"
+			otherI.appsFile := otherI.Synced ? f[1].appsFile : configp "\apps-" otherI.id ".json"
+			otherI.credFile := otherI.Synced ? f[1].credFile : configp "\state-" otherI.id ".json"
+		}
+	} else if m.SyncSettings{
+		i.configFile := configp "\fleet-" i.id (i.Synced ? "-synced.conf" : ".conf")
+		i.logFile := configp "\fleet-" i.id (i.Synced ? "-synced.log" : ".log")
+		i.stateFile := i.Synced ? f[1].stateFile : configp "\state-" i.id ".json"
+		i.appsFile := i.Synced ? f[1].appsFile : configp "\apps-" i.id ".json"
+		i.credFile := i.Synced ? f[1].credFile : configp "\state-" i.id ".json"
+	}
 	HandleListChange()
 }
 RefreshFleetList(){
@@ -417,7 +442,7 @@ RefreshFleetList(){
 HandlePortChange(*){
 	global userSettings, guiItems
 	selectedEntryIndex := guiItems["FleetListBox"].Value
-	newPort := guiItems["FleetPortBox"].Value = "" ? userSettings["Fleet"][selectedEntryIndex].Port : guiItems["FleetPortBox"].Value 
+	newPort := guiItems["InstancePortBox"].Value = "" ? userSettings["Fleet"][selectedEntryIndex].Port : guiItems["InstancePortBox"].Value 
 	valid := (1024 < newPort && newPort < 65000) ? 1 : 0
 	for i in userSettings["Fleet"]
 		if (i.Port = newPort)
@@ -427,13 +452,13 @@ HandlePortChange(*){
 		myLink := "https://localhost:" . userSettings["Fleet"][(userSettings["Manager"].SyncSettings = 1 ? 1 : currentlySelectedIndex)].Port+1
 		guiItems["FleetLinkBox"].Text :=  '<a href="' . myLink . '">' . myLink . '</a>'	
 	} else {
-		guiItems["FleetPortBox"].Value := userSettings["Fleet"][currentlySelectedIndex].Port
+		guiItems["InstancePortBox"].Value := userSettings["Fleet"][currentlySelectedIndex].Port
 	}
 	UpdateButtonsLables()
 }
 HandleNameChange(*){
 	global userSettings, guiItems
-	newName := guiItems["FleetNameBox"].Value
+	newName := guiItems["InstanceNameBox"].Value
 	selectedEntryIndex := guiItems["FleetListBox"].Value
 	userSettings["Fleet"][selectedEntryIndex].Name := newName
 	RefreshFleetList()
@@ -447,16 +472,22 @@ HandleInstanceAddButton(*){
 	if (i.id > 5){
 		MsgBox("Let's not add more than 5 is for now.")
 	} else {
-	i.Port := i.id = 1 ? 10000 : userSettings["Fleet"][-1].port + 1000
+	synced := userSettings["Manager"].SyncSettings = 1
+	configp := userSettings["Paths"].Config
+	f := userSettings["Fleet"]
+	i.Port := i.id = 1 ? 10000 : f[-1].port + 1000
 	i.Name := "Instance " . i.id
 	i.Enabled := 1
+	i.Synced := synced
+	i.configFile := configp "\fleet-" i.id (i.Synced ? "-synced.conf" : ".conf")
+	i.logFile := configp "\fleet-" i.id (i.Synced ? "-synced.log" : ".log")
+	i.stateFile := i.Synced ? f[1].stateFile : configp "\state-" i.id ".json"
+	i.appsFile := i.Synced ? f[1].appsFile : configp "\apps-" i.id ".json"
+	i.credFile := i.Synced ? f[1].credFile : configp "\state-" i.id ".json"	
 	i.consolePID := 0
 	i.apolloPID := 0
 	i.LastConfigUpdate := 0
 	i.LastReadLogLine := 0
-	i.configFile := userSettings["Paths"].Config . '\fleet-' . i.id . '.conf'
-	i.logFile := userSettings["Paths"].Config . '\fleet-' . i.id . '.log'
-	i.stateFile := userSettings["Paths"].Config . '\fleet-' . i.id . '.json'
 	userSettings["Fleet"].Push(i) ; Add the i object to the userSettings["Fleet"] array
 	RefreshFleetList()
 	guiItems["FleetListBox"].Choose(i.id + 1)
@@ -502,14 +533,16 @@ HandleAndroidSelector(*) {
 global currentlySelectedIndex := 1
 HandleListChange(*) {
 	global guiItems, userSettings, currentlySelectedIndex
-	currentlySelectedIndex := guiItems["FleetListBox"].Value > userSettings["Fleet"].Length ? userSettings["Fleet"].Length : guiItems["FleetListBox"].Value
-	guiItems["FleetNameBox"].Value := userSettings["Fleet"][currentlySelectedIndex].Name
-	guiItems["FleetPortBox"].Value := userSettings["Fleet"][currentlySelectedIndex].Port
-	guiItems["FleetNameBox"].Opt(((settingsLocked || currentlySelectedIndex = 1) ? "+ReadOnly" : "-ReadOnly"))
-	guiItems["FleetPortBox"].Opt(((settingsLocked || currentlySelectedIndex = 1) ? "+ReadOnly" : "-ReadOnly"))
-	guiItems["FleetAudioSelector"].Enabled := (settingsLocked || currentlySelectedIndex = 1) ? 0 : 1
+	currentlySelectedIndex := guiItems["FleetListBox"].Value = 0 ? 1 : guiItems["FleetListBox"].Value > userSettings["Fleet"].Length ? userSettings["Fleet"].Length : guiItems["FleetListBox"].Value
+	guiItems["InstanceNameBox"].Value := userSettings["Fleet"][currentlySelectedIndex].Name
+	guiItems["InstancePortBox"].Value := userSettings["Fleet"][currentlySelectedIndex].Port
+	guiItems["InstanceNameBox"].Opt(((settingsLocked || currentlySelectedIndex = 1) ? "+ReadOnly" : "-ReadOnly"))
+	guiItems["InstancePortBox"].Opt(((settingsLocked || currentlySelectedIndex = 1) ? "+ReadOnly" : "-ReadOnly"))
+	guiItems["InstanceAudioSelector"].Enabled := (settingsLocked || currentlySelectedIndex = 1) ? 0 : 1
 	myLink := "https://localhost:" . userSettings["Fleet"][(userSettings["Manager"].SyncSettings = 1 ? 1 : currentlySelectedIndex)].Port+1
 	guiItems["FleetLinkBox"].Text :=  '<a href="' . myLink . '">' . myLink . '</a>'
+
+	guiItems["FleetSyncCheckbox"].Value := userSettings["Fleet"][currentlySelectedIndex].Synced
 	UpdateButtonsLables()
 }
 UpdateWindowPosition(){
@@ -635,6 +668,7 @@ UpdateButtonsLables(){
 	global guiItems, settingsLocked
 	guiItems["ButtonLockSettings"].Text := UserSettingsWaiting() ? "Save" : settingsLocked ? "🔒" : "🔓" 
 	guiItems["ButtonReload"].Text := settingsLocked ?  "Reload" : "Cancel"
+	guiItems["FleetSyncCheckbox"].Text := currentlySelectedIndex = 1 ? userSettings["Manager"].SyncSettings ? "Copy by Default" : "Ignore by Default" : "Copy from Default"
 }
 ApplyLockState() {
 	global settingsLocked, guiItems, userSettings, currentlySelectedIndex
@@ -649,8 +683,8 @@ ApplyLockState() {
 		"AndroidMicSelector", "AndroidMicCheckbox",
 		"AndroidCamSelector", "AndroidCamCheckbox"
 	)
-	inputBoxes := ["FleetNameBox", "FleetPortBox"]
-	inputSelectors := ["FleetAudioSelector"]
+	inputBoxes := ["InstanceNameBox", "InstancePortBox"]
+	inputSelectors := ["InstanceAudioSelector"]
 	launchChildren := ["FleetSyncVolCheckBox", "FleetRemoveDisconnectCheckbox"]
 
 	launchChildrenLock := userSettings["Manager"].AutoLaunch = 0
@@ -679,7 +713,7 @@ ApplyLockState() {
 }
 
 SaveUserSettings(){
-	global userSettings, savedSettings
+	global userSettings, savedSettings, currentlySelectedIndex
 	; TODO verify settings before save? 
 	savedSettings := DeepClone(userSettings)
 }
@@ -690,6 +724,8 @@ HandleSettingsLock(*) {
 	if !UserSettingsWaiting() {
 		settingsLocked := !settingsLocked
 	} else {
+		currentlySelectedIndex := 1
+		HandleListChange()
 		; hence we need to save settings "clone staged into active and save them"
 		SaveUserSettings()
 		HandleSettingsLock()
@@ -811,8 +847,8 @@ FleetConfigInit(*){
 	newConf := false
 	for i in f {
 		if (i.Enabled = 1) {
-			configChange := m.SyncSettings ? f[1].LastConfigUpdate = FileGetTime(f[1].configFile, "M") ? false : true : false
-			thisConf := (!m.SyncSettings && FileExist(i.configFile)) ? ConfRead(i.configFile) : DeepClone(baseConf)
+			configChange := i.Synced ? i.LastConfigUpdate = FileGetTime(i.configFile, "M") ? false : true : false
+			thisConf := i.Synced ? DeepClone(baseConf) : FileExist(i.configFile) ? ConfRead(i.configFile) : Map()
 			for option, key in optionMap {
 				if SetIfChanged(thisConf, option, i.%key%)
 					configChange := true
