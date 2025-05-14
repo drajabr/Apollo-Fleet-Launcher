@@ -287,7 +287,7 @@ InitmyGui() {
 	guiItems["FleetLinkBox"] := myGui.Add("Link", "x176 y110", '<a href="' . myLink . '">' . myLink . '</a>')
 
 	myGui.Add("Text", "x123 y137 ", "Other Settings:")
-	guiItems["FleetSyncCheckbox"] := myGui.Add("CheckBox", "x196 y137", "Copy from Default")
+	guiItems["FleetSyncCheckbox"] := myGui.Add("CheckBox", "x196 y137", "Mirror from Default")
 
 	guiItems["FleetButtonAdd"] := myGui.Add("Button", "x43 y134 w75 h23", "Add")
 	guiItems["FleetButtonDelete"] := myGui.Add("Button", "x14 y134 w27 h23", "✖")
@@ -668,7 +668,7 @@ UpdateButtonsLables(){
 	global guiItems, settingsLocked
 	guiItems["ButtonLockSettings"].Text := UserSettingsWaiting() ? "Save" : settingsLocked ? "🔒" : "🔓" 
 	guiItems["ButtonReload"].Text := settingsLocked ?  "Reload" : "Cancel"
-	guiItems["FleetSyncCheckbox"].Text := currentlySelectedIndex = 1 ? userSettings["Manager"].SyncSettings ? "Copy by Default" : "Ignore by Default" : "Copy from Default"
+	guiItems["FleetSyncCheckbox"].Text := currentlySelectedIndex = 1 ? userSettings["Manager"].SyncSettings ? "Mirror by Default" : "Ignore by Default" : "Copy from Default"
 }
 ApplyLockState() {
 	global settingsLocked, guiItems, userSettings, currentlySelectedIndex
@@ -847,7 +847,7 @@ FleetConfigInit(*){
 	newConf := false
 	for i in f {
 		if (i.Enabled = 1) {
-			configChange := i.Synced ? i.LastConfigUpdate = FileGetTime(i.configFile, "M") ? false : true : false
+			configChange := i.Synced ? (FileExist(i.configFile) && !(i.LastConfigUpdate = FileGetTime(i.configFile, "M"))) ? true : false : false
 			thisConf := i.Synced ? DeepClone(baseConf) : FileExist(i.configFile) ? ConfRead(i.configFile) : Map()
 			for option, key in optionMap {
 				if SetIfChanged(thisConf, option, i.%key%)
