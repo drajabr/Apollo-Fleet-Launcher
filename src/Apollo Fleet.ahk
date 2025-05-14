@@ -1,3 +1,10 @@
+;@Ahk2Exe-UpdateManifest 1 , Apollo Fleet Launcher
+;@Ahk2Exe-SetVersion 0.0.3
+;@Ahk2Exe-SetName ApolloFleet
+;@Ahk2Exe-SetMainIcon ../assets/9.ico
+;@Ahk2Exe-SetDescription Manage Multiple Apollo Streaming Instances
+;@Ahk2Exe-SetCopyright Copyright (C) 2025 @drajabr
+
 #Requires Autohotkey v2
 
 ConfRead(FilePath, Param := "", Default := "") {
@@ -928,38 +935,143 @@ UrgentSettingWrite(srcSettings, group){
 	userSettings[group] := DeepClone(transientMap[group])
 	WriteSettingsFile(savedSettings)
 }
+
+LogWatchDog(*){
+}
+
+FleetSyncVolume(*){
+}
+
+FleetRemoveDisconnected(*){
+}
+
+FleetSyncSettings(*){
+}
+
+ADBWatchDog(*){
+}
+
+SetupFleetTask() {
+    taskName := "Apollo Fleet Launcher"
+    exePath := A_ScriptFullPath
+
+    if !A_IsAdmin {
+        MsgBox "Please run this script as Administrator."
+        ExitApp
+    }
+
+    if savedSettings["Manager"].AutoLaunch {  ; Replace with savedSettings["Manager"].AutoLaunch
+        if !TaskExists(taskName) {
+            CreateScheduledTask(taskName, exePath)
+        } else if !TaskEnabled(taskName) {
+            EnableScheduledTask(taskName)
+        }
+    } else {
+        if TaskExists(taskName) && TaskEnabled(taskName) {
+            DisableScheduledTask(taskName)
+        }
+    }
+}
+
+GetLaunchCommand(scriptPath) {
+    if SubStr(scriptPath, -3) = ".exe" {
+        return '"' scriptPath '"'
+    } else {
+        ahkExe := A_AhkPath
+        return Format('"{}" "{}"', ahkExe, scriptPath)
+    }
+}
+
+TaskExists(name) {
+    try {
+        ts := ComObject("Schedule.Service")
+        ts.Connect()
+        folder := ts.GetFolder("\")
+        folder.GetTask(name)
+        return true
+    } catch {
+        return false
+    }
+}
+
+TaskEnabled(name) {
+    try {
+        ts := ComObject("Schedule.Service")
+        ts.Connect()
+        folder := ts.GetFolder("\")
+        task := folder.GetTask(name)
+        return task.Definition.Settings.Enabled
+    } catch {
+        return false
+    }
+}
+
+CreateScheduledTask(name, path) {
+    runCmd := GetLaunchCommand(path)
+    ; Escape quotes for schtasks
+    runCmd := StrReplace(runCmd, '"', '\"')
+    cmd := Format('schtasks /Create /TN "{1}" /TR "{2}" /SC ONLOGON /RL HIGHEST /F', name, runCmd)
+    
+    exitCode := RunWait(cmd, , "Hide")
+    if exitCode != 0
+        MsgBox "Failed to create scheduled task. Exit code: " exitCode "`nCommand: " cmd
+}
+
+EnableScheduledTask(name) {
+    cmd := Format('schtasks /Change /TN "{1}" /ENABLE', name)
+    RunWait cmd, , "Hide"
+}
+
+DisableScheduledTask(name) {
+    cmd := Format('schtasks /Change /TN "{1}" /DISABLE', name)
+    RunWait cmd, , "Hide"
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+; Step 1 Load settings
 bootstrapSettings()
 
+; Check if admin and setup scheduled task
+SetupFleetTask()
+
+; Step 2 Setup and show GUI
+bootstrapGUI()
+
+; Step 3 Prepare and launch fleet if enabled
 if savedSettings["Manager"].AutoLaunch {
-	; TODO Disable default service and create/enable ours 
+	; TODO Disable default service and create/enable ours
 	FleetConfigInit()
 	FleetLaunchFleet()
 	;timer 1000 FleetCheckFleet() ; this is a combination of i check/ logmonitor for connected/disconnected events/ 
 	; if enabled, start timer 50 SyncVolume to try sync volume as soon as client connects, probably can verify it too "make it smart not dumb"
 	; if enabled, start timer 50 ForceClose to try send SIGINT to i once client disconnected > the rest should be cought by FleetCheckFleet to relaunch it again "if it didn't relaunch by itself" 
-
 	if savedSettings["Manager"].SyncVolume || savedSettings["Manager"].RemoveDisconnected || savedSettings["Manager"].SyncSettings
 		SetTimer LogWatchDog, 100000
-	
-	FleetLaunch(*){
-	}
-	
-	LogWatchDog(*){
-	}
-	
-	FleetSyncVolume(*){
-	}
-	
-	FleetRemoveDisconnected(*){
-	}
-	
-	FleetSyncSettings(*){
-	}
-	
-	ADBWatchDog(*){
-	}
-	
+
 } 
+
 
 if savedSettings["Android"].ReverseTethering{
 	; AndroidStartGnirehtet() ; check existing > test it > if invalid start new one, until this is a reload; kill it!
@@ -973,9 +1085,13 @@ if savedSettings["Android"].MicEnable || savedSettings["Android"].CamEnable {
 		; check if the micID is non-empty maybe we can do this in a loop as it doesn't really need reload to apply if changed
 		; if 
 	}
+	if savedSettings["Android"].CamEnable{
+		; if the existing scrcpy proccess is ours, and it was created for the same devID keep it, until this is a reload; kill it!
+		; check if the micID is non-empty maybe we can do this in a loop as it doesn't really need reload to apply if changed
+		; if 
+	}
 }
 
-bootstrapGUI()
 
 ; ───── Keep script alive ─────
 While 1
