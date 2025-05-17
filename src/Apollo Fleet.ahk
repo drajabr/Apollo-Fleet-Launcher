@@ -142,7 +142,7 @@ ReadSettingsGroup(File, group, Settings) {
 			i.credFile := defConfigPath "\sunshine_state.json"
 			i.consolePID := IniRead(File, "Instance0", "consolePID", 0)
 			i.apolloPID := IniRead(File, "Instance0", "apolloPID", 0)
-			i.AudioDevice := ConfRead(defaultConfFile, "virtual_sink", "")
+			i.AudioDevice := ConfRead(defaultConfFile, "virtual_sink", "Unset")
 			i.LastConfigUpdate := IniRead(File, "Instance0", "LastConfigUpdate", 0)
 			i.LastReadLogLine := IniRead(File, "Instance0", "LastReadLogLine", 0)
 			f.Push(i)
@@ -160,12 +160,12 @@ ReadSettingsGroup(File, group, Settings) {
 					i.Synced := synced ? IniRead(File, section, "Synced", synced ) : 0
 					i.configFile := configp "\fleet-" i.id (i.Synced ? "-synced.conf" : ".conf")
 					i.logFile := configp "\fleet-" i.id (i.Synced ? "-synced.log" : ".log")
-					i.stateFile := i.Synced ? f[1].stateFile : configp "\state-" i.id ".json"
+					i.stateFile := configp "\state-" i.id ".json"
 					i.appsFile := i.Synced ? f[1].appsFile : configp "\apps-" i.id ".json"
-					i.credFile := i.Synced ? f[1].credFile : configp "\state-" i.id ".json"
+					i.credFile := configp "\state-" i.id ".json"
 					i.consolePID := IniRead(File, section, "consolePID", 0)
 					i.apolloPID := IniRead(File, section, "apolloPID", 0)
-					i.AudioDevice := IniRead(File, section, "AudioDevice", "")
+					i.AudioDevice := IniRead(File, section, "AudioDevice", "Unset")
 					i.LastConfigUpdate := IniRead(File, section, "LastConfigUpdate", 0)
 					i.LastReadLogLine := IniRead(File, section, "LastReadLogLine", 0)
 					f.Push(i)
@@ -285,7 +285,7 @@ InitmyGui() {
 	guiItems["InstancePortBox"] := myGui.Add("Edit", "x256 y48 w40 h23 +ReadOnly", "")
 
 	myGui.Add("Text", "x123 y82", "Audio :")
-	guiItems["InstanceAudioSelector"] := myGui.Add("DropDownList", "x176 y79 w120 Choose1", ["Default"])
+	guiItems["InstanceAudioSelector"] := myGui.Add("DropDownList", "x176 y79 w120 Choose1", ["Unset"])
 
 	myGui.Add("Text", "x123 y110 ", "Link:")
 	myLink := "https://localhost:" . savedSettings["Fleet"][(savedSettings["Manager"].SyncSettings = 1 ? 1 : currentlySelectedIndex)].Port+1
@@ -332,7 +332,7 @@ ReflectSettings(Settings){
 	guiItems["InstancePortBox"].Value := savedSettings["Fleet"][currentlySelectedIndex].Port
 	guiItems["InstanceSyncCheckbox"].Value := f[currentlySelectedIndex].Synced 
 	RefreshAudioSelector()
-	guiItems["InstanceAudioSelector"].Text := f[currentlySelectedIndex].AudioDevice = "" ? "Default" : f[currentlySelectedIndex].AudioDevice
+	guiItems["InstanceAudioSelector"].Text := f[currentlySelectedIndex].AudioDevice
 	UpdateButtonsLabels()
 }
 EveryInstanceProp(Settings, prop:="Name"){
@@ -376,15 +376,14 @@ HandleAudioSelector(*){
 	global userSettings, 
 	i := userSettings["Fleet"][currentlySelectedIndex]
 	i.AudioDevice := guiItems["InstanceAudioSelector"].Text	; TODO devices list array and index instead of text, or maybe its just fine to use text? 
-	if i.AudioDevice = "Default"
-		i.AudioDevice := ""
+	if i.AudioDevice = "Unset"
 	UpdateButtonsLabels()
 }
 RefreshAudioSelector(*){
 	global guiItems
 	selection := guiItems["InstanceAudioSelector"].Text
 	guiItems["InstanceAudioSelector"].Delete()
-	devicesList := ["Default"]
+	devicesList := ["Unset"]
 	for dev in AudioDevice.GetAll()
 		devicesList.Push(dev.GetName())
 	;for device in EveryInstanceProp(userSettings, "AudioDevice")	; TODO: Get the actual devices here, if the previously configure device is absent revert to default? 
@@ -569,7 +568,7 @@ HandleListChange(*) {
 	guiItems["FleetLinkBox"].Text :=  '<a href="' . myLink . '">' . myLink . '</a>'
 
 	RefreshAudioSelector()
-	guiItems["InstanceAudioSelector"].Text := i.AudioDevice = "" ? "Default" : i.AudioDevice
+	guiItems["InstanceAudioSelector"].Text := i.AudioDevice
 
 	guiItems["InstanceSyncCheckbox"].Value := i.Synced
 	guiItems["InstanceSyncCheckbox"].Enabled := !settingsLocked && (userSettings["Manager"].SyncSettings || currentlySelectedIndex = 1)
@@ -834,6 +833,7 @@ ShowmyGui() {
 
 SetIfChanged(map, key, newValue) {
     if map.Get(key,0) != newValue {
+		; MsgBox( map.Get(key,0) . " > " . newValue)
         map.set(key, newValue)
         return true
     }
@@ -889,10 +889,13 @@ FleetConfigInit(*) {
 				if SetIfChanged(i.thisConf, option, i.%key%)
 					i.configChange := true
 			if i.configChange 
-				if i.AudioDevice != "" 
+				if i.AudioDevice != "Unset" {
 					i.thisConf.Set("auto_capture_sink", "disabled", "keep_sink_default", "disabled")
-				else 
+				}
+				else {
+					i.thisConf.Set("auto_capture_sink", "enabled", "keep_sink_default", "enabled")
 					i.thisConf.Delete("virtual_sink")
+				}
 			if !FileExist(i.configFile) || i.configChange {
 				ConfWrite(i.configFile, i.thisConf)
 				i.LastConfigUpdate := FileGetTime(i.configFile, "M")
