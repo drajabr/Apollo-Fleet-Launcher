@@ -840,7 +840,7 @@ SetIfChanged(map, key, newValue) {
     return false
 }
 
-FleetConfigInit(*){
+FleetConfigInit(*) {
 	global savedSettings
 	
 	; clean and prepare conf directory
@@ -883,23 +883,25 @@ FleetConfigInit(*){
 	newConf := false
 	for i in f {
 		if i.id > 0 && i.Enabled = 1 {
-			i.configChange := i.Synced ? (FileExist(i.configFile) && !(f[1].LastConfigUpdate = FileGetTime(f[1].configFile, "M"))) ? true : false : (FileExist(i.configFile) && !(i.LastConfigUpdate = FileGetTime(i.configFile, "M")))
-			thisConf := i.Synced ? DeepClone(baseConf) : FileExist(i.configFile) ? ConfRead(i.configFile) : Map()
+			i.configChange := i.Synced ? ((!!FileExist(i.configFile) && (f[1].LastConfigUpdate = FileGetTime(f[1].configFile, "M"))) ? 0 : 1 ) : !(FileExist(i.configFile) && (i.LastConfigUpdate = FileGetTime(i.configFile, "M")))
+			i.thisConf := i.Synced ? DeepClone(baseConf) : FileExist(i.configFile) ? ConfRead(i.configFile) : Map()
 			for option, key in optionMap {
-				if SetIfChanged(thisConf, option, i.%key%) && !optionMap.has(key)
+				if SetIfChanged(i.thisConf, option, i.%key%) && !i.Synced
 					i.configChange := true
 			}
 			if i.configChange 
 				if i.AudioDevice != "" 
-					thisConf.Set("auto_capture_sink", "disabled", "keep_sink_default", "disabled")
+					i.thisConf.Set("auto_capture_sink", "disabled", "keep_sink_default", "disabled")
+				else 
+					i.thisConf.Delete("virtual_sink")
 			if !FileExist(i.configFile) || i.configChange {
-				ConfWrite(i.configFile, thisConf)
-				i.LastConfigUpdate := FileGetTime(i.configFile)
+				ConfWrite(i.configFile, i.thisConf)
+				i.LastConfigUpdate := FileGetTime(i.configFile, "M")
 				newConf := true
 			}
 		}
 	}
-	if !(f[1].LastConfigUpdate = FileGetTime(f[1].configFile, "M") || newConf){
+	if f[1].LastConfigUpdate != FileGetTime(f[1].configFile, "M") || newConf{
 		f[1].LastConfigUpdate := FileGetTime(f[1].configFile, "M")
 		f[1].configChange := 1
 		UrgentSettingWrite(savedSettings, "Fleet")
@@ -991,11 +993,11 @@ ArrayHas(arr, val) {
 
 FleetLaunchFleet(){
 	global savedSettings
-
+	f := savedSettings["Fleet"]
 	; get currently running PIDs terminate anything unknown to us
 	currentPIDs := PIDsListFromExeName("sunshine.exe")
 	knownPIDs := []
-	for i in savedSettings["Fleet"]
+	for i in f
 		if i.Enabled
 			knownPIDs.Push(i.apolloPID)	
 	for pid in currentPIDs
@@ -1004,9 +1006,12 @@ FleetLaunchFleet(){
 	Sleep(1000) ; keep it here for now,  
 	exe := savedSettings["Paths"].apolloExe
 	newPID := 0
-	for i in savedSettings["Fleet"]
+	for i in f
+		if (i.Enabled && (!ProcessExist(i.apolloPID) || i.configChange))
+			if !SendSigInt(i.apolloPID, true)
+				SendSigInt(i.consolePID, true)
+	for i in f
 		if (i.Enabled && (!ProcessExist(i.apolloPID) || i.configChange)) {	; TODO add test for the instance if it responds or not, also, may check if display is connected deattach it/force exit? 
-			SendSigInt(i.apolloPID, true)
 			pids := RunAndGetPIDs(exe, i.configFile)
 			i.consolePID := pids[1]
 			i.apolloPID := pids[2]
