@@ -376,21 +376,20 @@ HandleAudioSelector(*){
 	global userSettings, 
 	i := userSettings["Fleet"][currentlySelectedIndex]
 	i.AudioDevice := guiItems["InstanceAudioSelector"].Text	; TODO devices list array and index instead of text, or maybe its just fine to use text? 
-	if i.AudioDevice = "Unset"
 	UpdateButtonsLabels()
 }
 RefreshAudioSelector(*){
-	global guiItems
+	global guiItems, audioDevicesList
 	selection := guiItems["InstanceAudioSelector"].Text
 	guiItems["InstanceAudioSelector"].Delete()
-	devicesList := ["Unset"]
+	audioDevicesList := ["Unset"]
 	for dev in AudioDevice.GetAll()
-		devicesList.Push(dev.GetName())
+		audioDevicesList.Push(dev.GetName())
 	;for device in EveryInstanceProp(userSettings, "AudioDevice")	; TODO: Get the actual devices here, if the previously configure device is absent revert to default? 
 	;	if !(ArrayHas(devicesList, device))
 	;		devicesList.Push(device)
-	guiItems["InstanceAudioSelector"].Add(devicesList)
-	guiItems["InstanceAudioSelector"].Text := selection
+	guiItems["InstanceAudioSelector"].Add(audioDevicesList)
+	guiItems["InstanceAudioSelector"].Text := ArrayHas(audioDevicesList, selection) ? selection : "Unset"
 }
 StrictPortLimits(*){
 	p := guiItems["InstancePortBox"]
@@ -566,7 +565,7 @@ HandleListChange(*) {
 	guiItems["FleetLinkBox"].Text :=  '<a href="' . myLink . '">' . myLink . '</a>'
 
 	RefreshAudioSelector()
-	guiItems["InstanceAudioSelector"].Text := i.AudioDevice
+	guiItems["InstanceAudioSelector"].Text := ArrayHas(audioDevicesList, i.AudioDevice) ? i.AudioDevice : "Unset"
 
 	guiItems["InstanceSyncCheckbox"].Value := i.Synced
 	guiItems["InstanceSyncCheckbox"].Enabled := !settingsLocked && (userSettings["Manager"].SyncSettings || currentlySelectedIndex = 1)

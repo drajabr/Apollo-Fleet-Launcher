@@ -1,21 +1,21 @@
-[2025-05-17 23:51:26.286]: Info: Apollo version: v0.3.4
-[2025-05-17 23:51:26.286]: Info: Package Publisher: SudoMaker
-[2025-05-17 23:51:26.286]: Info: Publisher Website: https://www.sudomaker.com
-[2025-05-17 23:51:26.287]: Info: Get support: https://github.com/ClassicOldSong/Apollo/issues
-[2025-05-17 23:51:26.287]: Info: config: 'auto_capture_sink' = disabled
-[2025-05-17 23:51:26.287]: Info: config: 'log_path' = C:\Users\Ahmed\Documents\git\Apollo-Fleet-Launcher\src\config\fleet-1-synced.log
-[2025-05-17 23:51:26.287]: Info: config: 'sunshine_name' = Instance 1
-[2025-05-17 23:51:26.287]: Info: config: 'credentials_file' = C:\Users\Ahmed\Documents\git\Apollo-Fleet-Launcher\src\config\state-1.json
-[2025-05-17 23:51:26.287]: Info: config: 'keep_sink_default' = disabled
-[2025-05-17 23:51:26.297]: Info: config: 'virtual_sink' = SHARP HDMI (2- HD Audio Driver for Display Audio)
-[2025-05-17 23:51:26.297]: Info: config: 'file_apps' = C:\Program Files\Apollo\config\apps.json
-[2025-05-17 23:51:26.297]: Info: config: 'file_state' = C:\Users\Ahmed\Documents\git\Apollo-Fleet-Launcher\src\config\state-1.json
-[2025-05-17 23:51:26.297]: Info: config: 'port' = 10000
-[2025-05-17 23:51:26.297]: Info: Provided workaround settings for SettingsManager:
+[2025-05-18 00:01:50.604]: Info: Apollo version: v0.3.4
+[2025-05-18 00:01:50.605]: Info: Package Publisher: SudoMaker
+[2025-05-18 00:01:50.605]: Info: Publisher Website: https://www.sudomaker.com
+[2025-05-18 00:01:50.605]: Info: Get support: https://github.com/ClassicOldSong/Apollo/issues
+[2025-05-18 00:01:50.605]: Info: config: 'auto_capture_sink' = disabled
+[2025-05-18 00:01:50.605]: Info: config: 'log_path' = C:\Users\Ahmed\Documents\git\Apollo-Fleet-Launcher\src\config\fleet-1-synced.log
+[2025-05-18 00:01:50.605]: Info: config: 'sunshine_name' = Instance 1
+[2025-05-18 00:01:50.605]: Info: config: 'credentials_file' = C:\Users\Ahmed\Documents\git\Apollo-Fleet-Launcher\src\config\state-1.json
+[2025-05-18 00:01:50.606]: Info: config: 'keep_sink_default' = disabled
+[2025-05-18 00:01:50.607]: Info: config: 'virtual_sink' = VAC Main (Virtual Audio Cable)
+[2025-05-18 00:01:50.607]: Info: config: 'file_apps' = C:\Program Files\Apollo\config\apps.json
+[2025-05-18 00:01:50.607]: Info: config: 'file_state' = C:\Users\Ahmed\Documents\git\Apollo-Fleet-Launcher\src\config\state-1.json
+[2025-05-18 00:01:50.607]: Info: config: 'port' = 10000
+[2025-05-18 00:01:50.607]: Info: Provided workaround settings for SettingsManager:
 {
   "hdr_blank_delay": null
 }
-[2025-05-17 23:51:26.297]: Info: Currently available display devices:
+[2025-05-18 00:01:50.609]: Info: Currently available display devices:
 [
   {
     "device_id": "{39eddbff-00ef-5d74-bfb4-9340bbb6f10b}",
@@ -90,14 +90,14 @@
     }
   }
 ]
-[2025-05-17 23:51:26.299]: Info: nvprefs: NvAPI_Initialize() failed, ignore if you don't have NVIDIA video card
-[2025-05-17 23:51:26.303]: Info: Compiling shaders...
-[2025-05-17 23:51:26.331]: Info: System tray created
-[2025-05-17 23:51:26.385]: Info: Compiled shaders
-[2025-05-17 23:51:26.388]: Fatal: ViGEmBus is not installed or running. You must install ViGEmBus for gamepad support!
-[2025-05-17 23:51:26.391]: Info: // Testing for available encoders, this may generate errors. You can safely ignore those errors. //
-[2025-05-17 23:51:26.391]: Info: Trying encoder [nvenc]
-[2025-05-17 23:51:26.470]: Info: 
+[2025-05-18 00:01:50.612]: Info: nvprefs: NvAPI_Initialize() failed, ignore if you don't have NVIDIA video card
+[2025-05-18 00:01:50.616]: Info: Compiling shaders...
+[2025-05-18 00:01:50.656]: Info: System tray created
+[2025-05-18 00:01:50.696]: Info: Compiled shaders
+[2025-05-18 00:01:50.699]: Fatal: ViGEmBus is not installed or running. You must install ViGEmBus for gamepad support!
+[2025-05-18 00:01:50.701]: Info: // Testing for available encoders, this may generate errors. You can safely ignore those errors. //
+[2025-05-18 00:01:50.702]: Info: Trying encoder [nvenc]
+[2025-05-18 00:01:50.782]: Info: 
 Device Description : Intel(R) Iris(R) Xe Graphics
 Device Vendor ID   : 0x00008086
 Device Device ID   : 0x000046A6
@@ -108,9 +108,9 @@ Feature Level      : 0x0000B100
 Capture size       : 1920x1080
 Offset             : 0x1080
 Virtual Desktop    : 1920x2160
-[2025-05-17 23:51:26.470]: Info: Active GPU has HAGS disabled
-[2025-05-17 23:51:26.471]: Info: Using realtime GPU priority
-[2025-05-17 23:51:26.471]: Info: 
+[2025-05-18 00:01:50.782]: Info: Active GPU has HAGS disabled
+[2025-05-18 00:01:50.782]: Info: Using realtime GPU priority
+[2025-05-18 00:01:50.782]: Info: 
 Colorspace         : DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709
 Bits Per Color     : 6
 Red Primary        : [0.589844,0.349609]
@@ -120,13 +120,13 @@ White Point        : [0.313477,0.329102]
 Min Luminance      : 0.5 nits
 Max Luminance      : 270 nits
 Max Full Luminance : 270 nits
-[2025-05-17 23:51:26.471]: Info: Desktop resolution [1920x1080]
-[2025-05-17 23:51:26.471]: Info: Desktop format [DXGI_FORMAT_B8G8R8A8_UNORM]
-[2025-05-17 23:51:26.471]: Info: Display refresh rate [60Hz]
-[2025-05-17 23:51:26.471]: Info: Requested frame rate [60fps]
-[2025-05-17 23:51:26.471]: Info: Encoder [nvenc] is not supported on this GPU
-[2025-05-17 23:51:26.477]: Info: Trying encoder [quicksync]
-[2025-05-17 23:51:26.515]: Info: 
+[2025-05-18 00:01:50.783]: Info: Desktop resolution [1920x1080]
+[2025-05-18 00:01:50.783]: Info: Desktop format [DXGI_FORMAT_B8G8R8A8_UNORM]
+[2025-05-18 00:01:50.783]: Info: Display refresh rate [60Hz]
+[2025-05-18 00:01:50.783]: Info: Requested frame rate [60fps]
+[2025-05-18 00:01:50.783]: Info: Encoder [nvenc] is not supported on this GPU
+[2025-05-18 00:01:50.789]: Info: Trying encoder [quicksync]
+[2025-05-18 00:01:50.828]: Info: 
 Device Description : Intel(R) Iris(R) Xe Graphics
 Device Vendor ID   : 0x00008086
 Device Device ID   : 0x000046A6
@@ -137,9 +137,9 @@ Feature Level      : 0x0000B100
 Capture size       : 1920x1080
 Offset             : 0x1080
 Virtual Desktop    : 1920x2160
-[2025-05-17 23:51:26.515]: Info: Active GPU has HAGS disabled
-[2025-05-17 23:51:26.515]: Info: Using realtime GPU priority
-[2025-05-17 23:51:26.516]: Info: 
+[2025-05-18 00:01:50.828]: Info: Active GPU has HAGS disabled
+[2025-05-18 00:01:50.828]: Info: Using realtime GPU priority
+[2025-05-18 00:01:50.829]: Info: 
 Colorspace         : DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709
 Bits Per Color     : 6
 Red Primary        : [0.589844,0.349609]
@@ -149,29 +149,29 @@ White Point        : [0.313477,0.329102]
 Min Luminance      : 0.5 nits
 Max Luminance      : 270 nits
 Max Full Luminance : 270 nits
-[2025-05-17 23:51:26.516]: Info: Desktop resolution [1920x1080]
-[2025-05-17 23:51:26.516]: Info: Desktop format [DXGI_FORMAT_B8G8R8A8_UNORM]
-[2025-05-17 23:51:26.516]: Info: Display refresh rate [60Hz]
-[2025-05-17 23:51:26.516]: Info: Requested frame rate [60fps]
-[2025-05-17 23:51:26.516]: Info: Client dynamicRange: 0, Display is HDR: false
-[2025-05-17 23:51:26.516]: Info: Creating encoder [h264_qsv]
-[2025-05-17 23:51:26.516]: Info: Color coding: SDR (Rec. 601)
-[2025-05-17 23:51:26.516]: Info: Color depth: 8-bit
-[2025-05-17 23:51:26.517]: Info: Color range: JPEG
-[2025-05-17 23:51:26.709]: Info: Client dynamicRange: 0, Display is HDR: false
-[2025-05-17 23:51:26.709]: Info: Creating encoder [hevc_qsv]
-[2025-05-17 23:51:26.709]: Info: Color coding: SDR (Rec. 601)
-[2025-05-17 23:51:26.710]: Info: Color depth: 8-bit
-[2025-05-17 23:51:26.710]: Info: Color range: JPEG
-[2025-05-17 23:51:26.947]: Info: Client dynamicRange: 0, Display is HDR: false
-[2025-05-17 23:51:26.947]: Info: Creating encoder [av1_qsv]
-[2025-05-17 23:51:26.947]: Info: Color coding: SDR (Rec. 601)
-[2025-05-17 23:51:26.947]: Info: Color depth: 8-bit
-[2025-05-17 23:51:26.948]: Info: Color range: JPEG
-[2025-05-17 23:51:27.107]: Error: [av1_qsv @ 000001a355962680] Current codec type is unsupported
-[2025-05-17 23:51:27.107]: Error: [av1_qsv @ 000001a355962680] some encoding parameters are not supported by the QSV runtime. Please double check the input parameters.
-[2025-05-17 23:51:27.109]: Error: Could not open codec [av1_qsv]: Function not implemented
-[2025-05-17 23:51:27.159]: Info: 
+[2025-05-18 00:01:50.829]: Info: Desktop resolution [1920x1080]
+[2025-05-18 00:01:50.829]: Info: Desktop format [DXGI_FORMAT_B8G8R8A8_UNORM]
+[2025-05-18 00:01:50.829]: Info: Display refresh rate [60Hz]
+[2025-05-18 00:01:50.829]: Info: Requested frame rate [60fps]
+[2025-05-18 00:01:50.830]: Info: Client dynamicRange: 0, Display is HDR: false
+[2025-05-18 00:01:50.830]: Info: Creating encoder [h264_qsv]
+[2025-05-18 00:01:50.830]: Info: Color coding: SDR (Rec. 601)
+[2025-05-18 00:01:50.830]: Info: Color depth: 8-bit
+[2025-05-18 00:01:50.830]: Info: Color range: JPEG
+[2025-05-18 00:01:51.019]: Info: Client dynamicRange: 0, Display is HDR: false
+[2025-05-18 00:01:51.019]: Info: Creating encoder [hevc_qsv]
+[2025-05-18 00:01:51.019]: Info: Color coding: SDR (Rec. 601)
+[2025-05-18 00:01:51.019]: Info: Color depth: 8-bit
+[2025-05-18 00:01:51.020]: Info: Color range: JPEG
+[2025-05-18 00:01:51.268]: Info: Client dynamicRange: 0, Display is HDR: false
+[2025-05-18 00:01:51.269]: Info: Creating encoder [av1_qsv]
+[2025-05-18 00:01:51.269]: Info: Color coding: SDR (Rec. 601)
+[2025-05-18 00:01:51.269]: Info: Color depth: 8-bit
+[2025-05-18 00:01:51.269]: Info: Color range: JPEG
+[2025-05-18 00:01:51.428]: Error: [av1_qsv @ 00000200aaaab800] Current codec type is unsupported
+[2025-05-18 00:01:51.428]: Error: [av1_qsv @ 00000200aaaab800] some encoding parameters are not supported by the QSV runtime. Please double check the input parameters.
+[2025-05-18 00:01:51.430]: Error: Could not open codec [av1_qsv]: Function not implemented
+[2025-05-18 00:01:51.478]: Info: 
 Device Description : Intel(R) Iris(R) Xe Graphics
 Device Vendor ID   : 0x00008086
 Device Device ID   : 0x000046A6
@@ -182,9 +182,9 @@ Feature Level      : 0x0000B100
 Capture size       : 1920x1080
 Offset             : 0x1080
 Virtual Desktop    : 1920x2160
-[2025-05-17 23:51:27.159]: Info: Active GPU has HAGS disabled
-[2025-05-17 23:51:27.159]: Info: Using realtime GPU priority
-[2025-05-17 23:51:27.159]: Info: 
+[2025-05-18 00:01:51.478]: Info: Active GPU has HAGS disabled
+[2025-05-18 00:01:51.478]: Info: Using realtime GPU priority
+[2025-05-18 00:01:51.479]: Info: 
 Colorspace         : DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709
 Bits Per Color     : 6
 Red Primary        : [0.589844,0.349609]
@@ -194,20 +194,29 @@ White Point        : [0.313477,0.329102]
 Min Luminance      : 0.5 nits
 Max Luminance      : 270 nits
 Max Full Luminance : 270 nits
-[2025-05-17 23:51:27.160]: Info: Desktop resolution [1920x1080]
-[2025-05-17 23:51:27.160]: Info: Desktop format [DXGI_FORMAT_B8G8R8A8_UNORM]
-[2025-05-17 23:51:27.160]: Info: Display refresh rate [60Hz]
-[2025-05-17 23:51:27.160]: Info: Requested frame rate [60fps]
-[2025-05-17 23:51:27.160]: Info: Client dynamicRange: 1, Display is HDR: false
-[2025-05-17 23:51:27.160]: Info: Creating encoder [hevc_qsv]
-[2025-05-17 23:51:27.160]: Info: Color coding: SDR (Rec. 709)
-[2025-05-17 23:51:27.160]: Info: Color depth: 10-bit
-[2025-05-17 23:51:27.161]: Info: Color range: JPEG
-[2025-05-17 23:51:27.424]: Info: 
-[2025-05-17 23:51:27.425]: Info: // Ignore any errors mentioned above, they are not relevant. //
-[2025-05-17 23:51:27.425]: Info: 
-[2025-05-17 23:51:27.426]: Info: Found H.264 encoder: h264_qsv [quicksync]
-[2025-05-17 23:51:27.426]: Info: Found HEVC encoder: hevc_qsv [quicksync]
-[2025-05-17 23:51:27.426]: Info: Open the Web UI to set your new username and password and getting started
-[2025-05-17 23:51:27.426]: Info: File C:\Users\Ahmed\Documents\git\Apollo-Fleet-Launcher\src\config\state-1.json doesn't exist
-[2025-05-17 23:51:27.429]: Info: Configuration UI available at [https://localhost:10001]
+[2025-05-18 00:01:51.479]: Info: Desktop resolution [1920x1080]
+[2025-05-18 00:01:51.479]: Info: Desktop format [DXGI_FORMAT_B8G8R8A8_UNORM]
+[2025-05-18 00:01:51.479]: Info: Display refresh rate [60Hz]
+[2025-05-18 00:01:51.480]: Info: Requested frame rate [60fps]
+[2025-05-18 00:01:51.480]: Info: Client dynamicRange: 1, Display is HDR: false
+[2025-05-18 00:01:51.480]: Info: Creating encoder [hevc_qsv]
+[2025-05-18 00:01:51.480]: Info: Color coding: SDR (Rec. 709)
+[2025-05-18 00:01:51.480]: Info: Color depth: 10-bit
+[2025-05-18 00:01:51.480]: Info: Color range: JPEG
+[2025-05-18 00:01:51.730]: Info: 
+[2025-05-18 00:01:51.730]: Info: // Ignore any errors mentioned above, they are not relevant. //
+[2025-05-18 00:01:51.731]: Info: 
+[2025-05-18 00:01:51.731]: Info: Found H.264 encoder: h264_qsv [quicksync]
+[2025-05-18 00:01:51.731]: Info: Found HEVC encoder: hevc_qsv [quicksync]
+[2025-05-18 00:01:51.731]: Info: Open the Web UI to set your new username and password and getting started
+[2025-05-18 00:01:51.731]: Info: File C:\Users\Ahmed\Documents\git\Apollo-Fleet-Launcher\src\config\state-1.json doesn't exist
+[2025-05-18 00:01:51.733]: Info: Configuration UI available at [https://localhost:10001]
+[2025-05-18 00:01:51.979]: Warning: SSL Verification error :: ok
+[2025-05-18 00:01:52.149]: Warning: SSL Verification error :: ok
+[2025-05-18 00:01:52.517]: Info: Registered Apollo mDNS service
+[2025-05-18 00:01:55.363]: Warning: SSL Verification error :: ok
+[2025-05-18 00:01:55.547]: Warning: SSL Verification error :: ok
+[2025-05-18 00:01:58.769]: Warning: SSL Verification error :: ok
+[2025-05-18 00:01:58.964]: Warning: SSL Verification error :: ok
+[2025-05-18 00:02:02.181]: Warning: SSL Verification error :: ok
+[2025-05-18 00:02:02.363]: Warning: SSL Verification error :: ok
