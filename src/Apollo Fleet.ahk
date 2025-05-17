@@ -7,6 +7,8 @@
 
 #Requires Autohotkey v2
 
+#Include ./lib/exAudio.ahk
+
 ConfRead(FilePath, Param := "", Default := "") {
     ; Check if file exists
     if !FileExist(FilePath)
@@ -131,7 +133,7 @@ ReadSettingsGroup(File, group, Settings) {
 			i.id := 0
 			i.Name := ConfRead(defaultConfFile, "sunshine_name", "Default")
 			i.Port := ConfRead(defaultConfFile, "port", "47989")
-			i.Enabled := Settings["Manager"].SyncSettings ? 1 : 0
+			i.Enabled := synced ? 1 : 0
 			i.Synced := synced
 			i.configFile := defConfigPath "\sunshine.conf"
 			i.logFile := defConfigPath "\sunshine.log"
@@ -140,7 +142,7 @@ ReadSettingsGroup(File, group, Settings) {
 			i.credFile := defConfigPath "\sunshine_state.json"
 			i.consolePID := IniRead(File, "Instance0", "consolePID", 0)
 			i.apolloPID := IniRead(File, "Instance0", "apolloPID", 0)
-			i.AudioDevice := "Default"
+			i.AudioDevice := ConfRead(defaultConfFile, "virtual_sink", "")
 			i.LastConfigUpdate := IniRead(File, "Instance0", "LastConfigUpdate", 0)
 			i.LastReadLogLine := IniRead(File, "Instance0", "LastReadLogLine", 0)
 			f.Push(i)
@@ -151,11 +153,11 @@ ReadSettingsGroup(File, group, Settings) {
 					if SubStr(section, -1)=0
 						continue
                     i := {}
-					i.id := IsNumber(SubStr(section, 9)) ? SubStr(section, -1) : index
+					i.id := IsNumber(SubStr(section, -1)) ? SubStr(section, -1) : index
 					i.Name := IniRead(File, section, "Name", "i" . index)
 					i.Port := IniRead(File, section, "Port", 10000 + index * 1000)
 					i.Enabled := IniRead(File, section, "Enabled", 1)
-					i.Synced := IniRead(File, section, "Synced", synced )
+					i.Synced := synced ? IniRead(File, section, "Synced", synced ) : 0
 					i.configFile := configp "\fleet-" i.id (i.Synced ? "-synced.conf" : ".conf")
 					i.logFile := configp "\fleet-" i.id (i.Synced ? "-synced.log" : ".log")
 					i.stateFile := i.Synced ? f[1].stateFile : configp "\state-" i.id ".json"
@@ -163,7 +165,7 @@ ReadSettingsGroup(File, group, Settings) {
 					i.credFile := i.Synced ? f[1].credFile : configp "\state-" i.id ".json"
 					i.consolePID := IniRead(File, section, "consolePID", 0)
 					i.apolloPID := IniRead(File, section, "apolloPID", 0)
-					i.AudioDevice := IniRead(File, section, "AudioDevice", "Default")
+					i.AudioDevice := IniRead(File, section, "AudioDevice", "")
 					i.LastConfigUpdate := IniRead(File, section, "LastConfigUpdate", 0)
 					i.LastReadLogLine := IniRead(File, section, "LastReadLogLine", 0)
 					f.Push(i)
@@ -330,8 +332,8 @@ ReflectSettings(Settings){
 	guiItems["InstancePortBox"].Value := savedSettings["Fleet"][currentlySelectedIndex].Port
 	guiItems["InstanceSyncCheckbox"].Value := f[currentlySelectedIndex].Synced 
 	RefreshAudioSelector()
-	guiItems["InstanceAudioSelector"].Text := f[currentlySelectedIndex].AudioDevice
-	UpdateButtonsLables()
+	guiItems["InstanceAudioSelector"].Text := f[currentlySelectedIndex].AudioDevice = "" ? "Default" : f[currentlySelectedIndex].AudioDevice
+	UpdateButtonsLabels()
 }
 EveryInstanceProp(Settings, prop:="Name"){
 	isList := []  ; Create an empty array
@@ -367,20 +369,27 @@ InitmyGuiEvents(){
 	guiItems["InstancePortBox"].OnEvent("Change", StrictPortLimits)
 	guiItems["InstanceAudioSelector"].OnEvent("Change", HandleAudioSelector)
 	OnMessage(0x404, TrayIconHandler)
+
+	OnAudioEvent(RefreshAudioSelector)
 }
 HandleAudioSelector(*){
 	global userSettings, 
 	i := userSettings["Fleet"][currentlySelectedIndex]
 	i.AudioDevice := guiItems["InstanceAudioSelector"].Text	; TODO devices list array and index instead of text, or maybe its just fine to use text? 
+	if i.AudioDevice = "Default"
+		i.AudioDevice := ""
+	UpdateButtonsLabels()
 }
 RefreshAudioSelector(*){
 	global guiItems
 	selection := guiItems["InstanceAudioSelector"].Text
 	guiItems["InstanceAudioSelector"].Delete()
 	devicesList := ["Default"]
-	for device in EveryInstanceProp(userSettings, "AudioDevice")	; TODO: Get the actual devices here, if the previously configure device is absent revert to default? 
-		if !(ArrayHas(devicesList, device))
-			devicesList.Push(device)
+	for dev in AudioDevice.GetAll()
+		devicesList.Push(dev.GetName())
+	;for device in EveryInstanceProp(userSettings, "AudioDevice")	; TODO: Get the actual devices here, if the previously configure device is absent revert to default? 
+	;	if !(ArrayHas(devicesList, device))
+	;		devicesList.Push(device)
 	guiItems["InstanceAudioSelector"].Add(devicesList)
 	guiItems["InstanceAudioSelector"].Text := selection
 }
@@ -414,7 +423,7 @@ HandleCheckBoxes(*) {
 		guiItems[item].Enabled := launchChildrenLock ? 0 : 1
 	userSettings["Manager"].SyncVolume := guiItems["FleetSyncVolCheckBox"].Value
 	userSettings["Manager"].RemoveDisconnected := guiItems["FleetRemoveDisconnectCheckbox"].Value
-	UpdateButtonsLables()
+	UpdateButtonsLabels()
 	WriteSettingsFile(userSettings)
 
 }
@@ -428,7 +437,7 @@ HandleFleetSyncCheck(*){
 	i := f[currentlySelectedIndex]
 	i.Synced := guiItems["InstanceSyncCheckbox"].Value
 
-	if i.id = 0{
+	if i.id = 0 {
 		m.SyncSettings := i.Synced
 		i.Enabled := m.SyncSettings
 		for otherI in f{
@@ -439,7 +448,7 @@ HandleFleetSyncCheck(*){
 			otherI.appsFile := otherI.Synced ? f[1].appsFile : configp "\apps-" otherI.id ".json"
 			otherI.credFile := otherI.Synced ? f[1].credFile : configp "\state-" otherI.id ".json"
 		}
-	} else if m.SyncSettings{
+	} else if m.SyncSettings {
 		i.configFile := configp "\fleet-" i.id (i.Synced ? "-synced.conf" : ".conf")
 		i.logFile := configp "\fleet-" i.id (i.Synced ? "-synced.log" : ".log")
 		i.stateFile := i.Synced ? f[1].stateFile : configp "\state-" i.id ".json"
@@ -452,7 +461,7 @@ RefreshFleetList(){
 	global guiItems, userSettings
 	guiItems["FleetListBox"].Delete()
 	guiItems["FleetListBox"].Add(EveryInstanceProp(userSettings))
-	UpdateButtonsLables()
+	UpdateButtonsLabels()
 }
 HandlePortChange(*){
 	global userSettings, guiItems
@@ -469,7 +478,7 @@ HandlePortChange(*){
 	} else {
 		guiItems["InstancePortBox"].Value := userSettings["Fleet"][currentlySelectedIndex].Port
 	}
-	UpdateButtonsLables()
+	UpdateButtonsLabels()
 }
 HandleNameChange(*){
 	global userSettings, guiItems
@@ -494,7 +503,7 @@ HandleInstanceAddButton(*){
 	i.Name := "Instance " . i.id
 	i.Enabled := 1
 	i.Synced := synced
-	i.AudioDevice := "Default"
+	i.AudioDevice := ""
 	i.configFile := configp "\fleet-" i.id (i.Synced ? "-synced.conf" : ".conf")
 	i.logFile := configp "\fleet-" i.id (i.Synced ? "-synced.log" : ".log")
 	i.stateFile := i.Synced ? f[1].stateFile : configp "\state-" i.id ".json"
@@ -543,7 +552,7 @@ HandleAndroidSelector(*) {
 		savedSettings["Android"].%enableSettings[A_index]% := chckBox
         savedSettings["Android"].%idSettings[A_index]% := chckBox ? selector.Value : 0
 	}
-	UpdateButtonsLables()
+	UpdateButtonsLabels()
 }
 
 global currentlySelectedIndex := 1
@@ -559,14 +568,12 @@ HandleListChange(*) {
 	myLink := "https://localhost:" . userSettings["Fleet"][(userSettings["Manager"].SyncSettings = 1 ? 1 : currentlySelectedIndex)].Port+1
 	guiItems["FleetLinkBox"].Text :=  '<a href="' . myLink . '">' . myLink . '</a>'
 
-	guiItems["InstanceSyncCheckbox"].Value := i.Synced
-	try
-		guiItems["InstanceAudioSelector"].Text := i.AudioDevice
-	catch
-		guiItems["InstanceAudioSelector"].Value := 0
+	RefreshAudioSelector()
+	guiItems["InstanceAudioSelector"].Text := i.AudioDevice = "" ? "Default" : i.AudioDevice
 
-	
-	UpdateButtonsLables()
+	guiItems["InstanceSyncCheckbox"].Value := i.Synced
+	guiItems["InstanceSyncCheckbox"].Enabled := !settingsLocked && (userSettings["Manager"].SyncSettings || currentlySelectedIndex = 1)
+	UpdateButtonsLabels()
 }
 UpdateWindowPosition(){
 	global savedSettings, myGui
@@ -687,11 +694,11 @@ UserSettingsWaiting() {
 }
 
 
-UpdateButtonsLables(){
+UpdateButtonsLabels(){
 	global guiItems, settingsLocked
-	guiItems["ButtonLockSettings"].Text := UserSettingsWaiting() ? "Save" : settingsLocked ? "🔒" : "🔓" 
+	guiItems["ButtonLockSettings"].Text := UserSettingsWaiting() && !settingsLocked ? "Save" : settingsLocked ? "🔒" : "🔓" 
 	guiItems["ButtonReload"].Text := settingsLocked ?  "Reload" : "Cancel"
-	guiItems["InstanceSyncCheckbox"].Text := currentlySelectedIndex = 1 ? userSettings["Manager"].SyncSettings ? "Clone by Default" : "Ignore by Default" : "Copy from Default"
+	guiItems["InstanceSyncCheckbox"].Text := currentlySelectedIndex = 1 ? userSettings["Manager"].SyncSettings ? "Copy from Default" : "Disable Copy" : "Copy from Default"
 }
 ApplyLockState() {
 	global settingsLocked, guiItems, userSettings, currentlySelectedIndex
@@ -700,7 +707,7 @@ ApplyLockState() {
 	isReadOnly(cond := true) => cond ? "+ReadOnly" : "-ReadOnly"
 
 	textBoxes := ["PathsApolloBox"]
-	checkBoxes := ["FleetAutoLaunchCheckBox", "AndroidReverseTetheringCheckbox", "AndroidMicCheckbox", "AndroidCamCheckbox", "InstanceSyncCheckbox"]
+	checkBoxes := ["FleetAutoLaunchCheckBox", "AndroidReverseTetheringCheckbox", "AndroidMicCheckbox", "AndroidCamCheckbox"]
 	buttons := ["FleetButtonDelete", "FleetButtonAdd", "PathsApolloBrowseButton"]
 	androidSelectors := Map(
 		"AndroidMicSelector", "AndroidMicCheckbox",
@@ -733,6 +740,8 @@ ApplyLockState() {
 
 	for selector, chkbox in androidSelectors
 		guiItems[selector].Enabled := isEnabled(!settingsLocked && guiItems[chkbox].Value)
+
+	guiItems["InstanceSyncCheckbox"].Enabled := !settingsLocked && (userSettings["Manager"].SyncSettings || currentlySelectedIndex = 1)
 }
 
 SaveUserSettings(){
@@ -743,10 +752,10 @@ SaveUserSettings(){
 global settingsLocked := 1
 HandleSettingsLock(*) {
     global guiItems, settingsLocked, savedSettings, userSettings
-	UpdateButtonsLables()
+	UpdateButtonsLabels()
 	if !UserSettingsWaiting() {
 		settingsLocked := !settingsLocked
-		if !settingsLocked {
+		if !settingsLocked {	; to do if got unlocked
 			RefreshAudioSelector()
 		}
 	} else {
@@ -757,7 +766,7 @@ HandleSettingsLock(*) {
 		HandleSettingsLock()
 	}
 	ApplyLockState()
-	UpdateButtonsLables()
+	UpdateButtonsLabels()
 	Sleep (100)
 }
 ExitMyApp() {
@@ -848,16 +857,16 @@ FleetConfigInit(*){
 		for file in fileTypes
 			knownFiles.Push(i.%file%)
 
-	Loop Files configDir . '\*.*' {
+	Loop Files configDir . '\*.*' 
 		if !ArrayHas(knownFiles, A_LoopFileFullPath)
 			FileDelete(A_LoopFileFullPath)
-	}
+	
 	; import default conf if sync is ticked
 	baseConf := Map()
 	if (m.SyncSettings) {
 		defaultConfFile := p.Apollo . "\config\sunshine.conf"
 		baseConf := ConfRead(defaultConfFile)
-		excludeOptions := ["sunshine_name", "port", "file_state", "credentials_file", "file_apps"]	; TODO: Audio device
+		excludeOptions := ["sunshine_name", "port", "file_state", "credentials_file", "file_apps", "auto_capture_sink", "keep_sink_default"]	; TODO: Audio device
 		for option in excludeOptions
 			if baseConf.Has(option) 
 				baseConf.Delete(option) 
@@ -868,25 +877,34 @@ FleetConfigInit(*){
 		"port", "Port",
 		"file_state", "stateFile",
 		"credentials_file", "credFile",
-		"file_apps", "appsFile"
+		"file_apps", "appsFile",
+		"virtual_sink", "AudioDevice"
 	)	; TODO: Audio device and its consequences; the mute option/ and or others
 	newConf := false
 	for i in f {
-		if (i.Enabled = 1) {
-			configChange := i.Synced ? (FileExist(i.configFile) && !(i.LastConfigUpdate = FileGetTime(i.configFile, "M"))) ? true : false : false
+		if i.id > 0 && i.Enabled = 1 {
+			i.configChange := i.Synced ? (FileExist(i.configFile) && !(f[1].LastConfigUpdate = FileGetTime(f[1].configFile, "M"))) ? true : false : (FileExist(i.configFile) && !(i.LastConfigUpdate = FileGetTime(i.configFile, "M")))
 			thisConf := i.Synced ? DeepClone(baseConf) : FileExist(i.configFile) ? ConfRead(i.configFile) : Map()
 			for option, key in optionMap {
-				if SetIfChanged(thisConf, option, i.%key%)
-					configChange := true
+				if SetIfChanged(thisConf, option, i.%key%) && !optionMap.has(key)
+					i.configChange := true
 			}
-			if !FileExist(i.configFile) || configChange {
+			if i.configChange 
+				if i.AudioDevice != "" 
+					thisConf.Set("auto_capture_sink", "disabled", "keep_sink_default", "disabled")
+			if !FileExist(i.configFile) || i.configChange {
 				ConfWrite(i.configFile, thisConf)
+				i.LastConfigUpdate := FileGetTime(i.configFile)
 				newConf := true
 			}
 		}
 	}
-	if newConf
+	if !(f[1].LastConfigUpdate = FileGetTime(f[1].configFile, "M") || newConf){
+		f[1].LastConfigUpdate := FileGetTime(f[1].configFile, "M")
+		f[1].configChange := 1
 		UrgentSettingWrite(savedSettings, "Fleet")
+	} else
+		f[1].configChange := 0
 }
 
 bootstrapSettings() {
@@ -987,7 +1005,7 @@ FleetLaunchFleet(){
 	exe := savedSettings["Paths"].apolloExe
 	newPID := 0
 	for i in savedSettings["Fleet"]
-		if (i.Enabled && !ProcessExist(i.apolloPID)){	; TODO add test for the instance if it responds or not, also, may check if display is connected deattach it/force exit? 
+		if (i.Enabled && (!ProcessExist(i.apolloPID) || i.configChange)) {	; TODO add test for the instance if it responds or not, also, may check if display is connected deattach it/force exit? 
 			pids := RunAndGetPIDs(exe, i.configFile)
 			i.consolePID := pids[1]
 			i.apolloPID := pids[2]
@@ -1026,7 +1044,7 @@ SetupFleetTask() {
     exePath := A_ScriptFullPath
 
     if !A_IsAdmin {
-        MsgBox "Please run this script as Administrator."
+        MsgBox "Please run as Administrator."
         ExitApp
     }
 
