@@ -108,7 +108,7 @@ ReadSettingsGroup(File, group, Settings) {
 			p := Settings["Paths"]
             p.Apollo := IniRead(File, "Paths", "Apollo", "C:\Program Files\Apollo")
             p.apolloExe := Settings["Paths"].Apollo "\sunshine.exe"
-            p.Config := IniRead(File, "Paths", "Config", base "\config")
+            p.Config := IniRead(File, "Paths", "Config", p.Apollo "\config\fleet")
             p.ADBTools := IniRead(File, "Paths", "ADB", base "\platform-tools")
 
         case "Android":
@@ -443,16 +443,12 @@ HandleFleetSyncCheck(*){
 			otherI.Synced := m.SyncSettings
 			otherI.configFile := configp "\fleet-" otherI.id (otherI.Synced ? "-synced.conf" : ".conf")
 			otherI.logFile := configp "\fleet-" otherI.id (otherI.Synced ? "-synced.log" : ".log")
-			otherI.stateFile := otherI.Synced ? f[1].stateFile : configp "\state-" otherI.id ".json"
 			otherI.appsFile := otherI.Synced ? f[1].appsFile : configp "\apps-" otherI.id ".json"
-			otherI.credFile := otherI.Synced ? f[1].credFile : configp "\state-" otherI.id ".json"
 		}
 	} else if m.SyncSettings {
 		i.configFile := configp "\fleet-" i.id (i.Synced ? "-synced.conf" : ".conf")
 		i.logFile := configp "\fleet-" i.id (i.Synced ? "-synced.log" : ".log")
-		i.stateFile := i.Synced ? f[1].stateFile : configp "\state-" i.id ".json"
 		i.appsFile := i.Synced ? f[1].appsFile : configp "\apps-" i.id ".json"
-		i.credFile := i.Synced ? f[1].credFile : configp "\state-" i.id ".json"
 	}
 	HandleListChange()
 }
@@ -502,7 +498,7 @@ HandleInstanceAddButton(*){
 	i.Name := "Instance " . i.id
 	i.Enabled := 1
 	i.Synced := synced
-	i.AudioDevice := ""
+	i.AudioDevice := "Unset"
 	i.configFile := configp "\fleet-" i.id (i.Synced ? "-synced.conf" : ".conf")
 	i.logFile := configp "\fleet-" i.id (i.Synced ? "-synced.log" : ".log")
 	i.stateFile := i.Synced ? f[1].stateFile : configp "\state-" i.id ".json"
@@ -875,6 +871,7 @@ FleetConfigInit(*) {
 	optionMap := Map(
 		"sunshine_name", "Name",
 		"port", "Port",
+		"log_path","logFile", 
 		"file_state", "stateFile",
 		"credentials_file", "credFile",
 		"file_apps", "appsFile",
@@ -996,6 +993,7 @@ ArrayHas(arr, val) {
 FleetLaunchFleet(){
 	global savedSettings
 	f := savedSettings["Fleet"]
+	p := savedSettings["Paths"]
 	; get currently running PIDs terminate anything unknown to us
 	currentPIDs := PIDsListFromExeName("sunshine.exe")
 	knownPIDs := []

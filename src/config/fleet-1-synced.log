@@ -1,0 +1,253 @@
+[2025-05-17 22:09:27.503]: Info: Apollo version: v0.3.4
+[2025-05-17 22:09:27.503]: Info: Package Publisher: SudoMaker
+[2025-05-17 22:09:27.503]: Info: Publisher Website: https://www.sudomaker.com
+[2025-05-17 22:09:27.503]: Info: Get support: https://github.com/ClassicOldSong/Apollo/issues
+[2025-05-17 22:09:27.504]: Info: config: 'auto_capture_sink' = disabled
+[2025-05-17 22:09:27.504]: Info: config: 'log_path' = C:\Users\Ahmed\Documents\git\Apollo-Fleet-Launcher\src\config\fleet-1-synced.log
+[2025-05-17 22:09:27.504]: Info: config: 'sunshine_name' = Instance 2
+[2025-05-17 22:09:27.504]: Info: config: 'credentials_file' = C:\Users\Ahmed\Documents\git\Apollo-Fleet-Launcher\src\config\state-1.json
+[2025-05-17 22:09:27.504]: Info: config: 'keep_sink_default' = disabled
+[2025-05-17 22:09:27.513]: Info: config: 'virtual_sink' = VAC Main (Virtual Audio Cable)
+[2025-05-17 22:09:27.513]: Info: config: 'file_apps' = C:\Program Files\Apollo\config\apps.json
+[2025-05-17 22:09:27.513]: Info: config: 'file_log' = C:\Users\Ahmed\Documents\git\Apollo-Fleet-Launcher\src\config\fleet-1-synced.log
+[2025-05-17 22:09:27.513]: Info: config: 'file_state' = C:\Users\Ahmed\Documents\git\Apollo-Fleet-Launcher\src\config\state-1.json
+[2025-05-17 22:09:27.513]: Info: config: 'port' = 11000
+[2025-05-17 22:09:27.513]: Info: config: 'server_cmd' = {"name":"Bubbles","cmd":"bubbles.scr","elevated":false}
+[2025-05-17 22:09:27.513]: Info: Provided workaround settings for SettingsManager:
+{
+  "hdr_blank_delay": null
+}
+[2025-05-17 22:09:27.514]: Info: Currently available display devices:
+[
+  {
+    "device_id": "{39eddbff-00ef-5d74-bfb4-9340bbb6f10b}",
+    "display_name": "\\\\.\\DISPLAY2",
+    "edid": {
+      "manufacturer_id": "SHP",
+      "product_code": "113D",
+      "serial_number": 0
+    },
+    "friendly_name": "SHARP HDMI",
+    "info": {
+      "hdr_state": null,
+      "origin_point": {
+        "x": 0,
+        "y": -1080
+      },
+      "primary": false,
+      "refresh_rate": {
+        "type": "rational",
+        "value": {
+          "denominator": 247500,
+          "numerator": 14850000
+        }
+      },
+      "resolution": {
+        "height": 1080,
+        "width": 1920
+      },
+      "resolution_scale": {
+        "type": "rational",
+        "value": {
+          "denominator": 100,
+          "numerator": 100
+        }
+      }
+    }
+  },
+  {
+    "device_id": "{54c74f8e-b108-5110-bbfc-60148ed2c7c2}",
+    "display_name": "\\\\.\\DISPLAY1",
+    "edid": {
+      "manufacturer_id": "CMN",
+      "product_code": "153B",
+      "serial_number": 0
+    },
+    "friendly_name": "",
+    "info": {
+      "hdr_state": null,
+      "origin_point": {
+        "x": 0,
+        "y": 0
+      },
+      "primary": true,
+      "refresh_rate": {
+        "type": "rational",
+        "value": {
+          "denominator": 254700,
+          "numerator": 15282000
+        }
+      },
+      "resolution": {
+        "height": 1080,
+        "width": 1920
+      },
+      "resolution_scale": {
+        "type": "rational",
+        "value": {
+          "denominator": 100,
+          "numerator": 100
+        }
+      }
+    }
+  }
+]
+[2025-05-17 22:09:27.517]: Info: nvprefs: NvAPI_Initialize() failed, ignore if you don't have NVIDIA video card
+[2025-05-17 22:09:27.523]: Info: Compiling shaders...
+[2025-05-17 22:09:27.541]: Info: System tray created
+[2025-05-17 22:09:27.612]: Info: Compiled shaders
+[2025-05-17 22:09:27.616]: Fatal: ViGEmBus is not installed or running. You must install ViGEmBus for gamepad support!
+[2025-05-17 22:09:27.620]: Info: // Testing for available encoders, this may generate errors. You can safely ignore those errors. //
+[2025-05-17 22:09:27.620]: Info: Trying encoder [nvenc]
+[2025-05-17 22:09:27.691]: Error: Failed to sync desktop to thread [0x000000AA]
+[2025-05-17 22:09:27.720]: Info: 
+Device Description : Intel(R) Iris(R) Xe Graphics
+Device Vendor ID   : 0x00008086
+Device Device ID   : 0x000046A6
+Device Video Mem   : 128 MiB
+Device Sys Mem     : 0 MiB
+Share Sys Mem      : 16217 MiB
+Feature Level      : 0x0000B100
+Capture size       : 1920x1080
+Offset             : 0x1080
+Virtual Desktop    : 1920x2160
+[2025-05-17 22:09:27.720]: Info: Active GPU has HAGS disabled
+[2025-05-17 22:09:27.721]: Info: Using realtime GPU priority
+[2025-05-17 22:09:27.721]: Info: 
+Colorspace         : DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709
+Bits Per Color     : 6
+Red Primary        : [0.589844,0.349609]
+Green Primary      : [0.330078,0.554688]
+Blue Primary       : [0.15332,0.119141]
+White Point        : [0.313477,0.329102]
+Min Luminance      : 0.5 nits
+Max Luminance      : 270 nits
+Max Full Luminance : 270 nits
+[2025-05-17 22:09:27.721]: Error: Failed to sync desktop to thread [0x000000AA]
+[2025-05-17 22:09:27.721]: Info: Desktop resolution [1920x1080]
+[2025-05-17 22:09:27.721]: Info: Desktop format [DXGI_FORMAT_B8G8R8A8_UNORM]
+[2025-05-17 22:09:27.721]: Info: Display refresh rate [60Hz]
+[2025-05-17 22:09:27.721]: Info: Requested frame rate [60fps]
+[2025-05-17 22:09:27.721]: Info: Encoder [nvenc] is not supported on this GPU
+[2025-05-17 22:09:27.729]: Info: Trying encoder [quicksync]
+[2025-05-17 22:09:27.750]: Error: Failed to sync desktop to thread [0x000000AA]
+[2025-05-17 22:09:27.777]: Info: 
+Device Description : Intel(R) Iris(R) Xe Graphics
+Device Vendor ID   : 0x00008086
+Device Device ID   : 0x000046A6
+Device Video Mem   : 128 MiB
+Device Sys Mem     : 0 MiB
+Share Sys Mem      : 16217 MiB
+Feature Level      : 0x0000B100
+Capture size       : 1920x1080
+Offset             : 0x1080
+Virtual Desktop    : 1920x2160
+[2025-05-17 22:09:27.777]: Info: Active GPU has HAGS disabled
+[2025-05-17 22:09:27.777]: Info: Using realtime GPU priority
+[2025-05-17 22:09:27.777]: Info: 
+Colorspace         : DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709
+Bits Per Color     : 6
+Red Primary        : [0.589844,0.349609]
+Green Primary      : [0.330078,0.554688]
+Blue Primary       : [0.15332,0.119141]
+White Point        : [0.313477,0.329102]
+Min Luminance      : 0.5 nits
+Max Luminance      : 270 nits
+Max Full Luminance : 270 nits
+[2025-05-17 22:09:27.777]: Error: Failed to sync desktop to thread [0x000000AA]
+[2025-05-17 22:09:27.777]: Info: Desktop resolution [1920x1080]
+[2025-05-17 22:09:27.778]: Info: Desktop format [DXGI_FORMAT_B8G8R8A8_UNORM]
+[2025-05-17 22:09:27.778]: Info: Display refresh rate [60Hz]
+[2025-05-17 22:09:27.778]: Info: Requested frame rate [60fps]
+[2025-05-17 22:09:27.778]: Info: Client dynamicRange: 0, Display is HDR: false
+[2025-05-17 22:09:27.778]: Info: Creating encoder [h264_qsv]
+[2025-05-17 22:09:27.778]: Info: Color coding: SDR (Rec. 601)
+[2025-05-17 22:09:27.778]: Info: Color depth: 8-bit
+[2025-05-17 22:09:27.778]: Info: Color range: JPEG
+[2025-05-17 22:09:28.008]: Info: Client dynamicRange: 0, Display is HDR: false
+[2025-05-17 22:09:28.009]: Info: Creating encoder [hevc_qsv]
+[2025-05-17 22:09:28.009]: Info: Color coding: SDR (Rec. 601)
+[2025-05-17 22:09:28.009]: Info: Color depth: 8-bit
+[2025-05-17 22:09:28.009]: Info: Color range: JPEG
+[2025-05-17 22:09:28.356]: Info: Client dynamicRange: 0, Display is HDR: false
+[2025-05-17 22:09:28.356]: Info: Creating encoder [av1_qsv]
+[2025-05-17 22:09:28.356]: Info: Color coding: SDR (Rec. 601)
+[2025-05-17 22:09:28.357]: Info: Color depth: 8-bit
+[2025-05-17 22:09:28.357]: Info: Color range: JPEG
+[2025-05-17 22:09:28.563]: Error: [av1_qsv @ 0000025e66b785c0] Current codec type is unsupported
+[2025-05-17 22:09:28.564]: Error: [av1_qsv @ 0000025e66b785c0] some encoding parameters are not supported by the QSV runtime. Please double check the input parameters.
+[2025-05-17 22:09:28.565]: Error: Could not open codec [av1_qsv]: Function not implemented
+[2025-05-17 22:09:28.610]: Error: Failed to sync desktop to thread [0x000000AA]
+[2025-05-17 22:09:28.642]: Info: 
+Device Description : Intel(R) Iris(R) Xe Graphics
+Device Vendor ID   : 0x00008086
+Device Device ID   : 0x000046A6
+Device Video Mem   : 128 MiB
+Device Sys Mem     : 0 MiB
+Share Sys Mem      : 16217 MiB
+Feature Level      : 0x0000B100
+Capture size       : 1920x1080
+Offset             : 0x1080
+Virtual Desktop    : 1920x2160
+[2025-05-17 22:09:28.642]: Info: Active GPU has HAGS disabled
+[2025-05-17 22:09:28.642]: Info: Using realtime GPU priority
+[2025-05-17 22:09:28.642]: Info: 
+Colorspace         : DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709
+Bits Per Color     : 6
+Red Primary        : [0.589844,0.349609]
+Green Primary      : [0.330078,0.554688]
+Blue Primary       : [0.15332,0.119141]
+White Point        : [0.313477,0.329102]
+Min Luminance      : 0.5 nits
+Max Luminance      : 270 nits
+Max Full Luminance : 270 nits
+[2025-05-17 22:09:28.642]: Error: Failed to sync desktop to thread [0x000000AA]
+[2025-05-17 22:09:28.643]: Info: Desktop resolution [1920x1080]
+[2025-05-17 22:09:28.643]: Info: Desktop format [DXGI_FORMAT_B8G8R8A8_UNORM]
+[2025-05-17 22:09:28.643]: Info: Display refresh rate [60Hz]
+[2025-05-17 22:09:28.643]: Info: Requested frame rate [60fps]
+[2025-05-17 22:09:28.643]: Info: Client dynamicRange: 1, Display is HDR: false
+[2025-05-17 22:09:28.643]: Info: Creating encoder [hevc_qsv]
+[2025-05-17 22:09:28.643]: Info: Color coding: SDR (Rec. 709)
+[2025-05-17 22:09:28.643]: Info: Color depth: 10-bit
+[2025-05-17 22:09:28.643]: Info: Color range: JPEG
+[2025-05-17 22:09:28.924]: Info: 
+[2025-05-17 22:09:28.925]: Info: // Ignore any errors mentioned above, they are not relevant. //
+[2025-05-17 22:09:28.925]: Info: 
+[2025-05-17 22:09:28.925]: Info: Found H.264 encoder: h264_qsv [quicksync]
+[2025-05-17 22:09:28.925]: Info: Found HEVC encoder: hevc_qsv [quicksync]
+[2025-05-17 22:09:28.927]: Info: Configuration UI available at [https://localhost:11001]
+[2025-05-17 22:09:29.679]: Info: Registered Apollo mDNS service
+[2025-05-17 22:10:09.693]: Info: Web UI: [127.0.0.1] -- not authorized
+[2025-05-17 22:11:09.690]: Info: Web UI: [127.0.0.1] -- not authorized
+[2025-05-17 22:12:09.694]: Info: Web UI: [127.0.0.1] -- not authorized
+[2025-05-17 22:13:09.693]: Info: Web UI: [127.0.0.1] -- not authorized
+[2025-05-17 22:14:09.693]: Info: Web UI: [127.0.0.1] -- not authorized
+[2025-05-17 22:15:09.692]: Info: Web UI: [127.0.0.1] -- not authorized
+[2025-05-17 22:16:09.695]: Info: Web UI: [127.0.0.1] -- not authorized
+[2025-05-17 22:17:09.689]: Info: Web UI: [127.0.0.1] -- not authorized
+[2025-05-17 22:18:09.692]: Info: Web UI: [127.0.0.1] -- not authorized
+[2025-05-17 22:19:09.693]: Info: Web UI: [127.0.0.1] -- not authorized
+[2025-05-17 22:20:09.691]: Info: Web UI: [127.0.0.1] -- not authorized
+[2025-05-17 22:21:09.691]: Info: Web UI: [127.0.0.1] -- not authorized
+[2025-05-17 22:22:09.692]: Info: Web UI: [127.0.0.1] -- not authorized
+[2025-05-17 22:23:09.690]: Info: Web UI: [127.0.0.1] -- not authorized
+[2025-05-17 22:24:09.704]: Info: Web UI: [127.0.0.1] -- not authorized
+[2025-05-17 22:25:09.718]: Info: Web UI: [127.0.0.1] -- not authorized
+[2025-05-17 22:26:09.708]: Info: Web UI: [127.0.0.1] -- not authorized
+[2025-05-17 22:27:09.707]: Info: Web UI: [127.0.0.1] -- not authorized
+[2025-05-17 22:28:09.707]: Info: Web UI: [127.0.0.1] -- not authorized
+[2025-05-17 22:29:09.703]: Info: Web UI: [127.0.0.1] -- not authorized
+[2025-05-17 22:30:09.703]: Info: Web UI: [127.0.0.1] -- not authorized
+[2025-05-17 22:31:09.708]: Info: Web UI: [127.0.0.1] -- not authorized
+[2025-05-17 22:32:09.708]: Info: Web UI: [127.0.0.1] -- not authorized
+[2025-05-17 22:33:09.710]: Info: Web UI: [127.0.0.1] -- not authorized
+[2025-05-17 22:34:09.702]: Info: Web UI: [127.0.0.1] -- not authorized
+[2025-05-17 22:35:09.713]: Info: Web UI: [127.0.0.1] -- not authorized
+[2025-05-17 22:36:09.709]: Info: Web UI: [127.0.0.1] -- not authorized
+[2025-05-17 22:37:09.709]: Info: Web UI: [127.0.0.1] -- not authorized
+[2025-05-17 22:38:09.698]: Info: Web UI: [127.0.0.1] -- not authorized
+[2025-05-17 22:38:27.916]: Info: Quitting from system tray
+[2025-05-17 22:38:27.916]: Info: Interrupt handler called
+[2025-05-17 22:38:28.408]: Error: register_cb(): DNS record does not exist.
+[2025-05-17 22:38:28.408]: Error: Unable to unregister Apollo mDNS service
