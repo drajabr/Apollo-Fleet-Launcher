@@ -883,12 +883,11 @@ FleetConfigInit(*) {
 	newConf := false
 	for i in f {
 		if i.id > 0 && i.Enabled = 1 {
-			i.configChange := i.Synced ? ((!!FileExist(i.configFile) && (f[1].LastConfigUpdate = FileGetTime(f[1].configFile, "M"))) ? 0 : 1 ) : !(FileExist(i.configFile) && (i.LastConfigUpdate = FileGetTime(i.configFile, "M")))
-			i.thisConf := i.Synced ? DeepClone(baseConf) : FileExist(i.configFile) ? ConfRead(i.configFile) : Map()
-			for option, key in optionMap {
-				if SetIfChanged(i.thisConf, option, i.%key%) && !i.Synced
+			i.configChange := i.Synced ? ((!!FileExist(i.configFile) && (f[1].LastConfigUpdate = FileGetTime(f[1].configFile, "M"))) ? 0 : 1 ) : !(!!FileExist(i.configFile) && (i.LastConfigUpdate = FileGetTime(i.configFile, "M")))
+			i.thisConf := FileExist(i.configFile) ? ConfRead(i.configFile) : i.Synced ? DeepClone(baseConf) : Map()
+			for option, key in optionMap 
+				if SetIfChanged(i.thisConf, option, i.%key%)
 					i.configChange := true
-			}
 			if i.configChange 
 				if i.AudioDevice != "" 
 					i.thisConf.Set("auto_capture_sink", "disabled", "keep_sink_default", "disabled")
@@ -901,7 +900,7 @@ FleetConfigInit(*) {
 			}
 		}
 	}
-	if f[1].LastConfigUpdate != FileGetTime(f[1].configFile, "M") || newConf{
+	if f[1].LastConfigUpdate != FileGetTime(f[1].configFile, "M") || newConf {
 		f[1].LastConfigUpdate := FileGetTime(f[1].configFile, "M")
 		f[1].configChange := 1
 		UrgentSettingWrite(savedSettings, "Fleet")
