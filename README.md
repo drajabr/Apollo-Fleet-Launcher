@@ -2,39 +2,49 @@
 
 A simple tool to configure multiple instances of [@ClassicOldSong/Apollo](https://github.com/ClassicOldSong/Apollo) for streaming multi monitor mode, mainly targeting desktop use case where multi devices like android tablets can be used as Plug and play external monitor.
 
+## Preview
+![image](https://github.com/user-attachments/assets/b3d4c8e9-6cbb-4306-8e13-94aac00e67f7)
+
+
 
 # Current Status
 [![Build](https://github.com/drajabr/Apollo-Fleet-Launcher/actions/workflows/build.yml/badge.svg)](https://github.com/drajabr/Apollo-Fleet-Launcher/actions/workflows/build.yml)
+
+## Functionality
+- [x] Multi-instance: Add/remove Multiple instance configuration
+- [x] Multi-instance: Auto-startup on user logon
+- [x] Multi-instance: Configurable per-instance Audio Device
+- [ ] Multi-instance: Sync device volume levels to all instances
+- [ ] Multi-instance: Remove virtual display on client disconnect
+- [ ] Android Clients: ADB Revrse tethering via Gnirehtet
+- [ ] Android Clients: Mic forwarding using (scrcpy)/AndroidMic
+- [ ] Android Clients: Cam forwarding using scrcpy/(DroidCamX)
+
+## Changelog
 * v0.1.1 - Quite the fundemental functionality!
-  - [x] UX: Create scheduled task to run priviliged at user log on! 
-  - [x] Multi-instance: Allow Seperate Audio Device selection
-  - [x] GUI: Add Audio Device Selector for each instance
-  - [x] GUI: Allow per-instance Copy other settings from default
-  - [x] GUI: Introduce "statusbar" for future functionality
-  - [x] FIX: Seperate Log, credentials, and state file for each instance
-  - [x] FIX: Actually remember the old processes and keep them
+  * UX: Create scheduled task to run priviliged at user log on! 
+  * Multi-instance: Allow Seperate Audio Device selection
+  * GUI: Add Audio Device Selector for each instance
+  * GUI: Allow per-instance Copy other settings from default
+  * GUI: Introduce "statusbar" for future functionality
+  * FIX: Seperate Log, credentials, and state file for each instance
+  * FIX: Actually remember the old processes and keep them
 * v0.0.2 - Second preview release - slightly improved
-  - [x] Multi-instance: don't kill the process if we created it earlier
-  - [x] Code improvement: more scoped write settings
-  - [x] Code improvement: better settings handling for runtime variables we need to keep
-  - [x] Code improvement: smart process termination using sigint
-  - [x] Release: create simple sfx installer
+  * Multi-instance: don't kill the process if we created it earlier
+  * Code improvement: more scoped write settings
+  * Code improvement: better settings handling for runtime variables we need to keep
+  * Code improvement: smart process termination using sigint
+  * Release: create simple sfx installer
 * v0.0.1 - Preview release - basic functionality
-  - [x] GUI: Basic functional GUI elements
-  - [x] GUI: Load, Edit, and Save settings
-  - [x] GUI: minimize, close, show/hide logs area
-  - [x] Multi-instance: Add, remove, edit multi instance
-  - [x] Multi-instance: Read and write config files
-  - [X] Multi-instance: Automatically start instances
+  * GUI: Basic functional GUI elements
+  * GUI: Load, Edit, and Save settings
+  * GUI: minimize, close, show/hide logs area
+  * Multi-instance: Add, remove, edit multi instance
+  * Multi-instance: Read and write config files
+  * Multi-instance: Automatically start instances
 
-## Preview
-https://github.com/user-attachments/assets/1c63ccff-df32-4b91-b838-d009cd771255
-
-
-
-> [!WARNING]
->  [WIP] The following are the planned functionality and their current status:
-
+> [!Note]
+>  [WIP] The following are the planned functionality:
 >  - [ ] UX: Logging overall
 >  - [ ] GUI: Add status tab
 >  - [ ] GUI: Dark/Light theme and follow system
