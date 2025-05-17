@@ -884,6 +884,7 @@ FleetConfigInit(*) {
 	for i in f {
 		if i.id > 0 && i.Enabled = 1 {
 			i.configChange := i.Synced ? ((!!FileExist(i.configFile) && (f[1].LastConfigUpdate = FileGetTime(f[1].configFile, "M"))) ? 0 : 1 ) : !(!!FileExist(i.configFile) && (i.LastConfigUpdate = FileGetTime(i.configFile, "M")))
+			; TODO if synced, we should prioritize the baseConf which are taken from the default instance conf file
 			i.thisConf := FileExist(i.configFile) ? ConfRead(i.configFile) : i.Synced ? DeepClone(baseConf) : Map()
 			for option, key in optionMap 
 				if SetIfChanged(i.thisConf, option, i.%key%)
