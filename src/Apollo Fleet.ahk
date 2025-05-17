@@ -460,15 +460,17 @@ RefreshFleetList(){
 }
 HandlePortChange(*){
 	global userSettings, guiItems
-	selectedEntryIndex := guiItems["FleetListBox"].Value
-	newPort := guiItems["InstancePortBox"].Value = "" ? userSettings["Fleet"][selectedEntryIndex].Port : guiItems["InstancePortBox"].Value 
+	currentlySelectedIndex := guiItems["FleetListBox"].Value = 0 ? 1 : guiItems["FleetListBox"].Value
+	i := userSettings["Fleet"][currentlySelectedIndex]
+	newPort := guiItems["InstancePortBox"].Value = "" ? i.Port : guiItems["InstancePortBox"].Value 
 	valid := (1024 < newPort && newPort < 65000) ? 1 : 0
-	for i in userSettings["Fleet"]
-		if (i.Port = newPort)
-			valid := 0
+	for otherI in userSettings["Fleet"]
+		if otherI.id != i.id
+			if (otherI.Port = newPort)
+				valid := 0
 	if valid {
-		userSettings["Fleet"][selectedEntryIndex].Port := newPort
-		myLink := "https://localhost:" . userSettings["Fleet"][(userSettings["Manager"].SyncSettings = 1 ? 1 : currentlySelectedIndex)].Port+1
+		i.Port := newPort
+		myLink := "https://localhost:" . (i.Synced ? userSettings["Fleet"][1].Port + 1 : i.Port + 1)
 		guiItems["FleetLinkBox"].Text :=  '<a href="' . myLink . '">' . myLink . '</a>'	
 	} else {
 		guiItems["InstancePortBox"].Value := userSettings["Fleet"][currentlySelectedIndex].Port
@@ -568,6 +570,7 @@ HandleListChange(*) {
 
 	guiItems["InstanceSyncCheckbox"].Value := i.Synced
 	guiItems["InstanceSyncCheckbox"].Enabled := !settingsLocked && (userSettings["Manager"].SyncSettings || currentlySelectedIndex = 1)
+	HandlePortChange()
 	UpdateButtonsLabels()
 }
 UpdateWindowPosition(){
