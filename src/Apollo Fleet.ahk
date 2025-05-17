@@ -1,5 +1,5 @@
 ;@Ahk2Exe-UpdateManifest 1 , Apollo Fleet Launcher
-;@Ahk2Exe-SetVersion 0.0.3
+;@Ahk2Exe-SetVersion 0.1.1
 ;@Ahk2Exe-SetName ApolloFleet
 ;@Ahk2Exe-SetMainIcon ../assets/9.ico
 ;@Ahk2Exe-SetDescription Manage Multiple Apollo Streaming Instances
@@ -110,7 +110,8 @@ ReadSettingsGroup(File, group, Settings) {
             p.apolloExe := Settings["Paths"].Apollo "\sunshine.exe"
             p.Config := IniRead(File, "Paths", "Config", base "\config")
             p.ADBTools := IniRead(File, "Paths", "ADB", base "\platform-tools")
-
+			; TODO: fix save settings from webui, use default conf dir
+			; OR wait when apollo support working outside its own dir
         case "Android":
             a := Settings["Android"]
             a.ReverseTethering := IniRead(File, "Android Clients", "ReverseTethering", 1)

@@ -5,6 +5,14 @@ A simple tool to configure multiple instances of [@ClassicOldSong/Apollo](https:
 
 # Current Status
 [![Build](https://github.com/drajabr/Apollo-Fleet-Launcher/actions/workflows/build.yml/badge.svg)](https://github.com/drajabr/Apollo-Fleet-Launcher/actions/workflows/build.yml)
+* v0.1.1 - Quite the fundemental functionality!
+  - [x] UX: Create scheduled task to run priviliged at user log on! 
+  - [x] Multi-instance: Allow Seperate Audio Device selection
+  - [x] GUI: Add Audio Device Selector for each instance
+  - [x] GUI: Allow per-instance Copy other settings from default
+  - [x] GUI: Introduce "statusbar" for future functionality
+  - [x] FIX: Seperate Log, credentials, and state file for each instance
+  - [x] FIX: Actually remember the old processes and keep them
 * v0.0.2 - Second preview release - slightly improved
   - [x] Multi-instance: don't kill the process if we created it earlier
   - [x] Code improvement: more scoped write settings
