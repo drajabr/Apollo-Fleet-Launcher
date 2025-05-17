@@ -108,7 +108,7 @@ ReadSettingsGroup(File, group, Settings) {
 			p := Settings["Paths"]
             p.Apollo := IniRead(File, "Paths", "Apollo", "C:\Program Files\Apollo")
             p.apolloExe := Settings["Paths"].Apollo "\sunshine.exe"
-            p.Config := IniRead(File, "Paths", "Config", p.Apollo "\config\fleet")
+            p.Config := IniRead(File, "Paths", "Config", base "\config")
             p.ADBTools := IniRead(File, "Paths", "ADB", base "\platform-tools")
 
         case "Android":
@@ -851,7 +851,7 @@ FleetConfigInit(*) {
 	configDir := p.Config
 	; to delete any unexpected file "such as residual config/log"
 	knownFiles := []
-	fileTypes := ["configFile","stateFile", "appsFile", "credFile"]
+	fileTypes := ["configFile","stateFile", "appsFile", "credFile", "logFile"]
 	for i in f
 		for file in fileTypes
 			knownFiles.Push(i.%file%)
@@ -968,7 +968,7 @@ RunAndGetPIDs(exePath, args := "", workingDir := "", flags := "Hide") {
         flags,
         &consolePID
     )
-	Sleep(10)
+	Sleep(1)
 	for process in ComObject("WbemScripting.SWbemLocator").ConnectServer().ExecQuery("Select * from Win32_Process where ParentProcessId=" consolePID)
 		if InStr(process.CommandLine, exePath) {
 			apolloPID := process.ProcessId
@@ -978,13 +978,7 @@ RunAndGetPIDs(exePath, args := "", workingDir := "", flags := "Hide") {
 	return [consolePID, apolloPID]
 }
 
-JoinArray(arr, delimiter := ", ") {
-    result := ""
-    for i, val in arr {
-        result .= val . (i < arr.Length ? delimiter : "")
-    }
-    return result
-}
+
 
 ArrayHas(arr, val) {
     for _, v in arr
@@ -1015,6 +1009,8 @@ FleetLaunchFleet(){
 				SendSigInt(i.consolePID, true)
 	for i in f
 		if (i.Enabled && (!ProcessExist(i.apolloPID) || i.configChange)) {	; TODO add test for the instance if it responds or not, also, may check if display is connected deattach it/force exit? 
+			if FileExist(i.LogFile)
+				FileDelete(i.LogFile)
 			pids := RunAndGetPIDs(exe, i.configFile)
 			i.consolePID := pids[1]
 			i.apolloPID := pids[2]
