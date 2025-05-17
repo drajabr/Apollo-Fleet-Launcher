@@ -887,7 +887,8 @@ FleetConfigInit(*) {
 			i.thisConf := FileExist(i.configFile) ? ConfRead(i.configFile) : i.Synced ? DeepClone(baseConf) : Map()
 			for option, key in optionMap 
 				if SetIfChanged(i.thisConf, option, i.%key%)
-					i.configChange := true
+					if !(option = "virtual_sink" && key = "Unset")
+						i.configChange := true
 			if i.configChange 
 				if i.AudioDevice != "Unset" {
 					i.thisConf.Set("auto_capture_sink", "disabled", "keep_sink_default", "disabled")
@@ -903,12 +904,13 @@ FleetConfigInit(*) {
 			}
 		}
 	}
-	if f[1].LastConfigUpdate != FileGetTime(f[1].configFile, "M") || newConf {
+	if f[1].LastConfigUpdate != FileGetTime(f[1].configFile, "M") {
 		f[1].LastConfigUpdate := FileGetTime(f[1].configFile, "M")
 		f[1].configChange := 1
-		UrgentSettingWrite(savedSettings, "Fleet")
 	} else
 		f[1].configChange := 0
+	if newConf
+		UrgentSettingWrite(savedSettings, "Fleet")
 }
 
 bootstrapSettings() {
@@ -1005,10 +1007,10 @@ FleetLaunchFleet(){
 	newPID := 0
 	for i in f
 		if (i.Enabled && (!ProcessExist(i.apolloPID) || i.configChange))
-			if !SendSigInt(i.apolloPID, true)
+			if !!SendSigInt(i.apolloPID, true)
 				SendSigInt(i.consolePID, true)
 	for i in f
-		if (i.Enabled && (!ProcessExist(i.apolloPID) || i.configChange)) {	; TODO add test for the instance if it responds or not, also, may check if display is connected deattach it/force exit? 
+		if i.Enabled && (!ProcessExist(i.apolloPID) || i.configChange) {	; TODO add test for the instance if it responds or not, also, may check if display is connected deattach it/force exit? 
 			if FileExist(i.LogFile)
 				FileDelete(i.LogFile)
 			pids := RunAndGetPIDs(exe, i.configFile)
