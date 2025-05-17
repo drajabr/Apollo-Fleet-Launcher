@@ -156,7 +156,7 @@ ReadSettingsGroup(File, group, Settings) {
                     i := {}
 					i.id := IsNumber(SubStr(section, -1)) ? SubStr(section, -1) : index
 					i.Name := IniRead(File, section, "Name", "i" . index)
-					i.Port := IniRead(File, section, "Port", 10000 + index * 1000)
+					i.Port := IniRead(File, section, "Port", 11000 + index * 1000)
 					i.Enabled := IniRead(File, section, "Enabled", 1)
 					i.Synced := synced ? IniRead(File, section, "Synced", synced ) : 0
 					i.configFile := configp "\fleet-" i.id (i.Synced ? "-synced.conf" : ".conf")
@@ -496,7 +496,7 @@ HandleInstanceAddButton(*){
 	synced := userSettings["Manager"].SyncSettings = 1
 	configp := userSettings["Paths"].Config
 	f := userSettings["Fleet"]
-	i.Port := i.id = 1 ? 10000 : f[-1].port + 1000
+	i.Port := i.id = 1 ? 11000 : f[-1].port + 1000
 	i.Name := "Instance " . i.id
 	i.Enabled := 1
 	i.Synced := synced
