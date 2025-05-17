@@ -1,4 +1,2 @@
-*.config
-*.ini
-*.log
-*.json
+/config/
+/settings.ini
