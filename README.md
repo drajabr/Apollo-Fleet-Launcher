@@ -27,15 +27,17 @@ A simple tool to configure multiple instances of [@ClassicOldSong/Apollo](https:
   - [x] Multi-instance: Read and write config files
   - [X] Multi-instance: Automatically start instances
 
+## Preview
+https://github.com/user-attachments/assets/1c63ccff-df32-4b91-b838-d009cd771255
+
+
+
 > [!WARNING]
 >  [WIP] The following are the planned functionality and their current status:
 
->  - [ ] UX: Auto setup task scheduler service
 >  - [ ] UX: Logging overall
 >  - [ ] GUI: Add status tab
 >  - [ ] GUI: Dark/Light theme and follow system
->  - [ ] GUI: Instead of msgbox, add small label bar to show warning/errors when they're raised
->  - [ ] Multi-instance: test and preserve the already running instances (hopefully API keys/auth will be implemented to make this more robust than wget/curl test)
 >  - [ ] Multi-instance: Sync volume level (client volume level actually change if changing the volume from inside the host)
 >  - [ ] Multi-instance: Remove display on client disconnect
 >  - [ ] Android-clients: Package with ADB, scrcpy, gnirehtet in CD pipeline or whatever its called
@@ -51,11 +53,6 @@ A simple tool to configure multiple instances of [@ClassicOldSong/Apollo](https:
 >  - [ ] Extra: Auto launch from server side using ADB commands (bind devices to instances) with option to not start that instance until the device is connected
 >  - [ ] Super-Goal: ditch the project once these functionalities get implemented in Apollo, or maybe, just maybe, get this UI somehow to work as a plugin/addon for native apollo webUI, to initiate multi instances from there directly
 
-## Preview
-https://github.com/user-attachments/assets/1c63ccff-df32-4b91-b838-d009cd771255
-
-
-
 
 
 
@@ -64,8 +61,12 @@ https://github.com/user-attachments/assets/1c63ccff-df32-4b91-b838-d009cd771255
 
 [AutoHotKey](https://github.com/AutoHotkey) For making of this amazing tool [AHK](https://autohotkey.com/) FOSS AND AVAILABLE FOR FREE!.
 
-Everyone at [AHK Forums](https://www.autohotkey.com/boards/) for their contributions.
-
 [@CCCC-L](https://github.com/CCCC-L) For the [AHK v2 Actions template](https://github.com/CCCC-L/Action-Ahk2Exe).
 
 [@alfvar](https://github.com/alfvar) For adding icon support commit in his repo [AHK v2 Actions template](https://github.com/alfvar/action-ahk2exe)
+
+Everyone at [AHK Forums](https://www.autohotkey.com/boards/) for their contributions. Especially:
+
+[@thqby ](https://github.com/thqby) For his [Audio.ahk](https://github.com/thqby/ahk2_lib/blob/master/Audio.ahk) library "eventhough its not noob friendly"
+
+[@ntepa](https://www.autohotkey.com/boards/memberlist.php?mode=viewprofile&u=149849) For his amazing contributing on ahk forums, especially [around Audio.ahk lib](https://www.autohotkey.com/boards/viewtopic.php?t=123256)
