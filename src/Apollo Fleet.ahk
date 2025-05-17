@@ -1006,6 +1006,7 @@ FleetLaunchFleet(){
 	newPID := 0
 	for i in savedSettings["Fleet"]
 		if (i.Enabled && (!ProcessExist(i.apolloPID) || i.configChange)) {	; TODO add test for the instance if it responds or not, also, may check if display is connected deattach it/force exit? 
+			SendSigInt(i.apolloPID, true)
 			pids := RunAndGetPIDs(exe, i.configFile)
 			i.consolePID := pids[1]
 			i.apolloPID := pids[2]
