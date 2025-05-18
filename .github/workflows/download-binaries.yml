@@ -20,7 +20,12 @@ jobs:
         run: |
             echo "Files in /bin:"
             Get-ChildItem -Path bin -Recurse
-            echo ""
-            echo "Files in /bin/platform-tools:"
-            Get-ChildItem -Path bin\platform-tools -Recurse
         shell: pwsh
+        
+      - name: Commit and push updated binaries
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add bin/platform-tools
+          git commit -m "Update platform-tools binaries [CI]" || echo "No changes to commit"
+          git push

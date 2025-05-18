@@ -40,7 +40,7 @@ Write-Host "Fetching latest Scrcpy release info..."
 $ScrcpyJson = Invoke-RestMethod -Uri $ScrcpyApi
 $ScrcpyUrl = ($ScrcpyJson.assets | Where-Object { $_.name -like "*win64*" -and $_.name -like "*.zip" } | Select-Object -First 1).browser_download_url
 
-Write-Host "Downloading Scrcpy..."
+Write-Host "Downloading Scrcpy from $ScrcpyUrl..."
 $ScrcpyZip = "scrcpy.zip"
 $TempScrcpy = Join-Path $env:TEMP "scrcpy-temp"
 Invoke-WebRequest -Uri $ScrcpyUrl -OutFile $ScrcpyZip
@@ -59,12 +59,12 @@ Write-Host "Fetching gnirehtetx APK..."
 $GnirehtetXJson = Invoke-RestMethod -Uri $GnirehtetXApi
 $AltApkUrl = ($GnirehtetXJson.assets | Where-Object name -eq "app-release.apk" | Select-Object -First 1).browser_download_url
 
+Write-Host "Downloading APK from $AltApkUrl..."
 $ApkPath = Join-Path $BinPath "gnirehtet.apk"
 if (Test-Path $ApkPath) {
     Remove-Item $ApkPath
 }
 
-Write-Host "Downloading and renaming APK..."
 Invoke-WebRequest -Uri $AltApkUrl -OutFile $ApkPath
 
 Write-Host "`n✅ All tools downloaded and updated in '$BinPath'"
