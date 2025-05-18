@@ -1,4 +1,4 @@
-name: Download Binaries
+name: Sync Binaries
 
 on:
   push:
@@ -6,48 +6,20 @@ on:
   workflow_dispatch:
 
 jobs:
-  download-tools:
-    runs-on: ubuntu-latest
+  sync:
+    runs-on: windows-latest
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
 
-      - name: Create bin/platform-tools directory
-        run: mkdir -p bin/platform-tools
+      - name: Run sync-platform-tools.ps1
+        run: powershell -ExecutionPolicy Bypass -File scripts/sync-platform-tools.ps1
 
-      - name: Download and extract ADB platform-tools
+      - name: Commit and push updated binaries
         run: |
-          curl -L -o platform-tools.zip https://dl.google.com/android/repository/platform-tools-latest-windows.zip
-          unzip -o platform-tools.zip -d bin/
-          rm platform-tools.zip
-
-      - name: Download and extract latest Gnirehtet win64
-        run: |
-          curl -s https://api.github.com/repos/Genymobile/gnirehtet/releases/latest \
-            | grep browser_download_url \
-            | grep windows.zip \
-            | cut -d '"' -f 4 \
-            | xargs curl -L -o gnirehtet.zip
-          unzip -o gnirehtet.zip -d bin/platform-tools
-          rm gnirehtet.zip
-
-      - name: Download and extract latest Scrcpy win64
-        run: |
-          curl -s https://api.github.com/repos/Genymobile/scrcpy/releases/latest \
-            | grep browser_download_url \
-            | grep 'win64.zip' \
-            | cut -d '"' -f 4 \
-            | xargs curl -L -o scrcpy.zip
-          unzip -o scrcpy.zip -d bin/platform-tools
-          rm scrcpy.zip
-
-      - name: Download and rename app-release.apk as gnirehtet.apk
-        run: |
-          rm -f bin/platform-tools/gnirehtet.apk
-          curl -L -o bin/platform-tools/gnirehtet.apk \
-            https://github.com/Linus789/gnirehtetx/releases/download/v0.1.3/app-release.apk
-
-      - name: Show contents of platform-tools
-        run: ls -R bin/platform-tools
-
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add bin/platform-tools
+          git commit -m "Update platform-tools binaries [CI]" || echo "No changes to commit"
+          git push
