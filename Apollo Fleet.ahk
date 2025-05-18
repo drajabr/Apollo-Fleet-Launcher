@@ -850,6 +850,10 @@ MergeConfMap(map1, map2) {
     
     return merged
 }
+DeleteKeyIfExist(map, key) {
+    if map.Has(key)
+        map.Delete(key)
+}
 FleetConfigInit(*) {
 	global savedSettings
 	
@@ -902,7 +906,7 @@ FleetConfigInit(*) {
 				}
 				else {
 					i.thisConf.Set("auto_capture_sink", "enabled", "keep_sink_default", "enabled")
-					i.thisConf.Delete("virtual_sink")
+					DeleteKeyIfExist(i.thisConf, "virtual_sink")
 				}
 			if !FileExist(i.configFile) || i.configChange {
 				ConfWrite(i.configFile, i.thisConf)
@@ -1017,7 +1021,7 @@ FleetLaunchFleet(){
 			if SendSigInt(i.apolloPID) || SendSigInt(i.consolePID)
 				continue 
 	Sleep(wait) ; keep it here for now,  
-	
+
 	; Now we can delete the files, after all unnecessary processes terminated
 	configDir := p.Config
 	; to delete any unexpected file "such as residual config/log"
