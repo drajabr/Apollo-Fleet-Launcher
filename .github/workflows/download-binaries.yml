@@ -18,8 +18,9 @@ jobs:
 
       - name: List downloaded files
         run: |
-          echo "Files in /bin:"
-          dir bin /S
-          echo ""
-          echo "Files in /bin/platform-tools:"
-          dir bin\platform-tools /S
+            echo "Files in /bin:"
+            Get-ChildItem -Path bin -Recurse
+            echo ""
+            echo "Files in /bin/platform-tools:"
+            Get-ChildItem -Path bin\platform-tools -Recurse
+        shell: pwsh
