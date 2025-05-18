@@ -45,6 +45,12 @@ jobs:
         out: ${{ github.workspace }}\ApolloFleet-${{ env.VERSION }}.exe
         options: a -sfx7z.sfx
   
+    - name: List All files
+      run: |
+          echo "Files in /ApolloFleet:"
+          Get-ChildItem -Path ApolloFleet -Recurse
+      shell: pwsh
+        
     - name: Create Release and Upload Asset
       uses: softprops/action-gh-release@v2
       with:

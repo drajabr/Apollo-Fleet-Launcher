@@ -37,11 +37,16 @@ jobs:
     
     - name: Create SFX Zip installer
       uses: drajabr/actions-7-zip-win@main
-      
       with:
         in: ${{ github.workspace }}\ApolloFleet
         out: ${{ github.workspace }}\ApolloFleet-${{ env.VERSION }}.exe
         options: a -sfx7z.sfx
+
+    - name: List All files
+      run: |
+          echo "Files in /ApolloFleet:"
+          Get-ChildItem -Path ApolloFleet -Recurse
+      shell: pwsh
 
     - name: Upload test build artifacts
       uses: actions/upload-artifact@v4
