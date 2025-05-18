@@ -1,2 +1,5 @@
-/src/config/
-settings.ini
+*.log
+*.conf
+*.ini
+*.json
+

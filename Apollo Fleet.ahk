@@ -816,7 +816,6 @@ RestoremyGui() {
 ShowmyGui() {
 	global myGui, userSettings
 	if savedSettings["Window"].cmdReload = 1 {
-		savedSettings["Window"].cmdReload = 0
 		RestoremyGui()
 	} else if (savedSettings["Window"].lastState = 1) {
 		if (savedSettings["Window"].restorePosition){
@@ -832,13 +831,25 @@ ShowmyGui() {
 
 SetIfChanged(map, key, newValue) {
     if map.Get(key,0) != newValue {
-		; MsgBox( map.Get(key,0) . " > " . newValue)
+		MsgBox( map.Get(key,0) . " > " . newValue)
         map.set(key, newValue)
         return true
     }
     return false
 }
-
+MergeConfMap(map1, map2) {
+    merged := Map()
+    
+    ; Copy all key-value pairs from map1
+    for key, val in map1
+        merged[key] := val
+    
+    ; Copy key-value pairs from map2 (overwrites if key exists)
+    for key, val in map2
+        merged[key] := val
+    
+    return merged
+}
 FleetConfigInit(*) {
 	global savedSettings
 	
@@ -865,10 +876,11 @@ FleetConfigInit(*) {
 	if (m.SyncSettings) {
 		defaultConfFile := p.Apollo . "\config\sunshine.conf"
 		baseConf := ConfRead(defaultConfFile)
-		excludeOptions := ["sunshine_name", "port", "file_state", "credentials_file", "file_apps", "auto_capture_sink", "keep_sink_default"]	; TODO: Audio device
+		excludeOptions := ["sunshine_name", "port", "file_state", "credentials_file", "file_apps"]	; TODO: Audio device
 		for option in excludeOptions
 			if baseConf.Has(option) 
-				baseConf.Delete(option) 
+				baseConf.Delete(option)
+		baseConf.Set("headless_mode", "enabled")
 	}
 	; assign and create conf files if not created
 	optionMap := Map(
@@ -882,14 +894,17 @@ FleetConfigInit(*) {
 	)	; TODO: Audio device and its consequences; the mute option/ and or others
 	newConf := false
 	for i in f {
-		if i.id > 0 && i.Enabled = 1 {
-			i.configChange := i.Synced ? ((!!FileExist(i.configFile) && (f[1].LastConfigUpdate = FileGetTime(f[1].configFile, "M"))) ? 0 : 1 ) : !(!!FileExist(i.configFile) && (i.LastConfigUpdate = FileGetTime(i.configFile, "M")))
-			; TODO if synced, we should prioritize the baseConf which are taken from the default instance conf file
-			i.thisConf := FileExist(i.configFile) ? ConfRead(i.configFile) : i.Synced ? DeepClone(baseConf) : Map()
+		if i.id = 0 {
+			i.configChange := (i.LastConfigUpdate != FileGetTime(i.configFile, "M"))
+		}
+		else if i.id > 0 && i.Enabled = 1 {
+			i.configChange := i.Synced ? ((!FileExist(i.configFile) || f[1].configChange) ? 1 : 0 ) : (!FileExist(i.configFile) || (i.LastConfigUpdate != FileGetTime(i.configFile, "M")))
+			i.thisConf := FileExist(i.configFile) ? (i.Synced ?  MergeConfMap(ConfRead(i.configFile), DeepClone(baseConf)):  ConfRead(i.configFile)) : Map()
 			for option, key in optionMap 
-				if SetIfChanged(i.thisConf, option, i.%key%)
-					if !(option = "virtual_sink" && key = "Unset")
+				if !(option = "virtual_sink" && i.%key% = "Unset")
+					if SetIfChanged(i.thisConf, option, i.%key%)
 						i.configChange := true
+
 			if SetIfChanged(i.thisConf, "headless_mode", "enabled")
 				i.configChange := true
 			if i.configChange 
@@ -960,7 +975,7 @@ SendSigInt(pid, force:=false) {
 	if force && ProcessExist(pid)
 		ProcessClose(pid)
 
-	return ProcessExist(pid)
+	return !ProcessExist(pid)
 }
 
 RunAndGetPIDs(exePath, args := "", workingDir := "", flags := "Hide") {
@@ -1000,18 +1015,22 @@ FleetLaunchFleet(){
 	currentPIDs := PIDsListFromExeName("sunshine.exe")
 	knownPIDs := []
 	for i in f
-		if i.Enabled
+		if (i.Enabled && !i.configChange)
 			knownPIDs.Push(i.apolloPID)	
+	wait := 0
 	for pid in currentPIDs
 		if !ArrayHas(knownPIDs, pid)
-			SendSigInt(pid, true)
-	Sleep(1000) ; keep it here for now,  
+			if SendSigInt(pid, true)
+				wait := 100
+			; TODO maybe  we need to check pid if they still exist 
+	for i in f
+		if (!i.Enabled || i.configChange) && (ProcessExist(i.apolloPID) || ProcessExist(i.consolePID))
+			if SendSigInt(i.apolloPID) || SendSigInt(i.consolePID)
+				continue 
+
+	Sleep(wait) ; keep it here for now,  
 	exe := savedSettings["Paths"].apolloExe
 	newPID := 0
-	for i in f
-		if (i.Enabled && (!ProcessExist(i.apolloPID) || i.configChange))
-			if !!SendSigInt(i.apolloPID, true)
-				SendSigInt(i.consolePID, true)
 	for i in f
 		if i.Enabled && (!ProcessExist(i.apolloPID) || i.configChange) {	; TODO add test for the instance if it responds or not, also, may check if display is connected deattach it/force exit? 
 			if FileExist(i.LogFile)
@@ -1125,10 +1144,21 @@ DisableScheduledTask(name) {
     RunWait cmd, , "Hide"
 }
 
+ResetFlags(){
+	global savedSettings
+	w := savedSettings["Window"]
+	w.cmdReload := 0
+	w.cmdExit := 0
+	UrgentSettingWrite(savedSettings, "Window")
+	bootstrapSettings()
+}
+KillExistingGnirehtetProcess(){
+	
+}
+MaintainGnirehtetProcess(){
+	global savedSettings
 
-
-
-
+}
 
 
 
@@ -1159,9 +1189,11 @@ bootstrapGUI()
 
 ; Step 4 Prepare and launch fleet if enabled
 if savedSettings["Manager"].AutoLaunch {
-	; TODO Disable default service and create/enable ours
+	; Step 1 Create/Load/Modify config files
 	FleetConfigInit()
+	; Step 2 Kill/Start Apollo Processes
 	FleetLaunchFleet()
+	; Step 3 TODO
 	;timer 1000 FleetCheckFleet() ; this is a combination of i check/ logmonitor for connected/disconnected events/ 
 	; if enabled, start timer 50 SyncVolume to try sync volume as soon as client connects, probably can verify it too "make it smart not dumb"
 	; if enabled, start timer 50 ForceClose to try send SIGINT to i once client disconnected > the rest should be cought by FleetCheckFleet to relaunch it again "if it didn't relaunch by itself" 
@@ -1170,10 +1202,13 @@ if savedSettings["Manager"].AutoLaunch {
 
 } 
 
-
-if savedSettings["Android"].ReverseTethering{
+; Step 5 If Enabled, Start gnirehtet (Android reverse tethering over ADB)
+if savedSettings["Android"].ReverseTethering {
+	SetTimer MaintainGnirehtetProcess, 1000
 	; AndroidStartGnirehtet() ; check existing > test it > if invalid start new one, until this is a reload; kill it!
 	; timer 1000 AndroidCheckGnirehtet() Possibily we can do it smart way to check if its still alive/there's connections
+} else {
+	KillExistingGnirehtetProcess()
 }
 if savedSettings["Android"].MicEnable || savedSettings["Android"].CamEnable {
 	; here we sadly need to kill every existing adb.exe process, possibly via kill-server adb command
@@ -1189,6 +1224,9 @@ if savedSettings["Android"].MicEnable || savedSettings["Android"].CamEnable {
 		; if 
 	}
 }
+
+
+ResetFlags()
 
 
 ; ───── Keep script alive ─────
