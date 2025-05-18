@@ -29,6 +29,7 @@ A simple tool to configure multiple instances of [@ClassicOldSong/Apollo](https:
   * GUI: Introduce "statusbar" for future functionality
   * FIX: Seperate Log, credentials, and state file for each instance
   * FIX: Actually remember the old processes and keep them
+  * FIX: Add headless_mode enabled to the configurations
 * v0.0.2 - Second preview release - slightly improved
   * Multi-instance: don't kill the process if we created it earlier
   * Code improvement: more scoped write settings
