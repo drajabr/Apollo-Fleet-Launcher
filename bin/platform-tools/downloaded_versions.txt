@@ -1,0 +1,3 @@
+Scrcpy|v3.2
+Gnirehtet|v2.5.1
+GnirehtetX|v0.1.3
