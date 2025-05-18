@@ -831,7 +831,7 @@ ShowmyGui() {
 
 SetIfChanged(map, key, newValue) {
     if map.Get(key,0) != newValue {
-		MsgBox( map.Get(key,0) . " > " . newValue)
+		;MsgBox( map.Get(key,0) . " > " . newValue)
         map.set(key, newValue)
         return true
     }
