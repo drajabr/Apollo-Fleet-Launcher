@@ -3,7 +3,7 @@
 A simple tool to configure multiple instances of [@ClassicOldSong/Apollo](https://github.com/ClassicOldSong/Apollo) for streaming multi monitor mode, mainly targeting desktop use case where multi devices like android tablets can be used as Plug and play external monitor.
 
 ## Preview
-![image](https://github.com/user-attachments/assets/b3d4c8e9-6cbb-4306-8e13-94aac00e67f7)
+![image](https://github.com/user-attachments/assets/2aee2aee-f66e-4505-a262-b1d65c3e6071)
 
 
 
