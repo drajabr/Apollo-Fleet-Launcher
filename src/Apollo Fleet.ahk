@@ -886,11 +886,12 @@ FleetConfigInit(*) {
 			i.configChange := i.Synced ? ((!!FileExist(i.configFile) && (f[1].LastConfigUpdate = FileGetTime(f[1].configFile, "M"))) ? 0 : 1 ) : !(!!FileExist(i.configFile) && (i.LastConfigUpdate = FileGetTime(i.configFile, "M")))
 			; TODO if synced, we should prioritize the baseConf which are taken from the default instance conf file
 			i.thisConf := FileExist(i.configFile) ? ConfRead(i.configFile) : i.Synced ? DeepClone(baseConf) : Map()
-			; TODO enable headless option for thisconf as we're assuming multi instance setup using virtual display
 			for option, key in optionMap 
 				if SetIfChanged(i.thisConf, option, i.%key%)
 					if !(option = "virtual_sink" && key = "Unset")
 						i.configChange := true
+			if SetIfChanged(i.thisConf, "headless_mode", "enabled")
+				i.configChange := true
 			if i.configChange 
 				if i.AudioDevice != "Unset" {
 					i.thisConf.Set("auto_capture_sink", "disabled", "keep_sink_default", "disabled")
