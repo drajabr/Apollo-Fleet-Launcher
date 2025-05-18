@@ -859,17 +859,6 @@ FleetConfigInit(*) {
 	f := savedSettings["Fleet"]
 	if !DirExist(p.Config)	
 		DirCreate(p.Config)
-	configDir := p.Config
-	; to delete any unexpected file "such as residual config/log"
-	knownFiles := []
-	fileTypes := ["configFile","stateFile", "appsFile", "credFile", "logFile"]
-	for i in f
-		for file in fileTypes
-			knownFiles.Push(i.%file%)
-
-	Loop Files configDir . '\*.*' 
-		if !ArrayHas(knownFiles, A_LoopFileFullPath)
-			FileDelete(A_LoopFileFullPath)
 	
 	; import default conf if sync is ticked
 	baseConf := Map()
@@ -1027,8 +1016,20 @@ FleetLaunchFleet(){
 		if (!i.Enabled || i.configChange) && (ProcessExist(i.apolloPID) || ProcessExist(i.consolePID))
 			if SendSigInt(i.apolloPID) || SendSigInt(i.consolePID)
 				continue 
-
 	Sleep(wait) ; keep it here for now,  
+	
+	; Now we can delete the files, after all unnecessary processes terminated
+	configDir := p.Config
+	; to delete any unexpected file "such as residual config/log"
+	knownFiles := []
+	fileTypes := ["configFile","stateFile", "appsFile", "credFile", "logFile"]
+	for i in f
+		for file in fileTypes
+			knownFiles.Push(i.%file%)
+	Loop Files configDir . '\*.*' 
+		if !ArrayHas(knownFiles, A_LoopFileFullPath)
+			FileDelete(A_LoopFileFullPath)
+
 	exe := savedSettings["Paths"].apolloExe
 	newPID := 0
 	for i in f
