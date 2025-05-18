@@ -109,7 +109,7 @@ ReadSettingsGroup(File, group, Settings) {
             p.Apollo := IniRead(File, "Paths", "Apollo", "C:\Program Files\Apollo")
             p.apolloExe := Settings["Paths"].Apollo "\sunshine.exe"
             p.Config := IniRead(File, "Paths", "Config", base "\config")
-            p.ADBTools := IniRead(File, "Paths", "ADB", base "\platform-tools")
+            p.ADBTools := IniRead(File, "Paths", "ADB", base "\bin\platform-tools")
 			; TODO: fix save settings from webui, use default conf dir
 			; OR wait when apollo support working outside its own dir
         case "Android":
@@ -254,7 +254,7 @@ InitmyGui() {
 	;TODO implement dark theme and follow system theme if possible 
 	global myGui, guiItems := Map()
 	if !A_IsCompiled {
-		TraySetIcon("../assets/9.ico")
+		TraySetIcon("./icons/9.ico")
 	}
 	myGui := Gui("+AlwaysOnTop -MinimizeBox -MaximizeBox")
 
