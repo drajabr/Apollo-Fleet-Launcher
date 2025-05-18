@@ -26,12 +26,12 @@ jobs:
         $dest = "${{ github.workspace }}\ApolloFleet"
         New-Item -ItemType Directory -Force -Path $dest
         Copy-Item -Path "${{ github.workspace }}\README.md" -Destination $dest
-        Copy-Item -Path "${{ github.workspace }}\bin" -Destination $dest
+        Copy-Item -Path "${{ github.workspace }}\bin" -Destination $dest -Recurse
 
     - name: Compile AHK script 
       uses: drajabr/Action-Ahk2Exe@main
       with:
-        in: src/Apollo Fleet.ahk
+        in: Apollo Fleet.ahk
         out: ${{ github.workspace }}/ApolloFleet/ApolloFleet.exe  # Use a fixed name during compilation
         icon: ${{ github.workspace }}/icons/9.ico
     
