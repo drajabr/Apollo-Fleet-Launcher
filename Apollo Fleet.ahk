@@ -107,21 +107,24 @@ ReadSettingsGroup(File, group, Settings) {
             base := A_ScriptDir
 			p := Settings["Paths"]
             p.Apollo := IniRead(File, "Paths", "Apollo", "C:\Program Files\Apollo")
-            p.apolloExe := Settings["Paths"].Apollo "\sunshine.exe"
             p.Config := IniRead(File, "Paths", "Config", base "\config")
             p.ADBTools := IniRead(File, "Paths", "ADB", base "\bin\platform-tools")
+			p.apolloExe := p.Apollo "\sunshine.exe"
+			p.gnirehtetExe := p.ADBTools "\gnirehtet.exe"
 			; TODO: fix save settings from webui, use default conf dir
 			; OR wait when apollo support working outside its own dir
         case "Android":
             a := Settings["Android"]
-            a.ReverseTethering := IniRead(File, "Android Clients", "ReverseTethering", 1)
-            a.gnirehtetPID := IniRead(File, "Android Clients", "gnirehtetPID", 0)
-            a.MicDeviceID := IniRead(File, "Android Clients", "MicDeviceID", 0)
+            a.ReverseTethering := IniRead(File, "Android", "ReverseTethering", 1)
+            a.gnirehtetPID := IniRead(File, "Android", "gnirehtetPID", 0)
+            a.MicDeviceID := IniRead(File, "Android", "MicDeviceID", 0)
 			a.MicEnable := a.MicDeviceID = 0 ? 0 : 1
-            a.scrcpyMicPID := IniRead(File, "Android Clients", "scrcpyMicPID", 0)
-            a.CamDeviceID := IniRead(File, "Android Clients", "CamDeviceID", 0)
+            a.scrcpyMicPID := IniRead(File, "Android", "scrcpyMicPID", 0)
+            a.CamDeviceID := IniRead(File, "Android", "CamDeviceID", 0)
 			a.CamEnable := a.CamDeviceID = 0 ? 0 : 1
-            a.scrcpyCamPID := IniRead(File, "Android Clients", "scrcpyCamPID", 0)
+            a.scrcpyCamPID := IniRead(File, "Android", "scrcpyCamPID", 0)
+			
+
 
         case "Fleet":
 		    Settings["Fleet"] := []
@@ -954,21 +957,24 @@ PIDsListFromExeName(name) {
     return PIDs 
 }
 SendSigInt(pid, force:=false) {
-    ; 1. Tell this script to ignore Ctrl+C and Ctrl+Break
-    DllCall("SetConsoleCtrlHandler", "Ptr", 0, "UInt", 1)
-    ; 2. Detach from current console, attach to target's
-    DllCall("FreeConsole")
-    DllCall("AttachConsole", "UInt", pid)
-    ; 3. Send Ctrl+C (SIGINT) to all processes in that console (including the target)
-    DllCall("GenerateConsoleCtrlEvent", "UInt", 0, "UInt", 0)
-	DllCall("FreeConsole")
+	if ProcessExist(pid) {
+		; 1. Tell this script to ignore Ctrl+C and Ctrl+Break
+		DllCall("SetConsoleCtrlHandler", "Ptr", 0, "UInt", 1)
+		; 2. Detach from current console, attach to target's
+		DllCall("FreeConsole")
+		DllCall("AttachConsole", "UInt", pid)
+		; 3. Send Ctrl+C (SIGINT) to all processes in that console (including the target)
+		DllCall("GenerateConsoleCtrlEvent", "UInt", 0, "UInt", 0)
+		DllCall("FreeConsole")
 
-    Sleep 100  ; Give the target process time to exit
+		Sleep 10  ; Give the target process time to exit
 
-	if force && ProcessExist(pid)
-		ProcessClose(pid)
+		if force && ProcessExist(pid)
+			ProcessClose(pid)
 
-	return !ProcessExist(pid)
+		return !ProcessExist(pid)
+	} else
+		return 0
 }
 
 RunAndGetPIDs(exePath, args := "", workingDir := "", flags := "Hide") {
@@ -1056,6 +1062,7 @@ UrgentSettingWrite(srcSettings, group){
 	savedSettings[group] := DeepClone(transientMap[group])
 	userSettings[group] := DeepClone(transientMap[group])
 	WriteSettingsFile(savedSettings)
+	bootstrapSettings()
 }
 
 LogWatchDog(*){
@@ -1157,12 +1164,38 @@ ResetFlags(){
 	UrgentSettingWrite(savedSettings, "Window")
 	bootstrapSettings()
 }
-KillExistingGnirehtetProcess(){
+KillGnirehtetExcept(keep := 0){
+
+	pids := PIDsListFromExeName("gnirehtet.exe")
+
+	for pid in pids
+		if (pid != keep)
+			if !!SendSigInt(pid, true)
+				MsgBox("Failed to kill gnirehtet PID: " . pid)
 	
+	for pid in pids
+		if ProcessExist(pid) && (pid != keep)
+			return false
+	return true
 }
 MaintainGnirehtetProcess(){
 	global savedSettings
+	static firstRun := true
 
+	a := savedSettings["Android"]
+	p := savedSettings["Paths"]
+
+	if firstRun 
+		if KillGnirehtetExcept(a.gnirehtetPID)
+			firstRun := false
+
+	if !ProcessExist(a.gnirehtetPID) || a.gnirehtetPID = 0 {
+		exe := p.gnirehtetExe
+		pids := RunAndGetPIDs(exe, "autorun")
+		a.gnirehtetPID := pids[2]
+		UrgentSettingWrite(savedSettings, "Android")
+	}
+	; TODO detect fault or output connections log or more nice features...
 }
 
 
@@ -1191,7 +1224,14 @@ SetupFleetTask()
 
 ; Step 3 Setup and show GUI
 bootstrapGUI()
-
+; Step 5 If Enabled, Start gnirehtet (Android reverse tethering over ADB)
+if savedSettings["Android"].ReverseTethering {
+	SetTimer MaintainGnirehtetProcess, 1000
+	; AndroidStartGnirehtet() ; check existing > test it > if invalid start new one, until this is a reload; kill it!
+	; timer 1000 AndroidCheckGnirehtet() Possibily we can do it smart way to check if its still alive/there's connections
+} else {
+	KillGnirehtetExcept()
+}
 ; Step 4 Prepare and launch fleet if enabled
 if savedSettings["Manager"].AutoLaunch {
 	; Step 1 Create/Load/Modify config files
@@ -1207,14 +1247,7 @@ if savedSettings["Manager"].AutoLaunch {
 
 } 
 
-; Step 5 If Enabled, Start gnirehtet (Android reverse tethering over ADB)
-if savedSettings["Android"].ReverseTethering {
-	SetTimer MaintainGnirehtetProcess, 1000
-	; AndroidStartGnirehtet() ; check existing > test it > if invalid start new one, until this is a reload; kill it!
-	; timer 1000 AndroidCheckGnirehtet() Possibily we can do it smart way to check if its still alive/there's connections
-} else {
-	KillExistingGnirehtetProcess()
-}
+
 if savedSettings["Android"].MicEnable || savedSettings["Android"].CamEnable {
 	; here we sadly need to kill every existing adb.exe process, possibly via kill-server adb command
 	; timer 1000 AndroidDevicesList() ; to keep track of currently connected, and disconnected devices with their IDs and time of connection/disconnection and previous time too "maybe we can do something smarter here too"
