@@ -2,6 +2,8 @@
 
 A simple tool to configure multiple instances of [@ClassicOldSong/Apollo](https://github.com/ClassicOldSong/Apollo) for streaming multi monitor mode, mainly targeting desktop use case where multi devices like android tablets can be used as Plug and play external monitor.
 
+This is the same concept of my old [Multi-streaming-setup](https://github.com/drajabr/My-Sunshine-setup) scripts, with ease of GUI and Auto Configuration, bundled with necessary binaries for Android clients stuff.
+
 ## Preview
 ![image](https://github.com/user-attachments/assets/2aee2aee-f66e-4505-a262-b1d65c3e6071)
 
@@ -16,11 +18,17 @@ A simple tool to configure multiple instances of [@ClassicOldSong/Apollo](https:
 - [x] Multi-instance: Configurable per-instance Audio Device
 - [ ] Multi-instance: Sync device volume levels to all instances
 - [ ] Multi-instance: Remove virtual display on client disconnect
-- [ ] Android Clients: ADB Revrse tethering via Gnirehtet
+- [X] Android Clients: ADB Revrse tethering via Gnirehtet
 - [ ] Android Clients: Mic forwarding using (scrcpy)/AndroidMic
 - [ ] Android Clients: Cam forwarding using scrcpy/(DroidCamX)
 
 ## Changelog
+* v0.1.2 - Rise of Android Helpers
+  * Android: Start and Maintain Gnirehtet process for Reverse Tethering
+  * Android: Package the latest adb, gnirehtet, and scrcpy binaries
+  * GUI: Basic functionality for the Status Area
+  * UX: Copy Settings from default instance can be enabled selectively
+  * FIX: Don't delete files until process exits
 * v0.1.1 - Quite the fundemental functionality!
   * UX: Create scheduled task to run priviliged at user log on! 
   * Multi-instance: Allow Seperate Audio Device selection
@@ -43,26 +51,6 @@ A simple tool to configure multiple instances of [@ClassicOldSong/Apollo](https:
   * Multi-instance: Add, remove, edit multi instance
   * Multi-instance: Read and write config files
   * Multi-instance: Automatically start instances
-
-> [!Note]
->  [WIP] The following are the planned functionality:
->  - [ ] UX: Logging overall
->  - [ ] GUI: Add status tab
->  - [ ] GUI: Dark/Light theme and follow system
->  - [ ] Multi-instance: Sync volume level (client volume level actually change if changing the volume from inside the host)
->  - [ ] Multi-instance: Remove display on client disconnect
->  - [ ] Android-clients: Package with ADB, scrcpy, gnirehtet in CD pipeline or whatever its called
->  - [ ] Android-clients: Maintain gnirehtet auto tunnel for reverse tethering
->  - [ ] Android-clients: Use the device mic to the host using scrcpy
->  - [ ] Android-clients: Start DroidCamX on the client to use it as a cam
->  - [ ] Android-clients: Automate launch script to auto connect to the desired instance
->  - [ ] Experience-enhancement: Make it easier to setup launch extra parameters (probably using another automate script? or consult @classicOldSong for ways to connect with just computer name and app name)
->  - [ ] Experience-enhancement: Option to use AndroidMic as legacy devices (below Android 10 i guess where scrcpy mic recording is not supported)
->  - [ ] Experience-enhancement: Option to use cam using scrcpy for Android12+ devices
->  - [ ] Experience-enhancement: Use virtual mic device instead of playback on virtual loopback device
->  - [ ] Experience-enhancement: Use virtual cam device instead of relying on full fledged OBS to do that (maybe use DroidCam app or sorta "would love to find foss way to do it too")
->  - [ ] Extra: Auto launch from server side using ADB commands (bind devices to instances) with option to not start that instance until the device is connected
->  - [ ] Super-Goal: ditch the project once these functionalities get implemented in Apollo, or maybe, just maybe, get this UI somehow to work as a plugin/addon for native apollo webUI, to initiate multi instances from there directly
 
 
 
