@@ -301,7 +301,10 @@ InitmyGui() {
 	guiItems["FleetButtonAdd"] := myGui.Add("Button", "x43 y134 w75 h23", "Add")
 	guiItems["FleetButtonDelete"] := myGui.Add("Button", "x14 y134 w27 h23", "✖")
 	; TODO actually functional status area, 
-	guiItems["StatusArea"] := myGui.Add("Text", "x16 y172 ", "✅ Apollo    ❎ Gnirehtet    ❎ AndroidMic    ❎ AndroidCam")
+	guiItems["StatusApollo"] := myGui.Add("Text", "x16 y172 w70", "❎ Apollo ")
+	guiItems["StatusGnirehtet"] := myGui.Add("Text", "x76 y172 w70", "❎ Gnirehtet")
+	guiItems["StatusAndroidMic"] := myGui.Add("Text", "x146 y172 w80", "❎ AndroidMic")
+	guiItems["StatusAndroidCam"] := myGui.Add("Text", "x226 y172 w80", "❎ AndroidCam")
 
 	guiItems["LogTextBox"] := myGui.Add("Edit", "x8 y199 w562 h393 -VScroll +ReadOnly")
 	myGui.Title := "Apollo Fleet Manager"
@@ -1198,9 +1201,33 @@ MaintainGnirehtetProcess(){
 	; TODO detect fault or output connections log or more nice features...
 }
 
+ProcessRunning(pid){
+	return !!ProcessExist(pid)
+}
 
+UpdateStatusArea() {
+	global savedSettings, guiItems
+	apolloRunning := 0
+	for f in savedSettings["Fleet"]
+		if ProcessRunning(f.apolloPID) {
+			apolloRunning := 1
+			break
+		}
+	gnirehtetRunning := ProcessExist(savedSettings["Android"].gnirehtetPID)
+	androidMicRunning := ProcessExist(savedSettings["Android"].scrcpyMicPID)
+	androidCamRunning := ProcessExist(savedSettings["Android"].scrcpyCamPID)
 
+	statusItems := Map(
+		"StatusApollo", "apolloRunning",
+		"StatusGnirehtet", "gnirehtetRunning",
+		"StatusAndroidMic", "androidMicRunning",
+		"StatusAndroidCam", "androidCamRunning"
+	)
 
+	for item, status in statusItems 
+		guiItems[item].Value := (%status%? "✅" : "❎") . SubStr(guiItems[item].Value, 2)
+
+}
 
 
 
@@ -1262,6 +1289,12 @@ if savedSettings["Android"].MicEnable || savedSettings["Android"].CamEnable {
 		; if 
 	}
 }
+
+
+SetTimer UpdateStatusArea, 1000
+
+
+
 
 
 ResetFlags()
