@@ -59,6 +59,7 @@ ConfWrite(configFile, configMap) {
 	if FileExist(configFile)
 		FileDelete configFile  ; Remove old file
 	FileAppend lines, configFile
+	FileOpen(configFile, "a").Close()
 }
 
 ReadSettingsFile(Settings := Map(), File := "settings.ini", groups := "all" ) {
@@ -190,14 +191,19 @@ WriteSettingsFile(Settings := Map(), File := "settings.ini", groups := "all") {
 			WriteSettingsGroup(Settings, File, "Android")
 		if (groups = "all" || InStr(groups, "Fleet"))
 			WriteSettingsGroup(Settings, File, "Fleet")
+		FileOpen(File, "a").Close()
 	}
+	
 }
 
 WriteSettingsGroup(Settings, File, group) {
+	changed := 0
 	WriteIfChanged(file, section, key, value) {
 		old := IniRead(file, section, key, "__MISSING__")
-		if (old != value)
+		if (old != value) {
 			IniWrite(value, file, section, key)
+			changed := 1
+		}
 	}
     switch group {
         case "Manager":
@@ -252,6 +258,8 @@ WriteSettingsGroup(Settings, File, group) {
 				; IniWrite(i.Audio, File, section, "Audio") ; TODO
 			}
 	}
+	if Changed
+		FileOpen(File, "a").Close()
 }
 InitmyGui() {
 	;TODO implement dark theme and follow system theme if possible 
@@ -303,8 +311,10 @@ InitmyGui() {
 	; TODO actually functional status area, 
 	guiItems["StatusApollo"] := myGui.Add("Text", "x16 y172 w70", "❎ Apollo ")
 	guiItems["StatusGnirehtet"] := myGui.Add("Text", "x76 y172 w70", "❎ Gnirehtet")
-	guiItems["StatusAndroidMic"] := myGui.Add("Text", "x146 y172 w80", "❎ AndroidMic")
-	guiItems["StatusAndroidCam"] := myGui.Add("Text", "x226 y172 w80", "❎ AndroidCam")
+	guiItems["StatusAndroidMic"] := myGui.Add("Text", "x146 y172 w75", "❎ AndroidMic")
+	guiItems["StatusAndroidCam"] := myGui.Add("Text", "x226 y172 w75", "❎ AndroidCam")
+	guiItems["StatusMessage"] := myGui.Add("Text", "x16 y172 w290")
+	ShowMessage("Initialized All GUI Elements")
 
 	guiItems["LogTextBox"] := myGui.Add("Edit", "x8 y199 w562 h393 -VScroll +ReadOnly")
 	myGui.Title := "Apollo Fleet Manager"
@@ -493,15 +503,14 @@ HandleNameChange(*){
 }
 HandleInstanceAddButton(*){
 	global userSettings, guiItems
-	
+	f := userSettings["Fleet"]
 	i := {} ; Create a new object for each i
-	i.id := userSettings["Fleet"][-1].id + 1
-	if (i.id > 5){
-		MsgBox("Let's not add more than 5 is for now.")
+	i.id := f.Length
+	if (f.Length > 5){
+		ShowMessage("Let's not add more than 5 is for now.", 3)
 	} else {
 	synced := userSettings["Manager"].SyncSettings = 1
 	configp := userSettings["Paths"].Config
-	f := userSettings["Fleet"]
 	i.Port := i.id = 1 ? 11000 : f[-1].port + 1000
 	i.Name := "Instance " . i.id
 	i.Enabled := 1
@@ -536,8 +545,7 @@ HandleInstanceDeleteButton(*){
 		}
 	}
 	else
-		MsgBox("Can't delete the default entry", "Apollo Fleet Manager - Error", "Owner" myGui.Hwnd " 4112 T2")
-	;TODO instead of msgbox, add a statubar like to show the error in there for few seconds/until new label/error is raised
+		ShowMessage("Can't delete the default entry", "Apollo Fleet Manager - Error", 3)
 	Sleep (100)
 }
 HandleAndroidSelector(*) {
@@ -1013,6 +1021,11 @@ FleetLaunchFleet(){
 	global savedSettings
 	f := savedSettings["Fleet"]
 	p := savedSettings["Paths"]
+
+	; TODO: when adding an instance, on reload, even if configchange is set during init, this shit doesn't appear here, find a better fix
+	for i in f
+		if !i.HasOwnProp("configChange")
+			i.configChange := 1
 	; get currently running PIDs terminate anything unknown to us
 	currentPIDs := PIDsListFromExeName("sunshine.exe")
 	knownPIDs := []
@@ -1065,10 +1078,8 @@ UrgentSettingWrite(srcSettings, group){
 	savedSettings[group] := DeepClone(transientMap[group])
 	userSettings[group] := DeepClone(transientMap[group])
 	WriteSettingsFile(savedSettings)
+	Sleep(100)
 	bootstrapSettings()
-}
-
-LogWatchDog(*){
 }
 
 FleetSyncVolume(*){
@@ -1146,7 +1157,7 @@ CreateScheduledTask(name, path) {
     
     exitCode := RunWait(cmd, , "Hide")
     if exitCode != 0
-        MsgBox "Failed to create scheduled task. Exit code: " exitCode "`nCommand: " cmd
+        ShowMessage("Failed to create scheduled task. Exit code: " exitCode "`nCommand: " cmd, 3)
 }
 
 EnableScheduledTask(name) {
@@ -1174,7 +1185,7 @@ KillGnirehtetExcept(keep := 0){
 	for pid in pids
 		if (pid != keep)
 			if !!SendSigInt(pid, true)
-				MsgBox("Failed to kill gnirehtet PID: " . pid)
+				ShowMessage("Failed to kill gnirehtet PID: " . pid, 3)
 	
 	for pid in pids
 		if ProcessExist(pid) && (pid != keep)
@@ -1206,16 +1217,22 @@ ProcessRunning(pid){
 }
 
 UpdateStatusArea() {
-	global savedSettings, guiItems
-	apolloRunning := 0
-	for f in savedSettings["Fleet"]
-		if ProcessRunning(f.apolloPID) {
-			apolloRunning := 1
+	global savedSettings, guiItems, msgShown, msgTimeout
+	f := savedSettings["Fleet"]
+	a := savedSettings["Android"]
+	if  !msgShown {
+	apolloRunning := 1
+	for i in f {
+		if !i.Synced && i.id = 0
+			continue
+		if !ProcessRunning(i.apolloPID) {
+			apolloRunning := 0
 			break
 		}
-	gnirehtetRunning := ProcessExist(savedSettings["Android"].gnirehtetPID)
-	androidMicRunning := ProcessExist(savedSettings["Android"].scrcpyMicPID)
-	androidCamRunning := ProcessExist(savedSettings["Android"].scrcpyCamPID)
+	}
+	gnirehtetRunning := ProcessExist(a.gnirehtetPID)
+	androidMicRunning := ProcessExist(a.scrcpyMicPID)
+	androidCamRunning := ProcessExist(a.scrcpyCamPID)
 
 	statusItems := Map(
 		"StatusApollo", "apolloRunning",
@@ -1226,22 +1243,69 @@ UpdateStatusArea() {
 
 	for item, status in statusItems 
 		guiItems[item].Value := (%status%? "✅" : "❎") . SubStr(guiItems[item].Value, 2)
+	} else if msgTimeout > A_TickCount 
+		msgShown := 0
+}
 
+global msgShown := 0
+ShowMessage(msg, level:=0, timeout:=3000) {
+	global myGui, guiItems, msgShown, msgTimeout
+	static colors := ["Black", "Blue", "Orange", "Red"]
+	static icons := ["🏃 ", "ℹ️ ", "⚠️ ", "❌ "]
+	; level: 0=debug, 1=info, 2=warn, 3=error
+	msgTimeout := A_TickCount + timeout
+	icon := icons.Has(level+1) ? icons[level+1] : ""
+	color := colors.Has(level+1) ? colors[level+1] : "Black"
+	guiItems["StatusMessage"].Opt("c" color)
+	guiItems["StatusMessage"].Text := icon . msg
+	msgShown := 1
+	SetTimer(AutoClearMessage, -1)
+}
+AutoClearMessage() {
+	global msgShown, guiItems, msgTimeout
+	While msgTimeout > A_TickCount {
+		Sleep(100)
+		if !msgShown
+			return
+	}
+	msgShown := 0
+}
+
+LogMessage(msg, level, show:=0, timeout:=3000){
+	global myGui, guiItems, msgShown
+	static colors := ["Black", "Blue", "Orange", "Red"]
+	static icons := ["🏃 ", "ℹ️ ", "⚠️ ", "❌ "]
+	; level: 0=debug, 1=info, 2=warn, 3=error
+	
+	if (show && !msgShown) || level > 1 {
+		ShowMessage(msg, level, timeout)
+	}
+}
+; TODO LOGGING from all functions
+
+FleetInitLogWatch() {
+    global savedSettings
+    f := savedSettings["Fleet"]
+
+    for i in f {
+        if i.Enabled && ProcessExist(i.apolloPID) {
+            apid := i.apolloPID
+            cpid := i.consolePID
+            logFile := i.logFile
+
+            SetTimer(() => LogWatchDog(apid, cpid, logFile), 500)
+        }
+    }
+}
+
+LogWatchDog(aPID, cPid, logFile) {
+	
 }
 
 
 
 
-
-
-
-
-
-
-
-
-
-
+global myGui, guiItems, userSettings, savedSettings, runtimeSettings
 
 ; Step 1 Load settings
 bootstrapSettings()
@@ -1253,6 +1317,7 @@ SetupFleetTask()
 bootstrapGUI()
 ; Step 5 If Enabled, Start gnirehtet (Android reverse tethering over ADB)
 if savedSettings["Android"].ReverseTethering {
+	ShowMessage("Starting Gnirehtet...")
 	SetTimer MaintainGnirehtetProcess, 1000
 	; AndroidStartGnirehtet() ; check existing > test it > if invalid start new one, until this is a reload; kill it!
 	; timer 1000 AndroidCheckGnirehtet() Possibily we can do it smart way to check if its still alive/there's connections
@@ -1270,7 +1335,7 @@ if savedSettings["Manager"].AutoLaunch {
 	; if enabled, start timer 50 SyncVolume to try sync volume as soon as client connects, probably can verify it too "make it smart not dumb"
 	; if enabled, start timer 50 ForceClose to try send SIGINT to i once client disconnected > the rest should be cought by FleetCheckFleet to relaunch it again "if it didn't relaunch by itself" 
 	if savedSettings["Manager"].SyncVolume || savedSettings["Manager"].RemoveDisconnected || savedSettings["Manager"].SyncSettings
-		SetTimer LogWatchDog, 100000
+		FleetInitLogWatch()
 
 } 
 
