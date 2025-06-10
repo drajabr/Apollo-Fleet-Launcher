@@ -345,6 +345,7 @@ ReflectSettings(Settings){
 	;guiItems["InstanceAudioSelector"].Enabled :=0
 	guiItems["FleetListBox"].Delete()
 	guiItems["FleetListBox"].Add(EveryInstanceProp(Settings))
+	guiItems["FleetListBox"].Enabled := 0
 	guiItems["InstanceNameBox"].Value := savedSettings["Fleet"][currentlySelectedIndex].Name
 	guiItems["InstancePortBox"].Value := savedSettings["Fleet"][currentlySelectedIndex].Port
 	guiItems["InstanceSyncCheckbox"].Value := f[currentlySelectedIndex].Synced 
@@ -954,6 +955,7 @@ bootstrapGUI(){
 	ShowmyGui()
 	InitmyGuiEvents()
 	InitTray()
+	guiItems["FleetListBox"].Enabled := 1
 }
 PIDsListFromExeName(name) {
     static wmi := ComObjGet("winmgmts:\\.\root\cimv2")
@@ -1082,9 +1084,6 @@ UrgentSettingWrite(srcSettings, group){
 	bootstrapSettings()
 }
 
-FleetSyncVolume(*){
-}
-
 FleetRemoveDisconnected(*){
 }
 
@@ -1171,7 +1170,7 @@ DisableScheduledTask(name) {
 }
 
 ResetFlags(){
-	global savedSettings
+	global savedSettings, guiItems
 	w := savedSettings["Window"]
 	w.cmdReload := 0
 	w.cmdExit := 0
@@ -1217,10 +1216,10 @@ ProcessRunning(pid){
 }
 
 UpdateStatusArea() {
-	global savedSettings, guiItems, msgShown, msgTimeout
+	global savedSettings, guiItems, msgTimeout, msgExpiry
 	f := savedSettings["Fleet"]
 	a := savedSettings["Android"]
-	if  !msgShown {
+	if  !msgTimeout {
 	apolloRunning := 1
 	for i in f {
 		if !i.Synced && i.id = 0
@@ -1243,41 +1242,44 @@ UpdateStatusArea() {
 
 	for item, status in statusItems 
 		guiItems[item].Value := (%status%? "✅" : "❎") . SubStr(guiItems[item].Value, 2)
-	} else if msgTimeout > A_TickCount 
-		msgShown := 0
+	} else if msgExpiry > A_TickCount 
+		msgTimeout := 1
 }
 
-global msgShown := 0
+global msgTimeout := 0
 ShowMessage(msg, level:=0, timeout:=3000) {
-	global myGui, guiItems, msgShown, msgTimeout
+	global myGui, guiItems, msgTimeout, msgExpiry
 	static colors := ["Black", "Blue", "Orange", "Red"]
 	static icons := ["🏃 ", "ℹ️ ", "⚠️ ", "❌ "]
-	; level: 0=debug, 1=info, 2=warn, 3=error
-	msgTimeout := A_TickCount + timeout
-	icon := icons.Has(level+1) ? icons[level+1] : ""
-	color := colors.Has(level+1) ? colors[level+1] : "Black"
-	guiItems["StatusMessage"].Opt("c" color)
-	guiItems["StatusMessage"].Text := icon . msg
-	msgShown := 1
-	SetTimer(AutoClearMessage, -1)
+	static currentMessageLevel := -1
+	if (level > currentMessageLevel) || msgTimeout {
+		; level: 0=debug, 1=info, 2=warn, 3=error
+		msgExpiry := A_TickCount + timeout
+		icon := icons.Has(level+1) ? icons[level+1] : ""
+		color := colors.Has(level+1) ? colors[level+1] : "Black"
+		guiItems["StatusMessage"].Opt("c" color)
+		guiItems["StatusMessage"].Text := icon . msg
+		msgTimeout := 0
+		SetTimer(AutoClearMessage, -1)
+	}
 }
 AutoClearMessage() {
-	global msgShown, guiItems, msgTimeout
-	While msgTimeout > A_TickCount {
+	global msgTimeout, guiItems, msgExpiry
+	While msgExpiry > A_TickCount {
 		Sleep(100)
-		if !msgShown
+		if !msgTimeout
 			return
 	}
-	msgShown := 0
+	msgTimeout := 1
 }
 
 LogMessage(msg, level, show:=0, timeout:=3000){
-	global myGui, guiItems, msgShown
+	global myGui, guiItems, msgTimeout
 	static colors := ["Black", "Blue", "Orange", "Red"]
 	static icons := ["🏃 ", "ℹ️ ", "⚠️ ", "❌ "]
 	; level: 0=debug, 1=info, 2=warn, 3=error
 	
-	if (show && !msgShown) || level > 1 {
+	if (show && msgTimeout) || level > 1 {
 		ShowMessage(msg, level, timeout)
 	}
 }
@@ -1285,23 +1287,87 @@ LogMessage(msg, level, show:=0, timeout:=3000){
 
 FleetInitLogWatch() {
     global savedSettings
+    static FleetTimers := Map()
+
+    ; Cancel old timers
+    for id, fn in FleetTimers {
+        SetTimer(fn, 0)
+    }
+    FleetTimers.Clear()
+
     f := savedSettings["Fleet"]
-
     for i in f {
-        if i.Enabled && ProcessExist(i.apolloPID) {
-            apid := i.apolloPID
-            cpid := i.consolePID
-            logFile := i.logFile
-
-            SetTimer(() => LogWatchDog(apid, cpid, logFile), 500)
+        if i.Enabled && i.id = 2{
+            id := A_Index
+            fn := MakeLogWatchDog(id)  ; Each call returns a new unique closure
+            SetTimer(fn, 100)
+            FleetTimers[id] := fn
         }
     }
 }
 
-LogWatchDog(aPID, cPid, logFile) {
-	
+MakeLogWatchDog(id) {
+    return () => LogWatchDog(id)
 }
 
+
+LogWatchDog(id) {
+    global savedSettings
+
+    static lastStatus := ""        ; last detected status
+    static lastContent := ""       ; previously read content
+
+	f := savedSettings["Fleet"]
+	i := f[id]
+	logFile := i.logFile
+	aPID := i.apolloPID
+	cPID := i.consolePID
+
+    if !FileExist(logFile)
+        return
+
+    content := FileRead(logFile)
+    if content == lastContent
+        return  ; No change since last check
+
+    lastContent := content
+	MsgBox(logFile)
+
+    status := ""
+    for line in StrSplit(content, "`n") {
+        if InStr(line, "CLIENT CONNECTED")
+            status := "CONNECTED"
+        else if InStr(line, "CLIENT DISCONNECTED")
+            status := "DISCONNECTED"
+    }
+
+    if status == "" || status == lastStatus
+        return
+
+    lastStatus := status
+
+    ; Take action
+    if status = "CONNECTED" {
+        if savedSettings["Manager"].SyncVolume {
+            SyncApolloVolume()
+            ShowMessage("Client Connected")
+        }
+    } else if status = "DISCONNECTED" {
+        if savedSettings["Manager"].RemoveDisconnected {
+            for i in f {
+				SendSigInt(i.apolloPID, true)
+			}
+			Sleep(3000)
+            FleetLaunchFleet()
+            ShowMessage("Client Disconnected")
+        }
+    }
+}
+
+
+SyncApolloVolume(){
+
+}
 
 
 
