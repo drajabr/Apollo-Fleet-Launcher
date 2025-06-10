@@ -267,12 +267,12 @@ InitmyGui() {
 	if !A_IsCompiled {
 		TraySetIcon("./icons/9.ico")
 	}
-	myGui := Gui("+AlwaysOnTop -MinimizeBox -MaximizeBox")
+	myGui := Gui("-MaximizeBox")
 
 	guiItems["ButtonLockSettings"] := myGui.Add("Button", "x520 y5 w50 h40", "🔒")
 	guiItems["ButtonReload"] := myGui.Add("Button", "x520 y50 w50 h40", "Reload")
 	guiItems["ButtonLogsShow"] := myGui.Add("Button", "x520 y101 w50 h40", "Show Logs")
-	guiItems["ButtonMinimize"] := myGui.Add("Button", "x520 y150 w50 h40", "Minimize")
+	guiItems["ButtonMinimize"] := myGui.Add("Button", "x520 y150 w50 h40", "Hide Window")
 
 	myGui.Add("GroupBox", "x318 y0 w196 h90", "Fleet Options")
 	guiItems["FleetAutoLaunchCheckBox"] := myGui.Add("CheckBox", "x334 y16 w162 h23", "Auto Launch Apollo Fleet")
@@ -1331,7 +1331,7 @@ LogWatchDog(id) {
         return  ; No change since last check
 
     lastContent := content
-	MsgBox(logFile)
+	;MsgBox(logFile)
 
     status := ""
     for line in StrSplit(content, "`n") {
