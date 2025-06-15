@@ -1119,19 +1119,18 @@ SetupFleetTask() {
         isEnabled := false
     }
 
-    if autoLaunch {
-        if !isTask {
-            exeCmd := SubStr(exePath, -3) = ".exe"
-                ? '"' exePath '"'
-                : Format('"{}" "{}"', A_AhkPath, exePath)
-            exeCmd := StrReplace(exeCmd, '"', '""')
-            RunWait Format('schtasks /Create /TN "{1}" /TR "{2}" /SC ONLOGON /RL HIGHEST /F', taskName, exeCmd), , "Hide"
-        } else if !isEnabled {
-            RunWait Format('schtasks /Change /TN "{1}" /ENABLE', taskName), , "Hide"
-        }
-    } else if isTask && isEnabled {
-        RunWait Format('schtasks /Change /TN "{1}" /DISABLE', taskName), , "Hide"
-    }
+	if autoLaunch {
+		if !isTask {
+			exeCmd := Format('"{1}" "{2}"', A_AhkPath, exePath)
+			exeCmd := StrReplace(exeCmd, '"', '\"')
+			RunWait Format('schtasks /Create /TN "{1}" /TR "\"{2}\"" /SC ONLOGON /RL HIGHEST /F', taskName, exeCmd), , "Hide"
+		} else if !isEnabled {
+			RunWait Format('schtasks /Change /TN "{1}" /ENABLE', taskName), , "Hide"
+		}
+	} else if isTask && isEnabled {
+		RunWait Format('schtasks /Change /TN "{1}" /DISABLE', taskName), , "Hide"
+	}
+
 }
 
 
