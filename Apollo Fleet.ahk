@@ -93,7 +93,7 @@ ReadSettingsGroup(File, group, Settings) {
             m.SyncVolume := IniRead(File, "Manager", "SyncVolume", 1)
             m.RemoveDisconnected := IniRead(File, "Manager", "RemoveDisconnected", 1)
             m.SyncSettings := IniRead(File, "Manager", "SyncSettings", 1)
-			
+			m.StockServiceEnabled := 1
         case "Window":
 			w := Settings["Window"]
             w.restorePosition := IniRead(File, "Window", "restorePosition", 1)
@@ -267,7 +267,7 @@ InitmyGui() {
 	if !A_IsCompiled {
 		TraySetIcon("./icons/9.ico")
 	}
-	myGui := Gui("-MaximizeBox")
+	myGui := Gui("+AlwaysOnTop -SysMenu")
 
 	guiItems["ButtonLockSettings"] := myGui.Add("Button", "x520 y5 w50 h40", "🔒")
 	guiItems["ButtonReload"] := myGui.Add("Button", "x520 y50 w50 h40", "Reload")
@@ -428,7 +428,6 @@ TrayIconHandler(wParam, lParam, msg, hwnd) {
             RestoremyGui()
     }
 }
-
 HandleCheckBoxes(*) {
 	global userSettings, guiItems
 	userSettings["Android"].ReverseTethering := guiItems["AndroidReverseTetheringCheckbox"].Value
@@ -443,7 +442,6 @@ HandleCheckBoxes(*) {
 	WriteSettingsFile(userSettings)
 
 }
-
 HandleFleetSyncCheck(*){
 	global userSettings, guiItems
 	m := userSettings["Manager"]
@@ -1092,82 +1090,52 @@ FleetSyncSettings(*){
 
 ADBWatchDog(*){
 }
-
 SetupFleetTask() {
     taskName := "Apollo Fleet Launcher"
     exePath := A_ScriptFullPath
+    autoLaunch := savedSettings["Manager"].AutoLaunch
+    stockService := savedSettings["Manager"].StockServiceEnabled
 
-    if !A_IsAdmin {
-        MsgBox "Please run as Administrator."
-        ExitApp
-    }
-
-    if savedSettings["Manager"].AutoLaunch {
-        if !TaskExists(taskName) {
-            CreateScheduledTask(taskName, exePath)
-        } else if !TaskEnabled(taskName) {
-            EnableScheduledTask(taskName)
-        }
-    } else {
-        if TaskExists(taskName) && TaskEnabled(taskName) {
-            DisableScheduledTask(taskName)
+    if stockService {
+        if RunWait('sc query "ApolloService" >NUL 2>&1', , "Hide") == 0 {
+            if autoLaunch {
+                RunWait('sc stop "ApolloService"', , "Hide")
+                RunWait('sc config "ApolloService" start= disabled', , "Hide")
+            } else {
+                RunWait('sc config "ApolloService" start= auto', , "Hide")
+                RunWait('sc start "ApolloService"', , "Hide")
+            }
         }
     }
-}
 
-GetLaunchCommand(scriptPath) {
-    if SubStr(scriptPath, -3) = ".exe" {
-        return '"' scriptPath '"'
-    } else {
-        ahkExe := A_AhkPath
-        return Format('"{}" "{}"', ahkExe, scriptPath)
-    }
-}
-
-TaskExists(name) {
     try {
         ts := ComObject("Schedule.Service")
         ts.Connect()
-        folder := ts.GetFolder("\")
-        folder.GetTask(name)
-        return true
+        task := ts.GetFolder("\").GetTask(taskName)
+        isTask := true
+        isEnabled := task.Definition.Settings.Enabled
     } catch {
-        return false
+        isTask := false
+        isEnabled := false
+    }
+
+    if autoLaunch {
+        if !isTask {
+            exeCmd := SubStr(exePath, -3) = ".exe"
+                ? '"' exePath '"'
+                : Format('"{}" "{}"', A_AhkPath, exePath)
+            exeCmd := StrReplace(exeCmd, '"', '""')
+            cmd := Format('schtasks /Create /TN "{}" /TR "{}" /SC ONLOGON /RL HIGHEST /F', taskName, exeCmd)
+            RunWait(cmd, , "Hide")
+        } else if !isEnabled {
+            RunWait Format('schtasks /Change /TN "{}" /ENABLE', taskName), , "Hide"
+        }
+    } else if isTask && isEnabled {
+        RunWait Format('schtasks /Change /TN "{}" /DISABLE', taskName), , "Hide"
     }
 }
 
-TaskEnabled(name) {
-    try {
-        ts := ComObject("Schedule.Service")
-        ts.Connect()
-        folder := ts.GetFolder("\")
-        task := folder.GetTask(name)
-        return task.Definition.Settings.Enabled
-    } catch {
-        return false
-    }
-}
 
-CreateScheduledTask(name, path) {
-    runCmd := GetLaunchCommand(path)
-    ; Escape quotes for schtasks
-    runCmd := StrReplace(runCmd, '"', '\"')
-    cmd := Format('schtasks /Create /TN "{1}" /TR "{2}" /SC ONLOGON /RL HIGHEST /F', name, runCmd)
-    
-    exitCode := RunWait(cmd, , "Hide")
-    if exitCode != 0
-        ShowMessage("Failed to create scheduled task. Exit code: " exitCode "`nCommand: " cmd, 3)
-}
-
-EnableScheduledTask(name) {
-    cmd := Format('schtasks /Change /TN "{1}" /ENABLE', name)
-    RunWait cmd, , "Hide"
-}
-
-DisableScheduledTask(name) {
-    cmd := Format('schtasks /Change /TN "{1}" /DISABLE', name)
-    RunWait cmd, , "Hide"
-}
 
 ResetFlags(){
 	global savedSettings, guiItems
