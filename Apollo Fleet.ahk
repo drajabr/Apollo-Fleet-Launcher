@@ -1097,13 +1097,13 @@ SetupFleetTask() {
     stockService := savedSettings["Manager"].StockServiceEnabled
 
     if stockService {
-        if RunWait('sc query "ApolloService" >NUL 2>&1', , "Hide") == 0 {
+        if RunWait("cmd /c sc query ApolloService >nul 2>&1", , "Hide") == 0 {
             if autoLaunch {
-                RunWait('sc stop "ApolloService"', , "Hide")
-                RunWait('sc config "ApolloService" start= disabled', , "Hide")
+                RunWait('sc stop ApolloService', , "Hide")
+                RunWait('sc config ApolloService start=disabled', , "Hide")
             } else {
-                RunWait('sc config "ApolloService" start= auto', , "Hide")
-                RunWait('sc start "ApolloService"', , "Hide")
+                RunWait('sc config ApolloService start=auto', , "Hide")
+                RunWait('sc start ApolloService', , "Hide")
             }
         }
     }
@@ -1125,13 +1125,12 @@ SetupFleetTask() {
                 ? '"' exePath '"'
                 : Format('"{}" "{}"', A_AhkPath, exePath)
             exeCmd := StrReplace(exeCmd, '"', '""')
-            cmd := Format('schtasks /Create /TN "{}" /TR "{}" /SC ONLOGON /RL HIGHEST /F', taskName, exeCmd)
-            RunWait(cmd, , "Hide")
+            RunWait Format('schtasks /Create /TN "{1}" /TR "{2}" /SC ONLOGON /RL HIGHEST /F', taskName, exeCmd), , "Hide"
         } else if !isEnabled {
-            RunWait Format('schtasks /Change /TN "{}" /ENABLE', taskName), , "Hide"
+            RunWait Format('schtasks /Change /TN "{1}" /ENABLE', taskName), , "Hide"
         }
     } else if isTask && isEnabled {
-        RunWait Format('schtasks /Change /TN "{}" /DISABLE', taskName), , "Hide"
+        RunWait Format('schtasks /Change /TN "{1}" /DISABLE', taskName), , "Hide"
     }
 }
 
