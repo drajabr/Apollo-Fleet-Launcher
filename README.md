@@ -17,12 +17,17 @@ This is the same concept of my old [Multi-streaming-setup](https://github.com/dr
 - [x] Multi-instance: Auto-startup on user logon
 - [x] Multi-instance: Configurable per-instance Audio Device
 - [ ] Multi-instance: Sync device volume levels to all instances
-- [ ] Multi-instance: Remove virtual display on client disconnect
+- [x] Multi-instance: Enable terminate-on-pause setting to Remove virtual display on client disconnect
 - [X] Android Clients: ADB Revrse tethering via Gnirehtet
 - [ ] Android Clients: Mic forwarding using (scrcpy)/AndroidMic
 - [ ] Android Clients: Cam forwarding using scrcpy/(DroidCamX)
 
 ## Changelog
+* v0.1.3 - Essential fixes and functionality
+  * GUI: No close button, use sytemtray icon to exit
+  * UX: Use terminate-on-pause setting from latest Apollo update to remove virtual display on client disconnect
+  * FIX: Clone apps.json from default instance
+  * FIX: Scheduled task creation and disable stock service
 * v0.1.2 - Rise of Android Helpers
   * Android: Start and Maintain Gnirehtet process for Reverse Tethering
   * Android: Package the latest adb, gnirehtet, and scrcpy binaries

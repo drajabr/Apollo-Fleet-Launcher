@@ -8,6 +8,7 @@
 #Requires Autohotkey v2
 
 #Include ./lib/exAudio.ahk
+#Include ./lib/_JXON.ahk
 
 ConfRead(FilePath, Param := "", Default := "") {
     ; Check if file exists
@@ -272,7 +273,7 @@ InitmyGui() {
 	guiItems["ButtonLockSettings"] := myGui.Add("Button", "x520 y5 w50 h40", "🔒")
 	guiItems["ButtonReload"] := myGui.Add("Button", "x520 y50 w50 h40", "Reload")
 	guiItems["ButtonLogsShow"] := myGui.Add("Button", "x520 y101 w50 h40", "Show Logs")
-	guiItems["ButtonMinimize"] := myGui.Add("Button", "x520 y150 w50 h40", "Hide Window")
+	guiItems["ButtonMinimize"] := myGui.Add("Button", "x520 y150 w50 h40", "Minimize")
 
 	myGui.Add("GroupBox", "x318 y0 w196 h90", "Fleet Options")
 	guiItems["FleetAutoLaunchCheckBox"] := myGui.Add("CheckBox", "x334 y16 w162 h23", "Auto Launch Apollo Fleet")
@@ -345,7 +346,7 @@ ReflectSettings(Settings){
 	;guiItems["InstanceAudioSelector"].Enabled :=0
 	guiItems["FleetListBox"].Delete()
 	guiItems["FleetListBox"].Add(EveryInstanceProp(Settings))
-	guiItems["FleetListBox"].Enabled := 0
+	; guiItems["FleetListBox"].Enabled := 0
 	guiItems["InstanceNameBox"].Value := savedSettings["Fleet"][currentlySelectedIndex].Name
 	guiItems["InstancePortBox"].Value := savedSettings["Fleet"][currentlySelectedIndex].Port
 	guiItems["InstanceSyncCheckbox"].Value := f[currentlySelectedIndex].Synced 
@@ -544,7 +545,7 @@ HandleInstanceDeleteButton(*){
 		}
 	}
 	else
-		ShowMessage("Can't delete the default entry", "Apollo Fleet Manager - Error", 3)
+		ShowMessage("Can't delete the default entry", 3, 3000)
 	Sleep (100)
 }
 HandleAndroidSelector(*) {
@@ -876,7 +877,27 @@ FleetConfigInit(*) {
 	f := savedSettings["Fleet"]
 	if !DirExist(p.Config)	
 		DirCreate(p.Config)
-	
+
+	defaultAppsFile := p.Apollo . "\config\apps.json"
+	text := FileRead(defaultAppsFile)
+	baseApps := JXON_Load(&text)
+	if ArrayHas(baseApps, "apps")
+		for app in baseApps["apps"]
+			if app.Has("name") && app["name"] == "Desktop"
+				if app.Has("terminate-on-pause")
+					if !!app["terminate-on-pause"] != m.RemoveDisconnected {
+						app["terminate-on-pause"] := m.RemoveDisconnected
+						appsFileChanged := true
+					}
+				else
+					MsgBox("Please Upgrade to latest Apollo Version")
+			else
+				MsgBox("Apps.json file doesn't include Desktop app, please clean install Apollo")
+			; TODO: Better error handling 
+	text := Jxon_Dump(baseApps, "4")	; save default apps file for synced instances
+	FileDelete(defaultAppsFile)	; delete old file if exists
+	FileAppend(text, defaultAppsFile)
+	; TODO: Simple text find and replace instead of JXON maybe enough?
 	; import default conf if sync is ticked
 	baseConf := Map()
 	if (m.SyncSettings) {
@@ -925,6 +946,12 @@ FleetConfigInit(*) {
 				ConfWrite(i.configFile, i.thisConf)
 				i.LastConfigUpdate := FileGetTime(i.configFile, "M")
 				newConf := true
+			}
+			if !FileExist(i.appsFile) {
+				FileAppend(text, i.appsFile)
+			} else if appsFileChanged {
+				FileDelete(i.appsFile)	; delete old file if exists
+				FileAppend(text, i.appsFile)	; write new file
 			}
 		}
 	}
@@ -1095,13 +1122,13 @@ SetupFleetTask() {
     exePath := A_ScriptFullPath
     autoLaunch := savedSettings["Manager"].AutoLaunch
     stockService := savedSettings["Manager"].StockServiceEnabled
-
     if stockService {
         if RunWait("cmd /c sc query ApolloService >nul 2>&1", , "Hide") == 0 {
             if autoLaunch {
                 RunWait('sc stop ApolloService', , "Hide")
                 RunWait('sc config ApolloService start=disabled', , "Hide")
             } else {
+				; TODO if this is the first run lets keep the stock service disabled if we disable autoLaunch 
                 RunWait('sc config ApolloService start=auto', , "Hide")
                 RunWait('sc start ApolloService', , "Hide")
             }
@@ -1182,64 +1209,66 @@ ProcessRunning(pid){
 }
 
 UpdateStatusArea() {
-	global savedSettings, guiItems, msgTimeout, msgExpiry
+	global savedSettings, guiItems, msgTimeout
 	f := savedSettings["Fleet"]
 	a := savedSettings["Android"]
-	if  !msgTimeout {
-	apolloRunning := 1
-	for i in f {
-		if !i.Synced && i.id = 0
-			continue
-		if !ProcessRunning(i.apolloPID) {
-			apolloRunning := 0
-			break
+	if  msgTimeout {
+		apolloRunning := 1
+		for i in f {
+			if !i.Synced && i.id = 0
+				continue
+			if !ProcessRunning(i.apolloPID) {
+				apolloRunning := 0
+				break
+			}
 		}
+		gnirehtetRunning := ProcessExist(a.gnirehtetPID)
+		androidMicRunning := ProcessExist(a.scrcpyMicPID)
+		androidCamRunning := ProcessExist(a.scrcpyCamPID)
+
+		statusItems := Map(
+			"StatusApollo", "apolloRunning",
+			"StatusGnirehtet", "gnirehtetRunning",
+			"StatusAndroidMic", "androidMicRunning",
+			"StatusAndroidCam", "androidCamRunning"
+		)
+
+		for item, status in statusItems 
+			guiItems[item].Value := (%status%? "✅" : "❎") . SubStr(guiItems[item].Value, 2)
 	}
-	gnirehtetRunning := ProcessExist(a.gnirehtetPID)
-	androidMicRunning := ProcessExist(a.scrcpyMicPID)
-	androidCamRunning := ProcessExist(a.scrcpyCamPID)
-
-	statusItems := Map(
-		"StatusApollo", "apolloRunning",
-		"StatusGnirehtet", "gnirehtetRunning",
-		"StatusAndroidMic", "androidMicRunning",
-		"StatusAndroidCam", "androidCamRunning"
-	)
-
-	for item, status in statusItems 
-		guiItems[item].Value := (%status%? "✅" : "❎") . SubStr(guiItems[item].Value, 2)
-	} else if msgExpiry > A_TickCount 
-		msgTimeout := 1
 }
 
 global msgTimeout := 0
-ShowMessage(msg, level:=0, timeout:=3000) {
+global currentMessageLevel := -1
+ShowMessage(msg, level:=0, timeout:=1000) {
 	global myGui, guiItems, msgTimeout, msgExpiry
 	static colors := ["Black", "Blue", "Orange", "Red"]
 	static icons := ["🏃 ", "ℹ️ ", "⚠️ ", "❌ "]
-	static currentMessageLevel := -1
-	if (level > currentMessageLevel) || msgTimeout {
+	global currentMessageLevel
+	if (level >= currentMessageLevel) || msgTimeout {
 		; level: 0=debug, 1=info, 2=warn, 3=error
 		msgExpiry := A_TickCount + timeout
 		icon := icons.Has(level+1) ? icons[level+1] : ""
 		color := colors.Has(level+1) ? colors[level+1] : "Black"
 		guiItems["StatusMessage"].Opt("c" color)
 		guiItems["StatusMessage"].Text := icon . msg
+		currentMessageLevel := level
 		msgTimeout := 0
 		SetTimer(AutoClearMessage, -1)
 	}
 }
 AutoClearMessage() {
-	global msgTimeout, guiItems, msgExpiry
+	global msgTimeout, guiItems, msgExpiry, currentMessageLevel
 	While msgExpiry > A_TickCount {
 		Sleep(100)
-		if !msgTimeout
+		if msgTimeout
 			return
 	}
+	currentMessageLevel := -1
 	msgTimeout := 1
 }
 
-LogMessage(msg, level, show:=0, timeout:=3000){
+LogMessage(msg, level, show:=0, timeout:=1000){
 	global myGui, guiItems, msgTimeout
 	static colors := ["Black", "Blue", "Orange", "Red"]
 	static icons := ["🏃 ", "ℹ️ ", "⚠️ ", "❌ "]
@@ -1338,6 +1367,8 @@ SyncApolloVolume(){
 
 
 global myGui, guiItems, userSettings, savedSettings, runtimeSettings
+
+;
 
 ; Step 1 Load settings
 bootstrapSettings()
