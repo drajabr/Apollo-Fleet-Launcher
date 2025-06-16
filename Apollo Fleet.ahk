@@ -1349,11 +1349,11 @@ LogWatchDog(id) {
         }
     } else if status = "DISCONNECTED" {
         if savedSettings["Manager"].RemoveDisconnected {
-            for i in f {
-				SendSigInt(i.apolloPID, true)
-			}
-			Sleep(3000)
-            FleetLaunchFleet()
+            ;for i in f {
+			;	SendSigInt(i.apolloPID, true)
+			;}
+			;Sleep(3000)
+            ;FleetLaunchFleet()
             ShowMessage("Client Disconnected")
         }
     }
