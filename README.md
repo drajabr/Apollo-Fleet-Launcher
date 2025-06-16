@@ -5,7 +5,8 @@ A simple tool to configure multiple instances of [@ClassicOldSong/Apollo](https:
 This is the same concept of my old [Multi-streaming-setup](https://github.com/drajabr/My-Sunshine-setup) scripts, with ease of GUI and Auto Configuration, bundled with necessary binaries for Android clients stuff.
 
 ## Preview
-![image](https://github.com/user-attachments/assets/2aee2aee-f66e-4505-a262-b1d65c3e6071)
+![image](https://github.com/user-attachments/assets/812db344-6c15-4a37-9235-e561dc6c1a5d)
+
 
 
 
