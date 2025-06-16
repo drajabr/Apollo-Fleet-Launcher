@@ -881,6 +881,7 @@ FleetConfigInit(*) {
 	defaultAppsFile := p.Apollo . "\config\apps.json"
 	text := FileRead(defaultAppsFile)
 	baseApps := JXON_Load(&text)
+	appsFileChanged := false
 	if ArrayHas(baseApps, "apps")
 		for app in baseApps["apps"]
 			if app.Has("name") && app["name"] == "Desktop"
@@ -950,6 +951,7 @@ FleetConfigInit(*) {
 			if !FileExist(i.appsFile) {
 				FileAppend(text, i.appsFile)
 			} else if appsFileChanged {
+				; TODO proper per instance apps file handling
 				FileDelete(i.appsFile)	; delete old file if exists
 				FileAppend(text, i.appsFile)	; write new file
 			}
