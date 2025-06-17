@@ -8,7 +8,7 @@
 #Requires Autohotkey v2
 
 #Include ./lib/exAudio.ahk
-#Include ./lib/_JXON.ahk
+#Include ./lib/jsongo.v2.ahk
 
 ConfRead(FilePath, Param := "", Default := "") {
     ; Check if file exists
@@ -880,24 +880,29 @@ FleetConfigInit(*) {
 
 	defaultAppsFile := p.Apollo . "\config\apps.json"
 	text := FileRead(defaultAppsFile)
-	baseApps := JXON_Load(&text)
+	baseApps := jsongo.Parse(text)
 	appsFileChanged := false
-	if ArrayHas(baseApps, "apps")
+	if baseApps.Has("apps") && baseApps["apps"].Length > 0
 		for app in baseApps["apps"]
 			if app.Has("name") && app["name"] == "Desktop"
 				if app.Has("terminate-on-pause")
 					if !!app["terminate-on-pause"] != m.RemoveDisconnected {
-						app["terminate-on-pause"] := m.RemoveDisconnected
+						app["terminate-on-pause"] := m.RemoveDisconnected ? "true" : "false"
 						appsFileChanged := true
-					}
+					} else
+						break
 				else
 					MsgBox("Please Upgrade to latest Apollo Version")
 			else
 				MsgBox("Apps.json file doesn't include Desktop app, please clean install Apollo")
 			; TODO: Better error handling 
-	text := Jxon_Dump(baseApps, "4")	; save default apps file for synced instances
-	FileDelete(defaultAppsFile)	; delete old file if exists
-	FileAppend(text, defaultAppsFile)
+	if appsFileChanged {
+		text := jsongo.Stringify(baseApps, , '    ')
+		text := RegExReplace(text, ':\s*"true"', ': true')
+		text := RegExReplace(text, ':\s*"false"', ': false')
+		FileDelete(defaultAppsFile)	; delete old file if exists
+		FileAppend(text, defaultAppsFile)
+	}
 	; TODO: Simple text find and replace instead of JXON maybe enough?
 	; import default conf if sync is ticked
 	baseConf := Map()
