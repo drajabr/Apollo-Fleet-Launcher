@@ -1141,21 +1141,27 @@ SetupFleetTask() {
             }
         }
     }
-
-    try {
-        ts := ComObject("Schedule.Service")
-        ts.Connect()
-        task := ts.GetFolder("\").GetTask(taskName)
-        isTask := true
-        isEnabled := task.Definition.Settings.Enabled
-    } catch {
-        isTask := false
-        isEnabled := false
-    }
+	try {
+		ts := ComObject("Schedule.Service")
+		ts.Connect()
+		task := ts.GetFolder("\").GetTask(taskName)
+		isTask := true
+		isEnabled := task.Definition.Settings.Enabled
+		existingPath := task.Definition.Actions.Item(1).Path
+		pathMismatch := (StrLower(existingPath) != StrLower(exePath))
+	} catch {
+		isTask := false
+		isEnabled := false
+		pathMismatch := true
+	}
 
 	if autoLaunch {
-		if !isTask {
-			exeCmd := Format('"{1}" "{2}"', A_AhkPath, exePath)
+		if !isTask || pathMismatch {
+			exeCmd := A_IsCompiled
+				? exePath                                 ; no quotes here
+				: Format('"{1}" "{2}"', A_AhkPath, exePath)
+
+			; escape for /TR --> needs outer quotes
 			exeCmd := StrReplace(exeCmd, '"', '\"')
 			RunWait Format('schtasks /Create /TN "{1}" /TR "\"{2}\"" /SC ONLOGON /RL HIGHEST /F', taskName, exeCmd), , "Hide"
 		} else if !isEnabled {
@@ -1165,9 +1171,8 @@ SetupFleetTask() {
 		RunWait Format('schtasks /Change /TN "{1}" /DISABLE', taskName), , "Hide"
 	}
 
+
 }
-
-
 
 ResetFlags(){
 	global savedSettings, guiItems
