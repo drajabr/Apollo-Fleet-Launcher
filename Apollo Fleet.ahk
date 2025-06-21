@@ -336,6 +336,7 @@ ReflectSettings(Settings){
 	guiItems["FleetSyncVolCheckBox"].Value := m.SyncVolume
 	guiItems["FleetRemoveDisconnectCheckbox"].Value := m.RemoveDisconnected
 	guiItems["AndroidReverseTetheringCheckbox"].Value := a.ReverseTethering
+	RefreshAdbSelectors()
 	guiItems["AndroidMicCheckbox"].Value := a.MicEnable
 	guiItems["AndroidMicSelector"].Text := a.MicDeviceID
 	guiItems["AndroidCamCheckbox"].Value := a.CamEnable
@@ -544,7 +545,7 @@ HandleInstanceDeleteButton(*){
 	Sleep (100)
 }
 HandleAndroidCheckBoxes(*) {
-	global savedSettings
+	global userSettings, guiItems
 	checkBoxes := ["AndroidMicCheckbox", "AndroidCamCheckbox"]
 	Selectors := ["AndroidMicSelector", "AndroidCamSelector"]
 	enableSettings := ["MicEnable", "CamEnable"]
@@ -555,13 +556,13 @@ HandleAndroidCheckBoxes(*) {
 
 		selector.Enabled := chckBox.Value
 
-		savedSettings["Android"].%enableSettings[A_index]% := chckBox.Value
+		userSettings["Android"].%enableSettings[A_index]% := chckBox.Value
 	}
 	RefreshAdbSelectors()
 	UpdateButtonsLabels()
 }
 HandleAndroidSelector(*) {
-	global savedSettings, androidDevicesList
+	global userSettings, androidDevicesList
 	checkBoxes := ["AndroidMicCheckbox", "AndroidCamCheckbox"]
 	Selectors := ["AndroidMicSelector", "AndroidCamSelector"]
 	enableSettings := ["MicEnable", "CamEnable"]
@@ -570,11 +571,11 @@ HandleAndroidSelector(*) {
 		chckBox := guiItems[checkBoxes[A_index]]
 		selector := guiItems[Selectors[A_index]]
 
-        savedSettings["Android"].%idSettings[A_index]% := selector.Text
+        userSettings["Android"].%idSettings[A_index]% := selector.Text
 
-		if !ArrayHas(androidDevicesList, selector.Value) || selector.Value = "Unset" 
+		if !ArrayHas(androidDevicesList, selector.Text) || selector.Text = "Unset" 
 			chckBox.Value := 0
-		savedSettings["Android"].%enableSettings[A_index]% := chckBox.Value
+		userSettings["Android"].%enableSettings[A_index]% := chckBox.Value
 		selector.Enabled := chckBox.Value
 	}
 	UpdateButtonsLabels()
@@ -811,6 +812,7 @@ HandleSettingsLock(*) {
 		currentlySelectedIndex := 1
 		HandleListChange()
 		; hence we need to save settings "clone staged into active and save them"
+		;MsgBox(savedSettings["Android"].MicDeviceID . " > " . userSettings["Android"].MicDeviceID)
 		SaveUserSettings()
 		HandleSettingsLock()
 	}
@@ -1453,45 +1455,90 @@ SyncApolloVolume(appsVol){
 	}
 }
 
-
-global androidDevicesList := ["Unset"]
+global androidDevicesMap := Map("Unset", "Unset")
 InitAndroidAdbDevicesWatch() {
-	global androidDevicesList, savedSettings, guiItems
+	global androidDevicesMap, savedSettings, guiItems
 	
 	SetTimer(() => RefreshAdbDevices, 1000)
-
+	
 }
-
 RefreshAdbSelectors(*) {
-	global guiItems, androidDevicesList
+	global guiItems, androidDevicesMap, androidDevicesList
 
-	micID := guiItems["AndroidMicSelector"].Text
-	camID := guiItems["AndroidCamSelector"].Text
+	a := savedSettings["Android"]
 
-	; here we need to get the list of connected devices and append them to the list 
-	RefreshAdbDevices()
+	micID := a.MicDeviceID
+	camID := a.CamDeviceID
 
-	; clear existing items
 	guiItems["AndroidMicSelector"].Delete()
 	guiItems["AndroidCamSelector"].Delete()
 
+	RefreshAdbDevices()
+
+	if !androidDevicesMap.Has(micID) || !androidDevicesMap.Has(camID) {
+		if micID != "Unset" && !androidDevicesMap.Has(micID)
+			androidDevicesMap[micID] := "Disconnected"
+		if camID != "Unset" && !androidDevicesMap.Has(camID)
+			androidDevicesMap[camID] := "Disconnected"
+	}
+
+	androidDevicesList := ["Unset"]
+	for device, status in androidDevicesMap
+		if !ArrayHas(androidDevicesList, device)
+			androidDevicesList.Push(device)
+
 	guiItems["AndroidMicSelector"].Add(androidDevicesList)
-	guiItems["AndroidMicSelector"].Text := ArrayHas(androidDevicesList, micID) ? micID : "Unset"
 	guiItems["AndroidCamSelector"].Add(androidDevicesList)
-	guiItems["AndroidCamSelector"].Text := ArrayHas(androidDevicesList, camID) ? camID : "Unset"
+
+	guiItems["AndroidMicSelector"].Text :=  micID
+	guiItems["AndroidCamSelector"].Text := camID
 }
 
 RefreshAdbDevices(){
-	global androidDevicesList, guiItems, savedSettings
+	global androidDevicesMap, guiItems, savedSettings
+	p := savedSettings["Paths"]
 
-	; Get the list of connected Android devices
-	androidDevicesList := ["Unset"]
+	adbExe := p.ADBTools . "\adb.exe"
 	
-
+	RunWait(A_ComSpec . " /c `"" . adbExe . "`" devices > devices.txt", , "Hide")
+	output := FileRead("devices.txt")
+	FileDelete("devices.txt")
+	for key, value in androidDevicesMap
+		androidDevicesMap[key] := "Disconnected" ; reset all devices to disconnected
+	for line in StrSplit(output, "`n") {
+		if InStr(line, "device") && !InStr(line, "List of devices") {
+			deviceName := (StrSplit(line, "`t")[1])
+			androidDevicesMap[deviceName] := "Connected"
+		}
+	}
 }
 
+MaintainScrcpyMicProcess() {
+	global savedSettings, guiItems
 
+	a := savedSettings["Android"]
+	p := savedSettings["Paths"]
 
+	if !ProcessExist(a.scrcpyMicPID) || a.scrcpyMicPID = 0 {
+		exe := p.scrcpyExe
+		pids := RunAndGetPIDs(exe, "--no-control --no-display --audio-device=" . a.MicID)
+		a.scrcpyMicPID := pids[2]
+		UrgentSettingWrite(savedSettings, "Android")
+	}
+}
+MaintainScrcpyCamProcess() {
+	global savedSettings, guiItems
+
+	a := savedSettings["Android"]
+	p := savedSettings["Paths"]
+
+	if !ProcessExist(a.scrcpyCamPID) || a.scrcpyCamPID = 0 {
+		exe := p.scrcpyExe
+		pids := RunAndGetPIDs(exe, "--no-control --no-display --audio-device=" . a.CamID)
+		a.scrcpyCamPID := pids[2]
+		UrgentSettingWrite(savedSettings, "Android")
+	}
+}
 
 
 
@@ -1542,16 +1589,18 @@ if savedSettings["Manager"].AutoLaunch {
 if savedSettings["Android"].MicEnable || savedSettings["Android"].CamEnable {
 	InitAndroidAdbDevicesWatch() 
 	; here we sadly need to kill every existing adb.exe process, possibly via kill-server adb command
-	; timer 1000 AndroidDevicesList() ; to keep track of currently connected, and disconnected devices with their IDs and time of connection/disconnection and previous time too "maybe we can do something smarter here too"
+	; timer 1000 androidDevicesMap() ; to keep track of currently connected, and disconnected devices with their IDs and time of connection/disconnection and previous time too "maybe we can do something smarter here too"
 	if savedSettings["Android"].MicEnable{
 		; if the existing scrcpy proccess is ours, and it was created for the same devID keep it, until this is a reload; kill it!
 		; check if the micID is non-empty maybe we can do this in a loop as it doesn't really need reload to apply if changed
 		; if 
+		SetTimer(() => MaintainScrcpyMicProcess, 100)
 	}
 	if savedSettings["Android"].CamEnable{
 		; if the existing scrcpy proccess is ours, and it was created for the same devID keep it, until this is a reload; kill it!
 		; check if the micID is non-empty maybe we can do this in a loop as it doesn't really need reload to apply if changed
 		; if 
+		SetTimer(() => MaintainScrcpyCamProcess, 100)
 	}
 }
 
