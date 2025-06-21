@@ -618,8 +618,30 @@ HandleReloadButton(*) {
 	if settingsLocked {
 		UpdateWindowPosition()
 		savedSettings["Window"].cmdReload := 1
-		WriteSettingsFile(savedSettings)
-		Sleep(100)
+		; TODO maybe add seperate button to restart sertvices apart from apolo
+		if !UserSettingsWaiting() {
+			WriteSettingsFile(savedSettings)
+			if savedSettings["Android"].ReverseTethering 
+				SendSigInt(savedSettings["Android"].gnirehtetPID, true)
+			if savedSettings["Android"].MicEnable 
+				SendSigInt(savedSettings["Android"].scrcpyMicPID, true)
+			if savedSettings["Android"].CamEnable
+				SendSigInt(savedSettings["Android"].scrcpyCamPID, true)
+			for i in savedSettings["Fleet"] {
+				if i.Enabled = 1
+					SendSigInt(i.apolloPID, true)
+				if i.Enabled = 1 && ProcessExist(i.consolePID)
+					SendSigInt(i.consolePID, true)
+				if i.Enabled = 1 && ProcessExist(i.apolloPID)
+					continue
+				if i.Enabled = 1 && FileExist(i.configFile)
+					FileDelete(i.configFile)
+				if i.Enabled = 1 && FileExist(i.logFile)
+					FileDelete(i.logFile)
+				if i.enabled = 1 && FileExist(i.appsFile)
+					FileDelete(i.appsFile)
+			}
+		}
 		Reload
 	}
 	else {
