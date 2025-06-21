@@ -1378,7 +1378,7 @@ LogWatchDog(id) {
     ; Take action
     if status = "CONNECTED" {
         if savedSettings["Manager"].SyncVolume {
-            SyncApolloVolume()
+            ;SyncApolloVolume()
             ShowMessage("Client Connected")
         }
     } else if status = "DISCONNECTED" {
@@ -1393,23 +1393,52 @@ LogWatchDog(id) {
     }
 }
 
+InitVolumeSync() {
+	global savedSettings
 
-SyncApolloVolume(){
-	static lastVol := -1
-	vol := AudioDevice.GetDefault().GetMasterVolume()
-	if (lastVol != vol) {
-		lastVol := vol
-		; Set volume for each Apollo instance
-		for i in savedSettings["Fleet"] {
-			if i.Enabled && ProcessExist(i.apolloPID) {
-				AudioDevice.SetProcessVolume(i.apolloPID, vol)
-			}
+	appsVol := []
+	for i in savedSettings["Fleet"] {
+		if i.Enabled {
+			appVol := AppVolume(i.apolloPID)
+			if appVol.ISAV
+				appsVol.Push(appVol)
 		}
 	}
-
+	SetTimer(() => SyncApolloVolume(appsVol), 100)
 }
 
+SyncApolloVolume(appsVol){
+	static lastSystemVolume := -1
+    static lastSystemMute := -1
+    ; Get current system volume and mute status
+    systemDevice := AudioDevice.GetDefault()
+    systemVolume := systemDevice.GetVolume()
+    systemMute := systemDevice.GetMute()
 
+	if (lastSystemMute != systemMute) || (lastSystemVolume != systemVolume) {
+		for appVol in appsVol {
+			appVol.SetVolume(systemVolume)
+			appVol.SetMute(systemMute)
+		}
+		lastSystemVolume := systemVolume
+		lastSystemMute := systemMute
+	} else {
+		syncLost := false
+		for appVol in appsVol 
+			if (appVol.GetVolume() != systemVolume) || (appVol.GetMute() != systemMute) 
+				syncLost := true
+		
+		if syncLost 
+			for appVol in appsVol {
+				appVol.SetVolume(systemVolume)
+				appVol.SetMute(systemMute)
+			}
+	}
+}
+CheckSystemVolume() {
+
+	
+}
 
 global myGui, guiItems, userSettings, savedSettings, runtimeSettings
 
@@ -1442,9 +1471,10 @@ if savedSettings["Manager"].AutoLaunch {
 	;timer 1000 FleetCheckFleet() ; this is a combination of i check/ logmonitor for connected/disconnected events/ 
 	; if enabled, start timer 50 SyncVolume to try sync volume as soon as client connects, probably can verify it too "make it smart not dumb"
 	; if enabled, start timer 50 ForceClose to try send SIGINT to i once client disconnected > the rest should be cought by FleetCheckFleet to relaunch it again "if it didn't relaunch by itself" 
-	if savedSettings["Manager"].SyncVolume || savedSettings["Manager"].RemoveDisconnected || savedSettings["Manager"].SyncSettings
-		FleetInitLogWatch()
-
+	if savedSettings["Manager"].SyncVolume
+		InitVolumeSync() ; this will start timer 50 SyncVolume to try sync volume as soon as client connects, probably can verify it too "make it smart not dumb"
+	
+	FleetInitLogWatch()
 } 
 
 
