@@ -262,6 +262,8 @@ WriteSettingsGroup(Settings, File, group) {
 		FileOpen(File, "a").Close()
 }
 InitmyGui() {
+	global savedSettings
+
 	;TODO implement dark theme and follow system theme if possible 
 	global myGui, guiItems := Map()
 	if !A_IsCompiled {
@@ -282,6 +284,7 @@ InitmyGui() {
 	myGui.Add("GroupBox", "x318 y96 w196 h95", "Android Clients")
 	guiItems["AndroidReverseTetheringCheckbox"] := myGui.Add("CheckBox", "x334 y112 w139 h23", "ADB Reverse Tethering")
 	guiItems["AndroidMicCheckbox"] := myGui.Add("CheckBox", "x334 y140 ", "Mic:")
+	presetAndroidDevices := ["Unset", savedSettings["Android"].MicDeviceID, savedSettings["Android"].CamDeviceID]
 	guiItems["AndroidMicSelector"] := myGui.Add("DropDownList", "x382 y136 w122 Choose1", ["Unset"])
 	guiItems["AndroidCamCheckbox"] := myGui.Add("CheckBox", "x334 y164 ", "Cam:")
 	guiItems["AndroidCamSelector"] := myGui.Add("DropDownList", "x382 y160 w122 Choose1", ["Unset"])
@@ -297,7 +300,12 @@ InitmyGui() {
 	guiItems["InstancePortBox"] := myGui.Add("Edit", "x256 y48 w40 h23 +ReadOnly", "")
 
 	myGui.Add("Text", "x123 y82", "Audio :")
-	guiItems["InstanceAudioSelector"] := myGui.Add("DropDownList", "x176 y79 w120 Choose1", ["Unset"])
+	
+	presetAudioDevices := ["Unset"]
+	for i in savedSettings["Fleet"]
+		if !presetAudioDevices.Has(i.AudioDevice)
+			presetAudioDevices.Push(i.AudioDevice)
+	guiItems["InstanceAudioSelector"] := myGui.Add("DropDownList", "x176 y79 w120 Choose1", presetAudioDevices)
 
 	myGui.Add("Text", "x123 y110 ", "Link:")
 	myLink := "https://localhost:" . savedSettings["Fleet"][(savedSettings["Manager"].SyncSettings = 1 ? 1 : currentlySelectedIndex)].Port+1
@@ -336,7 +344,7 @@ ReflectSettings(Settings){
 	guiItems["FleetSyncVolCheckBox"].Value := m.SyncVolume
 	guiItems["FleetRemoveDisconnectCheckbox"].Value := m.RemoveDisconnected
 	guiItems["AndroidReverseTetheringCheckbox"].Value := a.ReverseTethering
-	RefreshAdbSelectors()
+	
 	guiItems["AndroidMicCheckbox"].Value := a.MicEnable
 	guiItems["AndroidMicSelector"].Text := a.MicDeviceID
 	guiItems["AndroidCamCheckbox"].Value := a.CamEnable
@@ -1455,10 +1463,11 @@ SyncApolloVolume(appsVol){
 	}
 }
 
-global androidDevicesMap := Map("Unset", "Unset")
 InitAndroidAdbDevicesWatch() {
-	global androidDevicesMap, savedSettings, guiItems
-	
+	global savedSettings, guiItems
+
+	global androidDevicesMap := Map("Unset", "Unset"), androidDevicesList := ["Unset"]
+
 	SetTimer(() => RefreshAdbDevices, 1000)
 	
 }
@@ -1482,7 +1491,7 @@ RefreshAdbSelectors(*) {
 			androidDevicesMap[camID] := "Disconnected"
 	}
 
-	androidDevicesList := ["Unset"]
+	
 	for device, status in androidDevicesMap
 		if !ArrayHas(androidDevicesList, device)
 			androidDevicesList.Push(device)
