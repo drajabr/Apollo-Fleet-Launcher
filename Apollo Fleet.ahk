@@ -1373,6 +1373,17 @@ LogWatchDog(id) {
 
 
 SyncApolloVolume(){
+	static lastVol := -1
+	vol := AudioDevice.GetDefault().GetMasterVolume()
+	if (lastVol != vol) {
+		lastVol := vol
+		; Set volume for each Apollo instance
+		for i in savedSettings["Fleet"] {
+			if i.Enabled && ProcessExist(i.apolloPID) {
+				AudioDevice.SetProcessVolume(i.apolloPID, vol)
+			}
+		}
+	}
 
 }
 
