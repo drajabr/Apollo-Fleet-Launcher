@@ -336,10 +336,11 @@ ReflectSettings(Settings){
 	guiItems["FleetSyncVolCheckBox"].Value := m.SyncVolume
 	guiItems["FleetRemoveDisconnectCheckbox"].Value := m.RemoveDisconnected
 	guiItems["AndroidReverseTetheringCheckbox"].Value := a.ReverseTethering
+	RefreshAdbSelectors()
 	guiItems["AndroidMicCheckbox"].Value := a.MicEnable
-	guiItems["AndroidMicSelector"].Value := a.MicDeviceID
+	guiItems["AndroidMicSelector"].Text := a.MicDeviceID
 	guiItems["AndroidCamCheckbox"].Value := a.CamEnable
-	guiItems["AndroidCamSelector"].Value := a.CamDeviceID
+	guiItems["AndroidCamSelector"].Text := a.CamDeviceID
 	guiItems["PathsApolloBox"].Value := Settings["Paths"].Apollo
 	guiItems["ButtonLogsShow"].Text := (Settings["Window"].logShow = 1 ? "Hide Logs" : "Show Logs")
 	;guiItems["InstanceAudioSelector"].Enabled :=0
@@ -1468,8 +1469,6 @@ RefreshAdbSelectors(*) {
 	micID := guiItems["AndroidMicSelector"].Text
 	camID := guiItems["AndroidCamSelector"].Text
 
-	androidDevicesList := ["Unset"]
-
 	; here we need to get the list of connected devices and append them to the list 
 	RefreshAdbDevices()
 
@@ -1477,9 +1476,9 @@ RefreshAdbSelectors(*) {
 	guiItems["AndroidMicSelector"].Delete()
 	guiItems["AndroidCamSelector"].Delete()
 
-	guiItems["AndroidMicSelector"].Add(audioDevicesList)
+	guiItems["AndroidMicSelector"].Add(androidDevicesList)
 	guiItems["AndroidMicSelector"].Text := ArrayHas(androidDevicesList, micID) ? micID : "Unset"
-	guiItems["AndroidCamSelector"].Add(audioDevicesList)
+	guiItems["AndroidCamSelector"].Add(androidDevicesList)
 	guiItems["AndroidCamSelector"].Text := ArrayHas(androidDevicesList, camID) ? camID : "Unset"
 }
 
@@ -1488,18 +1487,7 @@ RefreshAdbDevices(){
 
 	; Get the list of connected Android devices
 	androidDevicesList := ["Unset"]
-	try {
-		devices := ComObject("WbemScripting.SWbemLocator").ConnectServer().ExecQuery("Select * from Win32_PnPEntity where Name like '%Android%'")
-		for device in devices {
-			if (device.Name != "") {
-				androidDevicesList.Push(device.Name)
-			}
-		}
-	} catch {
-		ShowMessage("Failed to retrieve Android devices: " . A_LastError, 3)
-		return
-	}
-
+	
 
 }
 
