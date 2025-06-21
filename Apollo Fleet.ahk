@@ -399,15 +399,13 @@ HandleAudioSelector(*){
 RefreshAudioSelector(*){
 	global guiItems, audioDevicesList
 	selection := guiItems["InstanceAudioSelector"].Text
-	guiItems["InstanceAudioSelector"].Delete()
 	audioDevicesList := ["Unset"]
 	for dev in AudioDevice.GetAll()
 		audioDevicesList.Push(dev.GetName())
-	;for device in EveryInstanceProp(userSettings, "AudioDevice")	; TODO: Get the actual devices here, if the previously configure device is absent revert to default? 
-	;	if !(ArrayHas(devicesList, device))
-	;		devicesList.Push(device)
+
+	guiItems["InstanceAudioSelector"].Delete()
 	guiItems["InstanceAudioSelector"].Add(audioDevicesList)
-	guiItems["InstanceAudioSelector"].Text := ArrayHas(audioDevicesList, selection) ? selection : "Unset"
+	guiItems["InstanceAudioSelector"].Text :=  audioDevicesList.Has(selection) ? selection : "Unset"
 }
 StrictPortLimits(*){
 	p := guiItems["InstancePortBox"]
@@ -1442,19 +1440,23 @@ global androidDevicesList := []
 InitAndroidAdbDevicesWatch() {
 	global androidDevicesList, savedSettings, guiItems
 	
-
+	SetTimer(() => RefreshAdbSelectors, 1000)
 
 }
 
 RefreshAdbSelectors(*){
 	global guiItems, androidDevicesList
 
-	androidDevicesList := ["Unset"]
-
 	micID := guiItems["AndroidMicSelector"].Text
 	camID := guiItems["AndroidCamSelector"].Text
 
-	guiItems["InstanceAudioSelector"].Delete()
+	androidDevicesList := ["Unset"]
+
+	; here we need to get the list of connected devices and append them to the list 
+
+	; clear existing items
+	guiItems["AndroidMicSelector"].Delete()
+	guiItems["AndroidCamSelector"].Delete()
 
 	for dev in AudioDevice.GetAll()
 		audioDevicesList.Push(dev.GetName())
