@@ -336,7 +336,6 @@ ReflectSettings(Settings){
 	guiItems["FleetSyncVolCheckBox"].Value := m.SyncVolume
 	guiItems["FleetRemoveDisconnectCheckbox"].Value := m.RemoveDisconnected
 	guiItems["AndroidReverseTetheringCheckbox"].Value := a.ReverseTethering
-	RefreshAdbSelectors()
 	guiItems["AndroidMicCheckbox"].Value := a.MicEnable
 	guiItems["AndroidMicSelector"].Text := a.MicDeviceID
 	guiItems["AndroidCamCheckbox"].Value := a.CamEnable
@@ -571,12 +570,12 @@ HandleAndroidSelector(*) {
 		chckBox := guiItems[checkBoxes[A_index]]
 		selector := guiItems[Selectors[A_index]]
 
-        savedSettings["Android"].%idSettings[A_index]% := selector.Value
+        savedSettings["Android"].%idSettings[A_index]% := selector.Text
 
 		if !ArrayHas(androidDevicesList, selector.Value) || selector.Value = "Unset" 
 			chckBox.Value := 0
 		savedSettings["Android"].%enableSettings[A_index]% := chckBox.Value
-
+		selector.Enabled := chckBox.Value
 	}
 	UpdateButtonsLabels()
 }
@@ -1455,7 +1454,7 @@ SyncApolloVolume(appsVol){
 }
 
 
-global androidDevicesList := []
+global androidDevicesList := ["Unset"]
 InitAndroidAdbDevicesWatch() {
 	global androidDevicesList, savedSettings, guiItems
 	
