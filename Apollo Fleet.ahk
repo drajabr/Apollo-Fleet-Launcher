@@ -285,9 +285,9 @@ InitmyGui() {
 	guiItems["AndroidReverseTetheringCheckbox"] := myGui.Add("CheckBox", "x334 y112 w139 h23", "ADB Reverse Tethering")
 	guiItems["AndroidMicCheckbox"] := myGui.Add("CheckBox", "x334 y140 ", "Mic:")
 	presetAndroidDevices := ["Unset", savedSettings["Android"].MicDeviceID, savedSettings["Android"].CamDeviceID]
-	guiItems["AndroidMicSelector"] := myGui.Add("DropDownList", "x382 y136 w122 Choose1", ["Unset"])
+	guiItems["AndroidMicSelector"] := myGui.Add("DropDownList", "x382 y136 w122 Choose1", presetAndroidDevices)
 	guiItems["AndroidCamCheckbox"] := myGui.Add("CheckBox", "x334 y164 ", "Cam:")
-	guiItems["AndroidCamSelector"] := myGui.Add("DropDownList", "x382 y160 w122 Choose1", ["Unset"])
+	guiItems["AndroidCamSelector"] := myGui.Add("DropDownList", "x382 y160 w122 Choose1", presetAndroidDevices)
 
 	myGui.Add("GroupBox", "x8 y0 w300 h192", "Fleet")
 	guiItems["PathsApolloBox"] := myGui.Add("Edit", "x53 y16 w212 h23")
@@ -344,7 +344,7 @@ ReflectSettings(Settings){
 	guiItems["FleetSyncVolCheckBox"].Value := m.SyncVolume
 	guiItems["FleetRemoveDisconnectCheckbox"].Value := m.RemoveDisconnected
 	guiItems["AndroidReverseTetheringCheckbox"].Value := a.ReverseTethering
-	
+	MsgBox(a.MicEnable . " " . a.MicDeviceID)
 	guiItems["AndroidMicCheckbox"].Value := a.MicEnable
 	guiItems["AndroidMicSelector"].Text := a.MicDeviceID
 	guiItems["AndroidCamCheckbox"].Value := a.CamEnable
