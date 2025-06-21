@@ -119,15 +119,12 @@ ReadSettingsGroup(File, group, Settings) {
             a := Settings["Android"]
             a.ReverseTethering := IniRead(File, "Android", "ReverseTethering", 1)
             a.gnirehtetPID := IniRead(File, "Android", "gnirehtetPID", 0)
-            a.MicDeviceID := IniRead(File, "Android", "MicDeviceID", 0)
-			a.MicEnable := a.MicDeviceID = 0 ? 0 : 1
+            a.MicDeviceID := IniRead(File, "Android", "MicDeviceID", "Unset")
+			a.MicEnable := IniRead(File, "Android", "MicEnable", a.MicDeviceID = "Unset" ? 0 : 1)
             a.scrcpyMicPID := IniRead(File, "Android", "scrcpyMicPID", 0)
-            a.CamDeviceID := IniRead(File, "Android", "CamDeviceID", 0)
-			a.CamEnable := a.CamDeviceID = 0 ? 0 : 1
+            a.CamDeviceID := IniRead(File, "Android", "CamDeviceID", "Unset")
+			a.CamEnable := IniRead(File, "Android", "CamEnable", a.CamDeviceID = "Unset" ? 0 : 1)
             a.scrcpyCamPID := IniRead(File, "Android", "scrcpyCamPID", 0)
-			
-
-
         case "Fleet":
 		    Settings["Fleet"] := []
 			f := Settings["Fleet"]
@@ -235,7 +232,9 @@ WriteSettingsGroup(Settings, File, group) {
 			WriteIfChanged(File, "Android", "ReverseTethering", a.ReverseTethering)
 			WriteIfChanged(File, "Android", "gnirehtetPID", a.gnirehtetPID)
 			WriteIfChanged(File, "Android", "MicDeviceID", a.MicDeviceID)
+			WriteIfChanged(File, "Android", "MicEnable", a.MicEnable)
 			WriteIfChanged(File, "Android", "scrcpyMicPID", a.scrcpyMicPID)
+			WriteIfChanged(File, "Android", "CamEnable", a.CamEnable)
 			WriteIfChanged(File, "Android", "CamDeviceID", a.CamDeviceID)
 			WriteIfChanged(File, "Android", "scrcpyCamPID", a.scrcpyCamPID)
 		
@@ -283,9 +282,9 @@ InitmyGui() {
 	myGui.Add("GroupBox", "x318 y96 w196 h95", "Android Clients")
 	guiItems["AndroidReverseTetheringCheckbox"] := myGui.Add("CheckBox", "x334 y112 w139 h23", "ADB Reverse Tethering")
 	guiItems["AndroidMicCheckbox"] := myGui.Add("CheckBox", "x334 y140 ", "Mic:")
-	guiItems["AndroidMicSelector"] := myGui.Add("DropDownList", "x382 y136 w122 Choose1", ["none"])
+	guiItems["AndroidMicSelector"] := myGui.Add("DropDownList", "x382 y136 w122 Choose1", ["Unset"])
 	guiItems["AndroidCamCheckbox"] := myGui.Add("CheckBox", "x334 y164 ", "Cam:")
-	guiItems["AndroidCamSelector"] := myGui.Add("DropDownList", "x382 y160 w122 Choose1", ["none"])
+	guiItems["AndroidCamSelector"] := myGui.Add("DropDownList", "x382 y160 w122 Choose1", ["Unset"])
 
 	myGui.Add("GroupBox", "x8 y0 w300 h192", "Fleet")
 	guiItems["PathsApolloBox"] := myGui.Add("Edit", "x53 y16 w212 h23")
@@ -1438,11 +1437,33 @@ SyncApolloVolume(appsVol){
 	}
 }
 
+
+global androidDevicesList := []
 InitAndroidAdbDevicesWatch() {
+	global androidDevicesList, savedSettings, guiItems
+	
+
 
 }
 
+RefreshAdbSelectors(*){
+	global guiItems, androidDevicesList
 
+	androidDevicesList := ["Unset"]
+
+	micID := guiItems["AndroidMicSelector"].Text
+	camID := guiItems["AndroidCamSelector"].Text
+
+	guiItems["InstanceAudioSelector"].Delete()
+
+	for dev in AudioDevice.GetAll()
+		audioDevicesList.Push(dev.GetName())
+	;for device in EveryInstanceProp(userSettings, "AudioDevice")	; TODO: Get the actual devices here, if the previously configure device is absent revert to default? 
+	;	if !(ArrayHas(devicesList, device))
+	;		devicesList.Push(device)
+	guiItems["InstanceAudioSelector"].Add(audioDevicesList)
+	guiItems["InstanceAudioSelector"].Text := ArrayHas(audioDevicesList, selection) ? selection : "Unset"
+}
 
 
 
