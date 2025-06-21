@@ -349,7 +349,7 @@ ReflectSettings(Settings){
 	guiItems["InstanceNameBox"].Value := savedSettings["Fleet"][currentlySelectedIndex].Name
 	guiItems["InstancePortBox"].Value := savedSettings["Fleet"][currentlySelectedIndex].Port
 	guiItems["InstanceSyncCheckbox"].Value := f[currentlySelectedIndex].Synced 
-	RefreshAudioSelector()
+	;RefreshAudioSelector() TODO Revist if we still need this here
 	guiItems["InstanceAudioSelector"].Text := f[currentlySelectedIndex].AudioDevice
 	UpdateButtonsLabels()
 }
@@ -369,8 +369,8 @@ InitmyGuiEvents(){
 	guiItems["FleetListBox"].OnEvent("Change", HandleListChange)
 
 	guiItems["AndroidReverseTetheringCheckbox"].OnEvent("Click", HandleCheckBoxes) ; (*) => userSettings["Android"].ReverseTethering := guiItems["AndroidReverseTetheringCheckbox"].Value)
-	guiItems["AndroidMicCheckbox"].OnEvent("Click", HandleAndroidSelector) ; (*)=> guiItems["AndroidMicSelector"].Enabled := guiItems["AndroidMicCheckbox"].Value)
-	guiItems["AndroidCamCheckbox"].OnEvent("Click", HandleAndroidSelector) ; (*)=> guiItems["AndroidCamSelector"].Enabled := guiItems["AndroidMicCheckbox"].Value)
+	guiItems["AndroidMicCheckbox"].OnEvent("Click", HandleAndroidCheckBoxes) ; (*)=> guiItems["AndroidMicSelector"].Enabled := guiItems["AndroidMicCheckbox"].Value)
+	guiItems["AndroidCamCheckbox"].OnEvent("Click", HandleAndroidCheckBoxes) ; (*)=> guiItems["AndroidCamSelector"].Enabled := guiItems["AndroidMicCheckbox"].Value)
 	guiItems["AndroidMicSelector"].OnEvent("Change", HandleAndroidSelector) ; (*)=> guiItems["AndroidMicSelector"].Enabled := guiItems["AndroidMicCheckbox"].Value)
 	guiItems["AndroidCamSelector"].OnEvent("Change", HandleAndroidSelector)
 
@@ -387,8 +387,6 @@ InitmyGuiEvents(){
 	guiItems["InstancePortBox"].OnEvent("Change", StrictPortLimits)
 	guiItems["InstanceAudioSelector"].OnEvent("Change", HandleAudioSelector)
 	OnMessage(0x404, TrayIconHandler)
-
-	OnAudioEvent(RefreshAudioSelector)
 }
 HandleAudioSelector(*){
 	global userSettings, 
@@ -545,8 +543,25 @@ HandleInstanceDeleteButton(*){
 		ShowMessage("Can't delete the default entry", 3, 3000)
 	Sleep (100)
 }
-HandleAndroidSelector(*) {
+HandleAndroidCheckBoxes(*) {
 	global savedSettings
+	checkBoxes := ["AndroidMicCheckbox", "AndroidCamCheckbox"]
+	Selectors := ["AndroidMicSelector", "AndroidCamSelector"]
+	enableSettings := ["MicEnable", "CamEnable"]
+	idSettings := ["MicDeviceID", "CamDeviceID"]
+	Loop checkBoxes.Length {
+		chckBox := guiItems[checkBoxes[A_index]]
+		selector := guiItems[Selectors[A_index]]
+
+		selector.Enabled := chckBox.Value
+
+		savedSettings["Android"].%enableSettings[A_index]% := chckBox.Value
+	}
+	RefreshAdbSelectors()
+	UpdateButtonsLabels()
+}
+HandleAndroidSelector(*) {
+	global savedSettings, androidDevicesList
 	checkBoxes := ["AndroidMicCheckbox", "AndroidCamCheckbox"]
 	Selectors := ["AndroidMicSelector", "AndroidCamSelector"]
 	enableSettings := ["MicEnable", "CamEnable"]
@@ -555,10 +570,12 @@ HandleAndroidSelector(*) {
 		chckBox := guiItems[checkBoxes[A_index]]
 		selector := guiItems[Selectors[A_index]]
 
-		selector.Enabled := settingsLocked ? 0 : chckBox.Value
+        savedSettings["Android"].%idSettings[A_index]% := selector.Value
 
-		savedSettings["Android"].%enableSettings[A_index]% := chckBox
-        savedSettings["Android"].%idSettings[A_index]% := chckBox ? selector.Value : 0
+		if !ArrayHas(androidDevicesList, selector.Value) || selector.Value = "Unset" 
+			chckBox.Value := 0
+		savedSettings["Android"].%enableSettings[A_index]% := chckBox.Value
+
 	}
 	UpdateButtonsLabels()
 }
@@ -788,6 +805,7 @@ HandleSettingsLock(*) {
 		settingsLocked := !settingsLocked
 		if !settingsLocked {	; to do if got unlocked
 			RefreshAudioSelector()
+			RefreshAdbSelectors()
 		}
 	} else {
 		currentlySelectedIndex := 1
@@ -1440,11 +1458,11 @@ global androidDevicesList := []
 InitAndroidAdbDevicesWatch() {
 	global androidDevicesList, savedSettings, guiItems
 	
-	SetTimer(() => RefreshAdbSelectors, 1000)
+	SetTimer(() => RefreshAdbDevices, 1000)
 
 }
 
-RefreshAdbSelectors(*){
+RefreshAdbSelectors(*) {
 	global guiItems, androidDevicesList
 
 	micID := guiItems["AndroidMicSelector"].Text
@@ -1453,20 +1471,37 @@ RefreshAdbSelectors(*){
 	androidDevicesList := ["Unset"]
 
 	; here we need to get the list of connected devices and append them to the list 
+	RefreshAdbDevices()
 
 	; clear existing items
 	guiItems["AndroidMicSelector"].Delete()
 	guiItems["AndroidCamSelector"].Delete()
 
-	for dev in AudioDevice.GetAll()
-		audioDevicesList.Push(dev.GetName())
-	;for device in EveryInstanceProp(userSettings, "AudioDevice")	; TODO: Get the actual devices here, if the previously configure device is absent revert to default? 
-	;	if !(ArrayHas(devicesList, device))
-	;		devicesList.Push(device)
-	guiItems["InstanceAudioSelector"].Add(audioDevicesList)
-	guiItems["InstanceAudioSelector"].Text := ArrayHas(audioDevicesList, selection) ? selection : "Unset"
+	guiItems["AndroidMicSelector"].Add(audioDevicesList)
+	guiItems["AndroidMicSelector"].Text := ArrayHas(androidDevicesList, micID) ? micID : "Unset"
+	guiItems["AndroidCamSelector"].Add(audioDevicesList)
+	guiItems["AndroidCamSelector"].Text := ArrayHas(androidDevicesList, camID) ? camID : "Unset"
 }
 
+RefreshAdbDevices(){
+	global androidDevicesList, guiItems, savedSettings
+
+	; Get the list of connected Android devices
+	androidDevicesList := ["Unset"]
+	try {
+		devices := ComObject("WbemScripting.SWbemLocator").ConnectServer().ExecQuery("Select * from Win32_PnPEntity where Name like '%Android%'")
+		for device in devices {
+			if (device.Name != "") {
+				androidDevicesList.Push(device.Name)
+			}
+		}
+	} catch {
+		ShowMessage("Failed to retrieve Android devices: " . A_LastError, 3)
+		return
+	}
+
+
+}
 
 
 
