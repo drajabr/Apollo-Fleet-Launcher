@@ -9,6 +9,7 @@
 
 #Include ./lib/exAudio.ahk
 #Include ./lib/jsongo.v2.ahk
+#Include ./lib/StdOutToVar.ahk
 
 ConfRead(FilePath, Param := "", Default := "") {
     ; Check if file exists
@@ -104,7 +105,8 @@ ReadSettingsGroup(File, group, Settings) {
             w.logShow := IniRead(File, "Window", "logShow", 1)
 			w.cmdReload := IniRead(File, "Window", "cmdReload", 0)
 			w.cmdExit := IniRead(File, "Window", "cmdExit", 0)
-
+			w.cmdApply := IniRead(File, "Window", "cmdApply", 0)
+			w.cmdReady := 0
         case "Paths":
             base := A_ScriptDir
 			p := Settings["Paths"]
@@ -220,6 +222,7 @@ WriteSettingsGroup(Settings, File, group) {
 			WriteIfChanged(File, "Window", "logShow", w.logShow)
 			WriteIfChanged(File, "Window", "cmdReload", w.cmdReload)
 			WriteIfChanged(File, "Window", "cmdExit", w.cmdExit)
+			WriteIfChanged(File, "Window", "cmdApply", w.cmdApply)
 
         case "Paths":
 			p := Settings["Paths"]
@@ -284,7 +287,11 @@ InitmyGui() {
 	myGui.Add("GroupBox", "x318 y96 w196 h95", "Android Clients")
 	guiItems["AndroidReverseTetheringCheckbox"] := myGui.Add("CheckBox", "x334 y112 w139 h23", "ADB Reverse Tethering")
 	guiItems["AndroidMicCheckbox"] := myGui.Add("CheckBox", "x334 y140 ", "Mic:")
-	presetAndroidDevices := ["Unset", savedSettings["Android"].MicDeviceID, savedSettings["Android"].CamDeviceID]
+	presetAndroidDevices := ["Unset"]
+	if savedSettings["Android"].MicDeviceID != "Unset" 
+		presetAndroidDevices.Push(savedSettings["Android"].MicDeviceID)
+	if savedSettings["Android"].CamDeviceID != "Unset" && savedSettings["Android"].CamDeviceID != savedSettings["Android"].MicDeviceID
+		presetAndroidDevices.Push(savedSettings["Android"].CamDeviceID)
 	guiItems["AndroidMicSelector"] := myGui.Add("DropDownList", "x382 y136 w122 Choose1", presetAndroidDevices)
 	guiItems["AndroidCamCheckbox"] := myGui.Add("CheckBox", "x334 y164 ", "Cam:")
 	guiItems["AndroidCamSelector"] := myGui.Add("DropDownList", "x382 y160 w122 Choose1", presetAndroidDevices)
@@ -344,7 +351,6 @@ ReflectSettings(Settings){
 	guiItems["FleetSyncVolCheckBox"].Value := m.SyncVolume
 	guiItems["FleetRemoveDisconnectCheckbox"].Value := m.RemoveDisconnected
 	guiItems["AndroidReverseTetheringCheckbox"].Value := a.ReverseTethering
-	MsgBox(a.MicEnable . " " . a.MicDeviceID)
 	guiItems["AndroidMicCheckbox"].Value := a.MicEnable
 	guiItems["AndroidMicSelector"].Text := a.MicDeviceID
 	guiItems["AndroidCamCheckbox"].Value := a.CamEnable
@@ -354,7 +360,7 @@ ReflectSettings(Settings){
 	;guiItems["InstanceAudioSelector"].Enabled :=0
 	guiItems["FleetListBox"].Delete()
 	guiItems["FleetListBox"].Add(EveryInstanceProp(Settings))
-	; guiItems["FleetListBox"].Enabled := 0
+	guiItems["FleetListBox"].Enabled := 0
 	guiItems["InstanceNameBox"].Value := savedSettings["Fleet"][currentlySelectedIndex].Name
 	guiItems["InstancePortBox"].Value := savedSettings["Fleet"][currentlySelectedIndex].Port
 	guiItems["InstanceSyncCheckbox"].Value := f[currentlySelectedIndex].Synced 
@@ -368,7 +374,7 @@ EveryInstanceProp(Settings, prop:="Name"){
 		isList.Push(i.%prop%)  ; Add the Name property to the array
 	return isList
 }
-InitmyGuiEvents(){
+InitGuiItemsEvents(){
 	global myGui, guiItems
 	myGui.OnEvent('Close', (*) => ExitMyApp())
 	guiItems["ButtonMinimize"].OnEvent("Click", MinimizemyGui)
@@ -378,10 +384,10 @@ InitmyGuiEvents(){
 	guiItems["FleetListBox"].OnEvent("Change", HandleListChange)
 
 	guiItems["AndroidReverseTetheringCheckbox"].OnEvent("Click", HandleCheckBoxes) ; (*) => userSettings["Android"].ReverseTethering := guiItems["AndroidReverseTetheringCheckbox"].Value)
-	guiItems["AndroidMicCheckbox"].OnEvent("Click", HandleAndroidCheckBoxes) ; (*)=> guiItems["AndroidMicSelector"].Enabled := guiItems["AndroidMicCheckbox"].Value)
-	guiItems["AndroidCamCheckbox"].OnEvent("Click", HandleAndroidCheckBoxes) ; (*)=> guiItems["AndroidCamSelector"].Enabled := guiItems["AndroidMicCheckbox"].Value)
-	guiItems["AndroidMicSelector"].OnEvent("Change", HandleAndroidSelector) ; (*)=> guiItems["AndroidMicSelector"].Enabled := guiItems["AndroidMicCheckbox"].Value)
-	guiItems["AndroidCamSelector"].OnEvent("Change", HandleAndroidSelector)
+	guiItems["AndroidMicCheckbox"].OnEvent("Click", HandleMicCheckBox)
+	guiItems["AndroidCamCheckbox"].OnEvent("Click", HandleCamCheckBox)
+	guiItems["AndroidMicSelector"].OnEvent("Change", HandleMicSelector)
+	guiItems["AndroidCamSelector"].OnEvent("Change", HandleCamSelector)
 
 	guiItems["FleetAutoLaunchCheckBox"].OnEvent("Click", HandleCheckBoxes) ; (*) => userSettings["Manager"].AutoLaunch := guiItems["FleetAutoLaunchCheckBox"].Value)
 	guiItems["FleetSyncVolCheckBox"].OnEvent("Click", HandleCheckBoxes) ;(*) => userSettings["Manager"].SyncVolume := guiItems["FleetSyncVolCheckBox"].Value)
@@ -396,7 +402,48 @@ InitmyGuiEvents(){
 	guiItems["InstancePortBox"].OnEvent("Change", StrictPortLimits)
 	guiItems["InstanceAudioSelector"].OnEvent("Change", HandleAudioSelector)
 	OnMessage(0x404, TrayIconHandler)
+	guiItems["FleetListBox"].Enabled := 1
+
 }
+
+HandleMicCheckBox(*) {
+	global userSettings, guiItems
+
+	guiItems["AndroidMicSelector"].Enabled := guiItems["AndroidMicCheckbox"].Value
+	userSettings["Android"].MicEnable := guiItems["AndroidMicCheckbox"].Value
+		
+	RefreshAdbSelectors("Mic")
+	UpdateButtonsLabels()
+}
+HandleMicSelector(*) {
+	global userSettings, androidDevicesList
+	userSettings["Android"].MicDeviceID := guiItems["AndroidMicSelector"].Text
+	if guiItems["AndroidMicSelector"].Text = "Unset"
+		guiItems["AndroidMicCheckbox"].Value := 0
+	else
+		guiItems["AndroidMicCheckbox"].Value := 1
+	UpdateButtonsLabels()
+}
+
+HandleCamCheckBox(*) {
+	global userSettings, guiItems
+
+	guiItems["AndroidCamSelector"].Enabled := guiItems["AndroidCamCheckbox"].Value
+	userSettings["Android"].CamEnable := guiItems["AndroidCamCheckbox"].Value
+
+	RefreshAdbSelectors("Cam")
+	UpdateButtonsLabels()
+}
+HandleCamSelector(*) {
+	global userSettings, androidDevicesList
+	userSettings["Android"].CamDeviceID := guiItems["AndroidCamSelector"].Text
+	if guiItems["AndroidCamSelector"].Text = "Unset"
+		guiItems["AndroidCamCheckbox"].Value := 0
+	else
+		guiItems["AndroidCamCheckbox"].Value := 1
+	UpdateButtonsLabels()
+}
+
 HandleAudioSelector(*){
 	global userSettings, 
 	i := userSettings["Fleet"][currentlySelectedIndex]
@@ -552,42 +599,7 @@ HandleInstanceDeleteButton(*){
 		ShowMessage("Can't delete the default entry", 3, 3000)
 	Sleep (100)
 }
-HandleAndroidCheckBoxes(*) {
-	global userSettings, guiItems
-	checkBoxes := ["AndroidMicCheckbox", "AndroidCamCheckbox"]
-	Selectors := ["AndroidMicSelector", "AndroidCamSelector"]
-	enableSettings := ["MicEnable", "CamEnable"]
-	idSettings := ["MicDeviceID", "CamDeviceID"]
-	Loop checkBoxes.Length {
-		chckBox := guiItems[checkBoxes[A_index]]
-		selector := guiItems[Selectors[A_index]]
 
-		selector.Enabled := chckBox.Value
-
-		userSettings["Android"].%enableSettings[A_index]% := chckBox.Value
-	}
-	RefreshAdbSelectors()
-	UpdateButtonsLabels()
-}
-HandleAndroidSelector(*) {
-	global userSettings, androidDevicesList
-	checkBoxes := ["AndroidMicCheckbox", "AndroidCamCheckbox"]
-	Selectors := ["AndroidMicSelector", "AndroidCamSelector"]
-	enableSettings := ["MicEnable", "CamEnable"]
-	idSettings := ["MicDeviceID", "CamDeviceID"]
-	Loop Selectors.Length {
-		chckBox := guiItems[checkBoxes[A_index]]
-		selector := guiItems[Selectors[A_index]]
-
-        userSettings["Android"].%idSettings[A_index]% := selector.Text
-
-		if !ArrayHas(androidDevicesList, selector.Text) || selector.Text = "Unset" 
-			chckBox.Value := 0
-		userSettings["Android"].%enableSettings[A_index]% := chckBox.Value
-		selector.Enabled := chckBox.Value
-	}
-	UpdateButtonsLabels()
-}
 
 global currentlySelectedIndex := 1
 HandleListChange(*) {
@@ -642,38 +654,39 @@ HandleReloadButton(*) {
 		UpdateWindowPosition()
 		savedSettings["Window"].cmdReload := 1
 		; TODO maybe add seperate button to restart sertvices apart from apolo
-		if !UserSettingsWaiting() {
-			WriteSettingsFile(savedSettings)
-			if savedSettings["Android"].ReverseTethering 
-				SendSigInt(savedSettings["Android"].gnirehtetPID, true)
-			if savedSettings["Android"].MicEnable 
-				SendSigInt(savedSettings["Android"].scrcpyMicPID, true)
-			if savedSettings["Android"].CamEnable
-				SendSigInt(savedSettings["Android"].scrcpyCamPID, true)
-			for i in savedSettings["Fleet"] {
-				if i.Enabled = 1
-					SendSigInt(i.apolloPID, true)
-				if i.Enabled = 1 && ProcessExist(i.consolePID)
-					SendSigInt(i.consolePID, true)
-				if i.Enabled = 1 && ProcessExist(i.apolloPID)
-					continue
-				if i.Enabled = 1 && FileExist(i.configFile)
-					FileDelete(i.configFile)
-				if i.Enabled = 1 && FileExist(i.logFile)
-					FileDelete(i.logFile)
-				if i.enabled = 1 && FileExist(i.appsFile)
-					FileDelete(i.appsFile)
-			}
+		
+		if savedSettings["Android"].ReverseTethering 
+			SendSigInt(savedSettings["Android"].gnirehtetPID, true)
+		if savedSettings["Android"].MicEnable 
+			SendSigInt(savedSettings["Android"].scrcpyMicPID, true)
+		if savedSettings["Android"].CamEnable
+			SendSigInt(savedSettings["Android"].scrcpyCamPID, true)
+		for i in savedSettings["Fleet"] {
+			if i.Enabled = 1
+				SendSigInt(i.apolloPID, true)
+			if i.Enabled = 1 && ProcessExist(i.consolePID)
+				SendSigInt(i.consolePID, true)
+			if i.Enabled = 1 && ProcessExist(i.apolloPID)
+				continue
+			if i.Enabled = 1 && FileExist(i.configFile)
+				FileDelete(i.configFile)
+			if i.Enabled = 1 && FileExist(i.logFile)
+				FileDelete(i.logFile)
+			if i.Enabled = 1 && FileExist(i.appsFile)
+				FileDelete(i.appsFile)
 		}
+		
 		Reload
 	}
 	else {
+		settingsLocked := !settingsLocked
+		ApplyLockState()
+		UpdateButtonsLabels()
 		currentlySelectedIndex := 1
 		ReflectSettings(savedSettings)
-		HandleSettingsLock()
 		bootstrapSettings()
+		Sleep (200)
 	}
-	Sleep (100)
 }
 DeepClone(thing) {
     if (Type(thing) = "Map") {
@@ -753,7 +766,7 @@ UserSettingsWaiting() {
 
 UpdateButtonsLabels(){
 	global guiItems, settingsLocked
-	guiItems["ButtonLockSettings"].Text := UserSettingsWaiting() && !settingsLocked ? "Save" : settingsLocked ? "🔒" : "🔓" 
+	guiItems["ButtonLockSettings"].Text := UserSettingsWaiting() && !settingsLocked ? "Apply" : settingsLocked ? "🔒" : "🔓" 
 	guiItems["ButtonReload"].Text := settingsLocked ?  "Reload" : "Cancel"
 	guiItems["InstanceSyncCheckbox"].Text := currentlySelectedIndex = 1 ? userSettings["Manager"].SyncSettings ? "Copy from Default" : "Disable Copy" : "Copy from Default"
 }
@@ -805,28 +818,30 @@ SaveUserSettings(){
 	global userSettings, savedSettings, currentlySelectedIndex
 	; TODO verify settings before save? 
 	savedSettings := DeepClone(userSettings)
+	WriteSettingsFile(savedSettings)
 }
 global settingsLocked := 1
 HandleSettingsLock(*) {
     global guiItems, settingsLocked, savedSettings, userSettings
-	UpdateButtonsLabels()
 	if !UserSettingsWaiting() {
 		settingsLocked := !settingsLocked
 		if !settingsLocked {	; to do if got unlocked
 			RefreshAudioSelector()
 			RefreshAdbSelectors()
 		}
+		ApplyLockState()
+		UpdateButtonsLabels()
 	} else {
 		currentlySelectedIndex := 1
 		HandleListChange()
 		; hence we need to save settings "clone staged into active and save them"
 		;MsgBox(savedSettings["Android"].MicDeviceID . " > " . userSettings["Android"].MicDeviceID)
+		UpdateWindowPosition()
+		savedSettings["Window"].cmdApply := 1
 		SaveUserSettings()
-		HandleSettingsLock()
+		;HandleSettingsLock()
+		Reload
 	}
-	ApplyLockState()
-	UpdateButtonsLabels()
-	Sleep (100)
 }
 ExitMyApp() {
 	global myGui, savedSettings
@@ -878,16 +893,12 @@ ShowmyGui() {
 	global myGui, userSettings
 	if savedSettings["Window"].cmdReload = 1 {
 		RestoremyGui()
-	} else if (savedSettings["Window"].lastState = 1) {
-		if (savedSettings["Window"].restorePosition){
+	} else if (savedSettings["Window"].lastState = 1)
+		if (savedSettings["Window"].restorePosition) {
 			savedSettings["Window"].restorePosition := 0
 			RestoremyGui()
 			savedSettings["Window"].restorePosition := 1
-		} else
-			RestoremyGui()
-	} else
-		return
-	Sleep (100)
+		}
 }
 
 SetIfChanged(map, key, newValue) {
@@ -1032,9 +1043,7 @@ bootstrapGUI(){
 	ApplyLockState()
 	ReflectSettings(savedSettings)
 	ShowmyGui()
-	InitmyGuiEvents()
 	InitTray()
-	guiItems["FleetListBox"].Enabled := 1
 }
 PIDsListFromExeName(name) {
     static wmi := ComObjGet("winmgmts:\\.\root\cimv2")
@@ -1226,8 +1235,10 @@ ResetFlags(){
 	w := savedSettings["Window"]
 	w.cmdReload := 0
 	w.cmdExit := 0
+	w.cmdApply := 0
 	UrgentSettingWrite(savedSettings, "Window")
 	bootstrapSettings()
+	w.cmdReady := 1
 }
 KillGnirehtetExcept(keep := 0){
 
@@ -1463,78 +1474,114 @@ SyncApolloVolume(appsVol){
 	}
 }
 
-InitAndroidAdbDevicesWatch() {
-	global savedSettings, guiItems
-
-	global androidDevicesMap := Map("Unset", "Unset"), androidDevicesList := ["Unset"]
-
-	SetTimer(() => RefreshAdbDevices, 1000)
-	
-}
-RefreshAdbSelectors(*) {
+global androidDevicesMap := Map("Unset", "Unset"), androidDevicesList := ["Unset"]
+RefreshAdbSelectors(item:="") {
 	global guiItems, androidDevicesMap, androidDevicesList
-
 	a := savedSettings["Android"]
 
 	micID := a.MicDeviceID
 	camID := a.CamDeviceID
 
-	guiItems["AndroidMicSelector"].Delete()
-	guiItems["AndroidCamSelector"].Delete()
+	if micID != "Unset" && !ArrayHas(androidDevicesList, micID)
+		androidDevicesList.Push(micID)
+	if camID != "Unset" && camID != micID && !ArrayHas(androidDevicesList, camID)
+		androidDevicesList.Push(camID)
 
-	RefreshAdbDevices()
-
-	if !androidDevicesMap.Has(micID) || !androidDevicesMap.Has(camID) {
-		if micID != "Unset" && !androidDevicesMap.Has(micID)
-			androidDevicesMap[micID] := "Disconnected"
-		if camID != "Unset" && !androidDevicesMap.Has(camID)
-			androidDevicesMap[camID] := "Disconnected"
-	}
-
-	
 	for device, status in androidDevicesMap
 		if !ArrayHas(androidDevicesList, device)
 			androidDevicesList.Push(device)
 
-	guiItems["AndroidMicSelector"].Add(androidDevicesList)
-	guiItems["AndroidCamSelector"].Add(androidDevicesList)
-
-	guiItems["AndroidMicSelector"].Text :=  micID
-	guiItems["AndroidCamSelector"].Text := camID
+	if item = "Mic" {
+		guiItems["AndroidMicSelector"].Delete()
+		guiItems["AndroidMicSelector"].Add(androidDevicesList)
+		guiItems["AndroidMicSelector"].Text :=  micID
+	} else if item = "Cam" {
+		guiItems["AndroidCamSelector"].Delete()
+		guiItems["AndroidCamSelector"].Add(androidDevicesList)
+		guiItems["AndroidCamSelector"].Text := camID
+		return
+	} else {
+		guiItems["AndroidMicSelector"].Delete()
+		guiItems["AndroidMicSelector"].Add(androidDevicesList)
+		guiItems["AndroidMicSelector"].Text :=  micID
+		guiItems["AndroidCamSelector"].Delete()
+		guiItems["AndroidCamSelector"].Add(androidDevicesList)
+		guiItems["AndroidCamSelector"].Text := camID
+	}
 }
 
 RefreshAdbDevices(){
 	global androidDevicesMap, guiItems, savedSettings
 	p := savedSettings["Paths"]
+	a := savedSettings["Android"]
 
+	micID := a.MicDeviceID
+	camID := a.CamDeviceID
+
+	tempMap := Map()
+	tempMap := DeepClone(androidDevicesMap) ; keep old map to compare later
+
+	if micID != "Unset"
+		tempMap[micID] := "Disconnected"
+	if camID != "Unset" && camID != micID
+		tempMap[camID] := "Disconnected"
+	
 	adbExe := p.ADBTools . "\adb.exe"
 	
-	RunWait(A_ComSpec . " /c `"" . adbExe . "`" devices > devices.txt", , "Hide")
-	output := FileRead("devices.txt")
-	FileDelete("devices.txt")
-	for key, value in androidDevicesMap
-		androidDevicesMap[key] := "Disconnected" ; reset all devices to disconnected
+
+	result := StdoutToVar('"' adbExe '" devices', , "UTF-8")
+	output := result.Output
+	for key, value in tempMap
+		tempMap[key] := "Disconnected" ; reset all devices to disconnected
 	for line in StrSplit(output, "`n") {
 		if InStr(line, "device") && !InStr(line, "List of devices") {
-			deviceName := (StrSplit(line, "`t")[1])
-			androidDevicesMap[deviceName] := "Connected"
+			deviceName := StrSplit(line, "`t")[1]
+			tempMap[deviceName] := "Connected"
 		}
 	}
-}
-
-MaintainScrcpyMicProcess() {
-	global savedSettings, guiItems
-
-	a := savedSettings["Android"]
-	p := savedSettings["Paths"]
-
-	if !ProcessExist(a.scrcpyMicPID) || a.scrcpyMicPID = 0 {
-		exe := p.scrcpyExe
-		pids := RunAndGetPIDs(exe, "--no-control --no-display --audio-device=" . a.MicID)
-		a.scrcpyMicPID := pids[2]
-		UrgentSettingWrite(savedSettings, "Android")
+	if DeepCompare(tempMap, androidDevicesMap) {
+		androidDevicesMap := DeepClone(tempMap) ; update the global map only if it changed
 	}
 }
+MaintainScrcpyMicProcess() {
+    global savedSettings, guiItems, androidDevicesMap
+
+    a := savedSettings["Android"]
+    p := savedSettings["Paths"]
+
+	newPID := -1
+
+    deviceConnected := androidDevicesMap.Has(a.MicDeviceID) && androidDevicesMap[a.MicDeviceID] = "Connected"
+    processRunning := ProcessExist(a.scrcpyMicPID)
+
+    if (deviceConnected && (!processRunning || a.scrcpyMicPID = 0)) {
+		adbExe := p.ADBTools . "\adb.exe"
+		RunWait('"' . adbExe . '"' . " -s " . a.MicID . " shell input keyevent KEYCODE_WAKEUP")
+		
+		scrcpyExe := p.ADBTools . "\scrcpy.exe"
+		pids := RunAndGetPIDs('"' . scrcpyExe . '"', "-s " . a.MicID . " --no-video --no-window --audio-source=mic")
+		newPID := pids[1]
+
+    } else if (!deviceConnected) {
+        if newPID != 0
+			if processRunning 
+            	if SendSigInt(a.scrcpyMicPID, true)
+					newPID := 0
+			else
+				newPID := 0
+
+	} else if (deviceConnected && processRunning) {
+		; Device connected and process running - do nothing
+		; This case is handled implicitly by the if/else structure
+    }
+	if (newPID > -1 ) {
+		a.scrcpyMicPID := newPID
+		UrgentSettingWrite(savedSettings, "Android")
+	}
+    ; Case 3: Device connected and process running - do nothing
+    ; This case is handled implicitly by the if/else structure
+}
+
 MaintainScrcpyCamProcess() {
 	global savedSettings, guiItems
 
@@ -1596,29 +1643,27 @@ if savedSettings["Manager"].AutoLaunch {
 
 
 if savedSettings["Android"].MicEnable || savedSettings["Android"].CamEnable {
-	InitAndroidAdbDevicesWatch() 
+	SetTimer(RefreshAdbDevices , 1000)
 	; here we sadly need to kill every existing adb.exe process, possibly via kill-server adb command
 	; timer 1000 androidDevicesMap() ; to keep track of currently connected, and disconnected devices with their IDs and time of connection/disconnection and previous time too "maybe we can do something smarter here too"
 	if savedSettings["Android"].MicEnable{
 		; if the existing scrcpy proccess is ours, and it was created for the same devID keep it, until this is a reload; kill it!
 		; check if the micID is non-empty maybe we can do this in a loop as it doesn't really need reload to apply if changed
 		; if 
-		SetTimer(() => MaintainScrcpyMicProcess, 100)
+		SetTimer(() => MaintainScrcpyMicProcess, 500)
 	}
 	if savedSettings["Android"].CamEnable{
 		; if the existing scrcpy proccess is ours, and it was created for the same devID keep it, until this is a reload; kill it!
 		; check if the micID is non-empty maybe we can do this in a loop as it doesn't really need reload to apply if changed
 		; if 
-		SetTimer(() => MaintainScrcpyCamProcess, 100)
+		SetTimer(() => MaintainScrcpyCamProcess, 500)
 	}
 }
 
 
 SetTimer UpdateStatusArea, 1000
 
-
-
-
+InitGuiItemsEvents()
 
 ResetFlags()
 
