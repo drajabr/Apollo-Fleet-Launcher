@@ -1314,7 +1314,7 @@ LogMessage(msg, level, show:=0, timeout:=1000){
 }
 ; TODO LOGGING from all functions
 
-FleetInitLogWatch() {
+FleetInitApolloLogWatch() {
     global savedSettings
     static FleetTimers := Map()
 
@@ -1404,6 +1404,8 @@ InitVolumeSync() {
 				appsVol.Push(appVol)
 		}
 	}
+	; TODO don't rely on timer, but use event based approach once apollo starts streaming or any app start playing audio
+	; Alsoe, is there any way to get event from windows when volume level or mute status changes?
 	SetTimer(() => SyncApolloVolume(appsVol), 100)
 }
 
@@ -1435,10 +1437,24 @@ SyncApolloVolume(appsVol){
 			}
 	}
 }
-CheckSystemVolume() {
 
-	
+InitAndroidAdbDevicesWatch() {
+
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 global myGui, guiItems, userSettings, savedSettings, runtimeSettings
 
@@ -1474,11 +1490,12 @@ if savedSettings["Manager"].AutoLaunch {
 	if savedSettings["Manager"].SyncVolume
 		InitVolumeSync() ; this will start timer 50 SyncVolume to try sync volume as soon as client connects, probably can verify it too "make it smart not dumb"
 	
-	FleetInitLogWatch()
+	FleetInitApolloLogWatch()
 } 
 
 
 if savedSettings["Android"].MicEnable || savedSettings["Android"].CamEnable {
+	InitAndroidAdbDevicesWatch() 
 	; here we sadly need to kill every existing adb.exe process, possibly via kill-server adb command
 	; timer 1000 AndroidDevicesList() ; to keep track of currently connected, and disconnected devices with their IDs and time of connection/disconnection and previous time too "maybe we can do something smarter here too"
 	if savedSettings["Android"].MicEnable{
