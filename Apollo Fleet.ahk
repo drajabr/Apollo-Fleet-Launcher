@@ -1577,15 +1577,15 @@ MaintainScrcpyMicProcess() {
     a := savedSettings["Android"]
     p := savedSettings["Paths"]
 
-    static newPID := 0
+    newPID := -1
 
-	while !adbReady
-		Sleep(100)
+	if !adbReady
+		return
 
     deviceConnected := androidDevicesMap.Has(a.MicDeviceID) && androidDevicesMap[a.MicDeviceID] = "Connected"
     processRunning := a.scrcpyMicPID ? ProcessExist(a.scrcpyMicPID) : 0
-
-    if deviceConnected && !processRunning {
+	MsgBox(deviceConnected . " > " . processRunning . " > " . a.scrcpyMicPID)
+    if (deviceConnected && !processRunning) {
 
         RunWait(p.adbExe ' -s ' a.MicDeviceID ' shell input keyevent KEYCODE_WAKEUP', , 'Hide')
         
@@ -1596,7 +1596,7 @@ MaintainScrcpyMicProcess() {
             newPID := 0
     }
     
-    if (newPID != a.scrcpyMicPID) {
+    if (newPID > -1 && newPID != a.scrcpyMicPID) {
         a.scrcpyMicPID := newPID
         UrgentSettingWrite(savedSettings, "Android")
     }
@@ -1607,15 +1607,15 @@ MaintainScrcpyCamProcess() {
     a := savedSettings["Android"]
     p := savedSettings["Paths"]
 
-    static newPID := 0
+    newPID := -1
 
-	while !adbReady
-		Sleep(100)
+	if !adbReady
+		return
 
     deviceConnected := androidDevicesMap.Has(a.CamDeviceID) && androidDevicesMap[a.CamDeviceID] = "Connected"
     processRunning := a.scrcpyCamPID ? ProcessExist(a.scrcpyCamPID) : 0
 
-    if (deviceConnected && (!processRunning || a.scrcpyCamPID = 0)) {
+    if (deviceConnected && !processRunning) {
 
         RunWait(p.adbExe ' -s ' a.CamDeviceID ' shell input keyevent KEYCODE_WAKEUP', , 'Hide')
         
@@ -1627,7 +1627,7 @@ MaintainScrcpyCamProcess() {
             newPID := 0
     }
     
-    if (newPID != a.scrcpyCamPID) {
+    if (newPID > -1 && newPID != a.scrcpyCamPID) {
         a.scrcpyCamPID := newPID
         UrgentSettingWrite(savedSettings, "Android")
     }
@@ -1635,26 +1635,24 @@ MaintainScrcpyCamProcess() {
 CleanScrcpyMicProcess(){
 	global savedSettings, guiItems
 	a := savedSettings["Android"]
-	if a.scrcpyMicPID != 0 
-		if SendSigInt(a.scrcpyMicPID, true)
-			a.scrcpyMicPID := 0
-
-	if !a.scrcpyMicPID
+	MsgBox(a.scrcpyMicPID)
+	if SendSigInt(a.scrcpyMicPID, true){
+		a.scrcpyMicPID := 0
 		UrgentSettingWrite(savedSettings, "Android")
+	}
 }
 CleanScrcpyCamProcess(){
 	global savedSettings, guiItems
 	a := savedSettings["Android"]
-	if a.scrcpyCamPID != 0 
-		if SendSigInt(a.scrcpyCamPID, true) 
-			a.scrcpyCamPID := 0
-	
-	if !a.scrcpyCamPID
+	if SendSigInt(a.scrcpyCamPID, true) {
+		a.scrcpyCamPID := 0
 		UrgentSettingWrite(savedSettings, "Android")
+	}
 }
 
 bootstrapApollo(){
 	global savedSettings, guiItems, currentlySelectedIndex, apolloBootsraped
+	SetupFleetTask()
 	if savedSettings["Manager"].AutoLaunch {
 		FleetConfigInit()
 		FleetLaunchFleet()
@@ -1668,9 +1666,8 @@ bootstrapApollo(){
 
 bootstrapAndroid() {
 	global savedSettings, guiItems, androidDevicesMap, adbReady, androidBootsraped
-	SetupFleetTask()
 	if savedSettings["Android"].MicEnable || savedSettings["Android"].CamEnable {
-		global adbReady:=false
+		global adbReady := false
 		SetTimer(RefreshAdbDevices , 1000)
 		if savedSettings["Android"].MicEnable
 			SetTimer(MaintainScrcpyMicProcess, 500)
