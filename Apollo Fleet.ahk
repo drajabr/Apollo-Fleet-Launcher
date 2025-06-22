@@ -1666,7 +1666,7 @@ CleanScrcpyCamProcess(){
 bootstrapApollo(){
 	global savedSettings, guiItems, currentlySelectedIndex, apolloBootsraped
 	SetupFleetTask()
-	if savedSettings["Manager"].AutoLaunch {
+	if true {	;savedSettings["Manager"].AutoLaunch to be used for startup task at log on
 		FleetConfigInit()
 		FleetLaunchFleet()
 		SetTimer(MaintainApolloProcesses, 1000) 
@@ -1675,6 +1675,19 @@ bootstrapApollo(){
 		FleetInitApolloLogWatch()
 	} 
 	apolloBootsraped := true
+	FinishBootStrap()
+}
+
+bootstrapGnirehtet(){
+	global savedSettings, guiItems, gnirehtetBootsraped
+	if savedSettings["Android"].ReverseTethering {
+		ShowMessage("Starting Gnirehtet...")
+		SetTimer(MaintainGnirehtetProcess, 1000)
+	} else {
+		SetTimer(KillProcessesExcept("gnirehtet.exe"), -1)
+	}
+	gnirehtetBootsraped := true
+	FinishBootStrap()
 }
 
 bootstrapAndroid() {
@@ -1701,9 +1714,8 @@ bootstrapAndroid() {
 			CleanScrcpyCamProcess()
 	}
 	androidBootsraped := true
+	FinishBootStrap()
 }
-
-
 
 
 
@@ -1718,27 +1730,23 @@ bootstrapAndroid() {
 
 global myGui, guiItems, userSettings, savedSettings, runtimeSettings
 bootstrapSettings()
-
 bootstrapGUI()
-
-if savedSettings["Android"].ReverseTethering {
-	ShowMessage("Starting Gnirehtet...")
-	SetTimer(MaintainGnirehtetProcess, 1000)
-} else {
-	SetTimer(KillProcessesExcept("gnirehtet.exe"), -1)
-}
 
 global apolloBootsraped := false
 SetTimer(bootstrapApollo, -1)
+
+global gnirehtetBootsraped := false
+SetTimer(bootstrapGnirehtet, -1)
 
 global androidBootsraped := false
 SetTimer(bootstrapAndroid, -1)
 
 SetTimer UpdateStatusArea, 1000
 
-While !apolloBootsraped || !androidBootsraped
-	Sleep(100)
-
-InitGuiItemsEvents()
-
-ResetFlags()
+FinishBootStrap() {
+	if !apolloBootsraped || !androidBootsraped || !gnirehtetBootsraped
+		return false
+	InitGuiItemsEvents()
+	ResetFlags()
+	return true
+}
