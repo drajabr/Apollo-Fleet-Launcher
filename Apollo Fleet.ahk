@@ -1302,16 +1302,16 @@ UpdateStatusArea() {
 	if  msgTimeout {
 		apolloRunning := 1
 		for i in f {
-			if !i.Synced && i.id = 0
+			if i.Enabled = 0
 				continue
-			if !ProcessRunning(i.apolloPID) {
+			else if !ProcessRunning(i.apolloPID) {
 				apolloRunning := 0
 				break
 			}
 		}
-		gnirehtetRunning := ProcessExist(a.gnirehtetPID)
-		androidMicRunning := ProcessExist(a.scrcpyMicPID)
-		androidCamRunning := ProcessExist(a.scrcpyCamPID)
+		gnirehtetRunning := ProcessRunning(a.gnirehtetPID)
+		androidMicRunning := ProcessRunning(a.scrcpyMicPID)
+		androidCamRunning := ProcessRunning(a.scrcpyCamPID)
 
 		statusItems := Map(
 			"StatusApollo", "apolloRunning",
