@@ -1648,7 +1648,8 @@ CleanScrcpyCamProcess(){
 
 bootstrapApollo(){
 	global savedSettings, guiItems, currentlySelectedIndex, apolloBootsraped
-	SetupFleetTask()
+	if A_IsCompiled
+		SetupFleetTask()
 	if true {	;savedSettings["Manager"].AutoLaunch to be used for startup task at log on
 		FleetConfigInit()
 		FleetLaunchFleet()
