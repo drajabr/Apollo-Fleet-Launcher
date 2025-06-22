@@ -1011,6 +1011,7 @@ FleetConfigInit(*) {
 		"credentials_file", "credFile",
 		"file_apps", "appsFile",
 		"virtual_sink", "AudioDevice"
+		"audio_sink", "AudioDevice"
 	)	; TODO: Audio device and its consequences; the mute option/ and or others
 	newConf := false
 	for i in f {
@@ -1032,8 +1033,10 @@ FleetConfigInit(*) {
 					i.thisConf.Set("auto_capture_sink", "disabled", "keep_sink_default", "disabled")
 				}
 				else {
-					i.thisConf.Set("auto_capture_sink", "enabled", "keep_sink_default", "enabled")
+					i.thisConf.Set("auto_capture_sink", "enabled", "keep_sink_default", "disabled")
 					DeleteKeyIfExist(i.thisConf, "virtual_sink")
+					DeleteKeyIfExist(i.thisConf, "audio_sink")
+
 				}
 			if !FileExist(i.configFile) || i.configChange {
 				ConfWrite(i.configFile, i.thisConf)
@@ -1444,6 +1447,7 @@ LogWatchDog(id) {
     if status = "CONNECTED" {
         if savedSettings["Manager"].SyncVolume {
             ;SyncApolloVolume()
+			InitVolumeSync()
             ShowMessage("Client Connected")
         }
     } else if status = "DISCONNECTED" {
@@ -1474,7 +1478,7 @@ InitVolumeSync() {
 	appsVol := []
 	for i in savedSettings["Fleet"] {
 		if i.Enabled {
-			appVol := AppVolume(i.apolloPID)
+			appVol := AppVolume(app := i.apolloPID)
 			if appVol.ISAV
 				appsVol.Push(appVol)
 		}
@@ -1491,25 +1495,20 @@ SyncApolloVolume(appsVol){
     systemDevice := AudioDevice.GetDefault()
     systemVolume := systemDevice.GetVolume()
     systemMute := systemDevice.GetMute()
-
 	if (lastSystemMute != systemMute) || (lastSystemVolume != systemVolume) {
 		for appVol in appsVol {
 			appVol.SetVolume(systemVolume)
-			appVol.SetMute(systemMute)
+			appVol.SetMute(0)
 		}
 		lastSystemVolume := systemVolume
 		lastSystemMute := systemMute
 	} else {
-		syncLost := false
-		for appVol in appsVol 
-			if (appVol.GetVolume() != systemVolume) || (appVol.GetMute() != systemMute) 
-				syncLost := true
-		
-		if syncLost 
-			for appVol in appsVol {
+		for appVol in appsVol {
+			if (appVol.GetVolume() != systemVolume) || (appVol.GetMute() = 1) {
 				appVol.SetVolume(systemVolume)
-				appVol.SetMute(systemMute)
+				appVol.SetMute(0)
 			}
+		}
 	}
 }
 
