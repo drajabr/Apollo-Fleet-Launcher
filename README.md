@@ -14,6 +14,9 @@ This is the same concept of my old [Multi-streaming-setup](https://github.com/dr
 [![Build](https://github.com/drajabr/Apollo-Fleet-Launcher/actions/workflows/build.yml/badge.svg)](https://github.com/drajabr/Apollo-Fleet-Launcher/actions/workflows/build.yml)
 
 ## Changelog
+* v0.2.2 - Nothing exciting, dumb hotfixes
+  * FIX: more non-blocking bootstrap
+  * FIX: Volume level sync for multi instance
 * v0.2.1 - Volume Sync, Android Mic and Cam coming Alive!
   * Fleet: Sync system volume level to all apollo instances
   * Android: Mainaing list of connected ADB devices
