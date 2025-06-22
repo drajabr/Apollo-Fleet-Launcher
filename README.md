@@ -20,6 +20,7 @@ This is the same concept of my old [Multi-streaming-setup](https://github.com/dr
   * Android: Use Scrcpy to playback device mic (still need loop device to use it as a mic)
   * Android: Use Scrcpy to mirror device camera (need obs to expose it as virtual camera)
   * UX: Apply button directly save and apply settings and reload manager
+  * FIX: Audio selector, confirm settings file write, apollo status logic, disable buttons until ready
 * v0.1.3 - Essential fixes and functionality
   * GUI: No close button, use sytemtray icon to exit
   * UX: Use terminate-on-pause setting from latest Apollo update to remove virtual display on client disconnect
@@ -72,7 +73,7 @@ This is the same concept of my old [Multi-streaming-setup](https://github.com/dr
 
 
 # Many thanks to:
-[@ClassicOldSong](https://github.com/ClassicOldSong) [Apollo](https://github.com/ClassicOldSong/Apollo).
+[@ClassicOldSong](https://github.com/ClassicOldSong) [Apollo](https://github.com/ClassicOldSong/Apollo)
 
 [AutoHotKey](https://github.com/AutoHotkey) [AHK](https://autohotkey.com/) 
 
