@@ -704,9 +704,10 @@ HandleReloadButton(*) {
 	}
 	else {
 		settingsLocked := !settingsLocked
+		currentlySelectedIndex := 1
+		HandleListChange()
 		ApplyLockState()
 		UpdateButtonsLabels()
-		currentlySelectedIndex := 1
 		ReflectSettings(savedSettings)
 		bootstrapSettings()
 		Sleep (200)
