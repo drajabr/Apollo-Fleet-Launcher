@@ -1668,18 +1668,19 @@ bootstrapApollo(){
 
 bootstrapAndroid() {
 	global savedSettings, guiItems, androidDevicesMap, adbReady, androidBootsraped
+	SetupFleetTask()
 	if savedSettings["Android"].MicEnable || savedSettings["Android"].CamEnable {
 		global adbReady:=false
 		SetTimer(RefreshAdbDevices , 1000)
 		if savedSettings["Android"].MicEnable
 			SetTimer(MaintainScrcpyMicProcess, 500)
 		else if savedSettings["Android"].scrcpyMicPID != 0
-			SetTimer(CleanScrcpyMicProcess, -1)
+			CleanScrcpyMicProcess()
 		
 		if savedSettings["Android"].CamEnable
 			SetTimer(MaintainScrcpyCamProcess, 500)
 		else if savedSettings["Android"].scrcpyCamPID != 0
-			SetTimer(CleanScrcpyCamProcess, -1)
+			CleanScrcpyCamProcess()
 	}
 	androidBootsraped := true
 }
@@ -1699,8 +1700,6 @@ bootstrapAndroid() {
 
 global myGui, guiItems, userSettings, savedSettings, runtimeSettings
 bootstrapSettings()
-
-SetTimer(SetupFleetTask, -1)
 
 bootstrapGUI()
 
