@@ -459,14 +459,14 @@ HandleAudioSelector(*){
 }
 RefreshAudioSelector(*){
 	global guiItems, audioDevicesList
-	selection := guiItems["InstanceAudioSelector"].Text
+	selection := userSettings["Fleet"][currentlySelectedIndex].AudioDevice
 	audioDevicesList := ["Unset"]
 	for dev in AudioDevice.GetAll()
 		audioDevicesList.Push(dev.GetName())
 
 	guiItems["InstanceAudioSelector"].Delete()
 	guiItems["InstanceAudioSelector"].Add(audioDevicesList)
-	guiItems["InstanceAudioSelector"].Text :=  audioDevicesList.Has(selection) ? selection : "Unset"
+	guiItems["InstanceAudioSelector"].Text :=  ArrayHas(audioDevicesList, selection) ? selection : "Unset"
 }
 StrictPortLimits(*){
 	p := guiItems["InstancePortBox"]
