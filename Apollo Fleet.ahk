@@ -96,6 +96,7 @@ ReadSettingsGroup(File, group, Settings) {
             m.RemoveDisconnected := IniRead(File, "Manager", "RemoveDisconnected", 1)
             m.SyncSettings := IniRead(File, "Manager", "SyncSettings", 1)
 			m.StockServiceEnabled := 1
+			m.ShowErrors := IniRead(File, "Manager", "ShowErrors", 0)
         case "Window":
 			w := Settings["Window"]
             w.restorePosition := IniRead(File, "Window", "restorePosition", 1)
@@ -224,7 +225,7 @@ WriteSettingsGroup(Settings, File, group) {
 			WriteIfChanged(File, "Manager", "SyncVolume", m.SyncVolume)
 			WriteIfChanged(File, "Manager", "RemoveDisconnected", m.RemoveDisconnected)
 			WriteIfChanged(File, "Manager", "SyncSettings", m.SyncSettings)
-
+			WriteIfChanged(File, "Manager", "ShowErrors", m.ShowErrors)
         case "Window":
 			w := Settings["Window"]
 			WriteIfChanged(File, "Window", "restorePosition", w.restorePosition)
@@ -1709,7 +1710,14 @@ bootstrapAndroid() {
 
 
 
+OnError(HandleError, -1)  ; -1 = override default behavior
 
+HandleError(err, mode) {
+	if !savedSettings["Manager"].ShowErrors{
+		HandleReloadButton()
+		return true
+	}
+}
 
 
 global myGui, guiItems, userSettings, savedSettings, runtimeSettings
