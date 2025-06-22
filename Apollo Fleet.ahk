@@ -407,7 +407,7 @@ InitGuiItemsEvents(){
 	guiItems["FleetButtonDelete"].OnEvent("Click", HandleInstanceDeleteButton)
 
 	guiItems["InstanceNameBox"].OnEvent("Change", HandleNameChange)
-	guiItems["InstancePortBox"].OnEvent("LoseFocus", HandlePortChange)
+	guiItems["InstancePortBox"].OnEvent("Change", HandlePortChange)
 	guiItems["InstancePortBox"].OnEvent("Change", StrictPortLimits)
 	guiItems["InstanceAudioSelector"].OnEvent("Change", HandleAudioSelector)
 	OnMessage(0x404, TrayIconHandler)
