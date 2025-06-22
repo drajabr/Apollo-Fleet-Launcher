@@ -115,6 +115,8 @@ ReadSettingsGroup(File, group, Settings) {
             p.ADBTools := IniRead(File, "Paths", "ADB", base "\bin\platform-tools")
 			p.apolloExe := p.Apollo "\sunshine.exe"
 			p.gnirehtetExe := p.ADBTools "\gnirehtet.exe"
+			p.scrcpyExe := p.ADBTools "\scrcpy.exe"
+			p.adbExe := p.ADBTools "\adb.exe"
 			; TODO: fix save settings from webui, use default conf dir
 			; OR wait when apollo support working outside its own dir
         case "Android":
@@ -581,7 +583,7 @@ HandleInstanceAddButton(*){
 	guiItems["FleetListBox"].Choose(i.id + 1)
 	HandleListChange()
 	}
-	Sleep (100)
+	Sleep (10)
 }
 HandleInstanceDeleteButton(*){ 
 	global userSettings, guiItems, currentlySelectedIndex
@@ -597,7 +599,7 @@ HandleInstanceDeleteButton(*){
 	}
 	else
 		ShowMessage("Can't delete the default entry", 3, 3000)
-	Sleep (100)
+	Sleep (10)
 }
 
 
@@ -638,7 +640,15 @@ HandleLogsButton(*) {
 	guiItems["ButtonLogsShow"].Text := (userSettings["Window"].logShow = 1 ? "Hide Logs" : "Show Logs")
 	UpdateWindowPosition()
 	RestoremyGui()
-	Sleep (100)
+	Sleep (10)
+}
+DeleteAllTimers(){
+	SetTimer(MaintainApolloProcesses, 0)
+	SetTimer(MaintainGnirehtetProcess, 0)
+	SetTimer(RefreshAdbDevices , 0)
+	SetTimer(MaintainScrcpyMicProcess, 0)
+	SetTimer(MaintainScrcpyCamProcess, 0)
+
 }
 HandleReloadButton(*) {
 	global settingsLocked, userSettings, savedSettings, currentlySelectedIndex
@@ -653,8 +663,8 @@ HandleReloadButton(*) {
 	if settingsLocked {
 		UpdateWindowPosition()
 		savedSettings["Window"].cmdReload := 1
+		DeleteAllTimers()
 		; TODO maybe add seperate button to restart sertvices apart from apolo
-		
 		if savedSettings["Android"].ReverseTethering 
 			SendSigInt(savedSettings["Android"].gnirehtetPID, true)
 		if savedSettings["Android"].MicEnable 
@@ -674,6 +684,15 @@ HandleReloadButton(*) {
 				FileDelete(i.logFile)
 			if i.Enabled = 1 && FileExist(i.appsFile)
 				FileDelete(i.appsFile)
+
+			for process in PIDsListFromExeName("sunshine.exe")
+				SendSigInt(process, true)
+			for process in PIDsListFromExeName("adb.exe")
+				SendSigInt(process, true)
+			for process in PIDsListFromExeName("scrcpy.exe")
+				SendSigInt(process, true)
+			for process in PIDsListFromExeName("gnirehtet.exe")
+				SendSigInt(process, true)
 		}
 		
 		Reload
@@ -848,7 +867,7 @@ ExitMyApp() {
 	UpdateWindowPosition()
 	savedSettings["Window"].cmdExit := 1
 	WriteSettingsFile(savedSettings)
-	Sleep (100)
+	Sleep (10)
 	myGui.Destroy()
 	ExitApp()
 }
@@ -864,7 +883,7 @@ MinimizemyGui(*) {
    userSettings["Window"].lastState := 0
     ; Now hide the window
     myGui.Hide()
-	Sleep (100)
+	Sleep (10)
 }
 RestoremyGui() {
 	global myGui, savedSettings
@@ -887,7 +906,7 @@ RestoremyGui() {
 		myGui.Show("x" xC " y" yC "w580 h" h)
 
 	savedSettings["Window"].lastState := 1
-	Sleep (100)
+	Sleep (10)
 }
 ShowmyGui() {
 	global myGui, userSettings
@@ -1072,10 +1091,8 @@ SendSigInt(pid, force:=false) {
 
 		if force && ProcessExist(pid)
 			ProcessClose(pid)
-
-		return !ProcessExist(pid)
-	} else
-		return 0
+	}
+	return !ProcessExist(pid)
 }
 
 RunAndGetPIDs(exePath, args := "", workingDir := "", flags := "Hide") {
@@ -1088,7 +1105,7 @@ RunAndGetPIDs(exePath, args := "", workingDir := "", flags := "Hide") {
         flags,
         &consolePID
     )
-	Sleep(1)
+	Sleep(10)
 	for process in ComObject("WbemScripting.SWbemLocator").ConnectServer().ExecQuery("Select * from Win32_Process where ParentProcessId=" consolePID)
 		if InStr(process.CommandLine, exePath) {
 			apolloPID := process.ProcessId
@@ -1168,7 +1185,7 @@ UrgentSettingWrite(srcSettings, group){
 	savedSettings[group] := DeepClone(transientMap[group])
 	userSettings[group] := DeepClone(transientMap[group])
 	WriteSettingsFile(savedSettings)
-	Sleep(100)
+	Sleep(10)
 	bootstrapSettings()
 }
 
@@ -1246,7 +1263,7 @@ KillGnirehtetExcept(keep := 0){
 
 	for pid in pids
 		if (pid != keep)
-			if !!SendSigInt(pid, true)
+			if !SendSigInt(pid, true)
 				ShowMessage("Failed to kill gnirehtet PID: " . pid, 3)
 	
 	for pid in pids
@@ -1428,7 +1445,17 @@ LogWatchDog(id) {
         }
     }
 }
+MaintainApolloProcesses(){
+	global savedSettings, userSettings, currentlySelectedIndex
+	static firstRun := true
 
+	f := savedSettings["Fleet"]
+	p := savedSettings["Paths"]
+	m := savedSettings["Manager"]
+
+	; TODO WATCH APOLLO PIDS AND IN CASE ONE DIES RESTART IT AND RECORD NEW PIDS
+
+}
 InitVolumeSync() {
 	global savedSettings
 
@@ -1511,7 +1538,7 @@ RefreshAdbSelectors(item:="") {
 }
 
 RefreshAdbDevices(){
-	global androidDevicesMap, guiItems, savedSettings
+	global androidDevicesMap, guiItems, savedSettings, adbReady
 	p := savedSettings["Paths"]
 	a := savedSettings["Android"]
 
@@ -1526,10 +1553,8 @@ RefreshAdbDevices(){
 	if camID != "Unset" && camID != micID
 		tempMap[camID] := "Disconnected"
 	
-	adbExe := p.ADBTools . "\adb.exe"
-	
 
-	result := StdoutToVar('"' adbExe '" devices', , "UTF-8")
+	result := StdoutToVar('"' p.adbExe '" devices', , "UTF-8")
 	output := result.Output
 	for key, value in tempMap
 		tempMap[key] := "Disconnected" ; reset all devices to disconnected
@@ -1542,59 +1567,127 @@ RefreshAdbDevices(){
 	if DeepCompare(tempMap, androidDevicesMap) {
 		androidDevicesMap := DeepClone(tempMap) ; update the global map only if it changed
 	}
+	if !adbReady
+		adbReady := true
 }
+
 MaintainScrcpyMicProcess() {
-    global savedSettings, guiItems, androidDevicesMap
+    global savedSettings, guiItems, androidDevicesMap, adbReady
 
     a := savedSettings["Android"]
     p := savedSettings["Paths"]
 
-	newPID := -1
+    static newPID := 0
+
+	while !adbReady
+		Sleep(100)
 
     deviceConnected := androidDevicesMap.Has(a.MicDeviceID) && androidDevicesMap[a.MicDeviceID] = "Connected"
-    processRunning := ProcessExist(a.scrcpyMicPID)
+    processRunning := a.scrcpyMicPID ? ProcessExist(a.scrcpyMicPID) : 0
 
-    if (deviceConnected && (!processRunning || a.scrcpyMicPID = 0)) {
-		adbExe := p.ADBTools . "\adb.exe"
-		RunWait('"' . adbExe . '"' . " -s " . a.MicID . " shell input keyevent KEYCODE_WAKEUP")
-		
-		scrcpyExe := p.ADBTools . "\scrcpy.exe"
-		pids := RunAndGetPIDs('"' . scrcpyExe . '"', "-s " . a.MicID . " --no-video --no-window --audio-source=mic")
-		newPID := pids[1]
+    if deviceConnected && !processRunning {
 
-    } else if (!deviceConnected) {
-        if newPID != 0
-			if processRunning 
-            	if SendSigInt(a.scrcpyMicPID, true)
-					newPID := 0
-			else
-				newPID := 0
-
-	} else if (deviceConnected && processRunning) {
-		; Device connected and process running - do nothing
-		; This case is handled implicitly by the if/else structure
+        RunWait(p.adbExe ' -s ' a.MicDeviceID ' shell input keyevent KEYCODE_WAKEUP', , 'Hide')
+        
+        pids := RunAndGetPIDs(p.scrcpyExe, " -s " . a.MicDeviceID . " --no-video --no-window --audio-source=mic")
+        newPID := pids[2]
+    } else if (!deviceConnected && processRunning) {
+        if SendSigInt(a.scrcpyMicPID, true)
+            newPID := 0
     }
-	if (newPID > -1 ) {
-		a.scrcpyMicPID := newPID
-		UrgentSettingWrite(savedSettings, "Android")
-	}
-    ; Case 3: Device connected and process running - do nothing
-    ; This case is handled implicitly by the if/else structure
+    
+    if (newPID != a.scrcpyMicPID) {
+        a.scrcpyMicPID := newPID
+        UrgentSettingWrite(savedSettings, "Android")
+    }
 }
-
 MaintainScrcpyCamProcess() {
-	global savedSettings, guiItems
+    global savedSettings, guiItems, androidDevicesMap, adbReady
 
-	a := savedSettings["Android"]
-	p := savedSettings["Paths"]
+    a := savedSettings["Android"]
+    p := savedSettings["Paths"]
 
-	if !ProcessExist(a.scrcpyCamPID) || a.scrcpyCamPID = 0 {
-		exe := p.scrcpyExe
-		pids := RunAndGetPIDs(exe, "--no-control --no-display --audio-device=" . a.CamID)
-		a.scrcpyCamPID := pids[2]
-		UrgentSettingWrite(savedSettings, "Android")
-	}
+    static newPID := 0
+
+	while !adbReady
+		Sleep(100)
+
+    deviceConnected := androidDevicesMap.Has(a.CamDeviceID) && androidDevicesMap[a.CamDeviceID] = "Connected"
+    processRunning := a.scrcpyCamPID ? ProcessExist(a.scrcpyCamPID) : 0
+
+    if (deviceConnected && (!processRunning || a.scrcpyCamPID = 0)) {
+
+        RunWait(p.adbExe ' -s ' a.CamDeviceID ' shell input keyevent KEYCODE_WAKEUP', , 'Hide')
+        
+        pids := RunAndGetPIDs(p.scrcpyExe, " -s " . a.CamDeviceID . " --video-source=camera --no-audio")
+        newPID := pids[2]
+
+    } else if (!deviceConnected && processRunning) {
+        if SendSigInt(a.scrcpyCamPID, true)
+            newPID := 0
+    }
+    
+    if (newPID != a.scrcpyCamPID) {
+        a.scrcpyCamPID := newPID
+        UrgentSettingWrite(savedSettings, "Android")
+    }
 }
+CleanScrcpyMicProcess(){
+	global savedSettings, guiItems
+	a := savedSettings["Android"]
+	if a.scrcpyMicPID != 0 
+		if SendSigInt(a.scrcpyMicPID, true)
+			a.scrcpyMicPID := 0
+
+	if !a.scrcpyMicPID
+		UrgentSettingWrite(savedSettings, "Android")
+}
+CleanScrcpyCamProcess(){
+	global savedSettings, guiItems
+	a := savedSettings["Android"]
+	if a.scrcpyCamPID != 0 
+		if SendSigInt(a.scrcpyCamPID, true) 
+			a.scrcpyCamPID := 0
+	
+	if !a.scrcpyCamPID
+		UrgentSettingWrite(savedSettings, "Android")
+}
+
+bootstrapApollo(){
+	global savedSettings, guiItems, currentlySelectedIndex, apolloBootsraped
+	if savedSettings["Manager"].AutoLaunch {
+		FleetConfigInit()
+		FleetLaunchFleet()
+		SetTimer(MaintainApolloProcesses, 1000) 
+		if savedSettings["Manager"].SyncVolume
+			InitVolumeSync() 
+		FleetInitApolloLogWatch()
+	} 
+	apolloBootsraped := true
+}
+
+bootstrapAndroid() {
+	global savedSettings, guiItems, androidDevicesMap, adbReady, androidBootsraped
+	if savedSettings["Android"].MicEnable || savedSettings["Android"].CamEnable {
+		global adbReady:=false
+		SetTimer(RefreshAdbDevices , 1000)
+		if savedSettings["Android"].MicEnable
+			SetTimer(MaintainScrcpyMicProcess, 500)
+		else if savedSettings["Android"].scrcpyMicPID != 0
+			SetTimer(CleanScrcpyMicProcess, -1)
+		
+		if savedSettings["Android"].CamEnable
+			SetTimer(MaintainScrcpyCamProcess, 500)
+		else if savedSettings["Android"].scrcpyCamPID != 0
+			SetTimer(CleanScrcpyCamProcess, -1)
+	}
+	androidBootsraped := true
+}
+
+
+
+
+
 
 
 
@@ -1605,76 +1698,30 @@ MaintainScrcpyCamProcess() {
 
 
 global myGui, guiItems, userSettings, savedSettings, runtimeSettings
-
-;
-
-; Step 1 Load settings
 bootstrapSettings()
 
-; Step 2 Check if admin and setup scheduled task
-SetupFleetTask()
+SetTimer(SetupFleetTask, -1)
 
-; Step 3 Setup and show GUI
 bootstrapGUI()
-; Step 5 If Enabled, Start gnirehtet (Android reverse tethering over ADB)
+
 if savedSettings["Android"].ReverseTethering {
 	ShowMessage("Starting Gnirehtet...")
-	SetTimer MaintainGnirehtetProcess, 1000
-	; AndroidStartGnirehtet() ; check existing > test it > if invalid start new one, until this is a reload; kill it!
-	; timer 1000 AndroidCheckGnirehtet() Possibily we can do it smart way to check if its still alive/there's connections
+	SetTimer(MaintainGnirehtetProcess, 1000)
 } else {
-	KillGnirehtetExcept()
-}
-; Step 4 Prepare and launch fleet if enabled
-if savedSettings["Manager"].AutoLaunch {
-	; Step 1 Create/Load/Modify config files
-	FleetConfigInit()
-	; Step 2 Kill/Start Apollo Processes
-	FleetLaunchFleet()
-	; Step 3 TODO
-	;timer 1000 FleetCheckFleet() ; this is a combination of i check/ logmonitor for connected/disconnected events/ 
-	; if enabled, start timer 50 SyncVolume to try sync volume as soon as client connects, probably can verify it too "make it smart not dumb"
-	; if enabled, start timer 50 ForceClose to try send SIGINT to i once client disconnected > the rest should be cought by FleetCheckFleet to relaunch it again "if it didn't relaunch by itself" 
-	if savedSettings["Manager"].SyncVolume
-		InitVolumeSync() ; this will start timer 50 SyncVolume to try sync volume as soon as client connects, probably can verify it too "make it smart not dumb"
-	
-	FleetInitApolloLogWatch()
-} 
-
-
-if savedSettings["Android"].MicEnable || savedSettings["Android"].CamEnable {
-	SetTimer(RefreshAdbDevices , 1000)
-	; here we sadly need to kill every existing adb.exe process, possibly via kill-server adb command
-	; timer 1000 androidDevicesMap() ; to keep track of currently connected, and disconnected devices with their IDs and time of connection/disconnection and previous time too "maybe we can do something smarter here too"
-	if savedSettings["Android"].MicEnable{
-		; if the existing scrcpy proccess is ours, and it was created for the same devID keep it, until this is a reload; kill it!
-		; check if the micID is non-empty maybe we can do this in a loop as it doesn't really need reload to apply if changed
-		; if 
-		SetTimer(() => MaintainScrcpyMicProcess, 500)
-	}
-	if savedSettings["Android"].CamEnable{
-		; if the existing scrcpy proccess is ours, and it was created for the same devID keep it, until this is a reload; kill it!
-		; check if the micID is non-empty maybe we can do this in a loop as it doesn't really need reload to apply if changed
-		; if 
-		SetTimer(() => MaintainScrcpyCamProcess, 500)
-	}
+	SetTimer(KillGnirehtetExcept(), -1)
 }
 
+global apolloBootsraped := false
+SetTimer(bootstrapApollo, -1)
+
+global androidBootsraped := false
+SetTimer(bootstrapAndroid, -1)
 
 SetTimer UpdateStatusArea, 1000
+
+While !apolloBootsraped || !androidBootsraped
+	Sleep(100)
 
 InitGuiItemsEvents()
 
 ResetFlags()
-
-
-; ───── Keep script alive ─────
-While 1
-    Sleep(100)
-
-	; TODO Validate settings and reset invalid ones, clear invalid is
-
-	; if AutoLaunch is set, check for schduleded task, add it if missing, enable it if disabled
-	; else disable it ;;; EDIT: AutoLaunch will be used to determine if we launch these is or not at all
-	;							TODO Introduce Auto run at startup setting to specifically do that 
-

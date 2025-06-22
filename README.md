@@ -17,13 +17,24 @@ This is the same concept of my old [Multi-streaming-setup](https://github.com/dr
 - [x] Multi-instance: Add/remove Multiple instance configuration
 - [x] Multi-instance: Auto-startup on user logon
 - [x] Multi-instance: Configurable per-instance Audio Device
-- [ ] Multi-instance: Sync device volume levels to all instances
+- [x] Multi-instance: Sync device volume levels to all instances
 - [x] Multi-instance: Enable terminate-on-pause setting to Remove virtual display on client disconnect
-- [X] Android Clients: ADB Revrse tethering via Gnirehtet
-- [ ] Android Clients: Mic forwarding using (scrcpy)/AndroidMic
-- [ ] Android Clients: Cam forwarding using scrcpy/(DroidCamX)
+- [ ] Multi-instance: Maintain Apollo instances "in case one exit/crash" 
+- [x] Android Clients: ADB Revrse tethering via Gnirehtet
+- [x] Android Clients: Maintain client Mic to PC using scrcpy
+- [x] Android Clients: Maintain client Cam to PC using scrcpy
+- [ ] Android Clients: Automate virtual Cam (need suitable driver first)
+- [ ] Android Clients: Support Mic with other than scrcpy (like AndroidMic)
+- [ ] Android Clients: Automate virtual Cam (something like tiny obs client?)
+- [ ] Android Clients: Support Cam for Android version below 12 (like DroidCamX)
 
 ## Changelog
+* v0.2.1 - Volume Sync, Android Mic and Cam coming Alive!
+  * Fleet: Sync system volume level to all apollo instances
+  * Android: Mainaing list of connected ADB devices
+  * Android: Use Scrcpy to playback device mic (still need loop device to use it as a mic)
+  * Android: Use Scrcpy to mirror device camera (need obs to expose it as virtual camera)
+  * UX: Apply button directly save and apply settings and reload manager
 * v0.1.3 - Essential fixes and functionality
   * GUI: No close button, use sytemtray icon to exit
   * UX: Use terminate-on-pause setting from latest Apollo update to remove virtual display on client disconnect
@@ -62,16 +73,16 @@ This is the same concept of my old [Multi-streaming-setup](https://github.com/dr
 
 
 # Many thanks to:
-[@ClassicOldSong](https://github.com/ClassicOldSong) For The amazing work on [Apollo](https://github.com/ClassicOldSong/Apollo).
+[@ClassicOldSong](https://github.com/ClassicOldSong) [Apollo](https://github.com/ClassicOldSong/Apollo).
 
-[AutoHotKey](https://github.com/AutoHotkey) For making of this amazing tool [AHK](https://autohotkey.com/) FOSS AND AVAILABLE FOR FREE!.
+[AutoHotKey](https://github.com/AutoHotkey) [AHK](https://autohotkey.com/) 
 
-[@CCCC-L](https://github.com/CCCC-L) For the [AHK v2 Actions template](https://github.com/CCCC-L/Action-Ahk2Exe).
+[@alfvar](https://github.com/alfvar) [AHK v2 Actions template](https://github.com/alfvar/action-ahk2exe)
 
-[@alfvar](https://github.com/alfvar) For adding icon support commit in his repo [AHK v2 Actions template](https://github.com/alfvar/action-ahk2exe)
+[@thqby ](https://github.com/thqby) [Audio.ahk](https://github.com/thqby/ahk2_lib/blob/master/Audio.ahk)
 
-Everyone at [AHK Forums](https://www.autohotkey.com/boards/) for their contributions. Especially:
+[@ntepa](https://www.autohotkey.com/boards/memberlist.php?mode=viewprofile&u=149849)  [Audio.ahk lib](https://www.autohotkey.com/boards/viewtopic.php?t=123256)
 
-[@thqby ](https://github.com/thqby) For his [Audio.ahk](https://github.com/thqby/ahk2_lib/blob/master/Audio.ahk) library "eventhough its not noob friendly"
+[@GroggyOtter](https://github.com/GroggyOtter) [jsongo.v2.ahk](https://github.com/GroggyOtter/jsongo_AHKv2)
 
-[@ntepa](https://www.autohotkey.com/boards/memberlist.php?mode=viewprofile&u=149849) For his amazing contributing on ahk forums, especially [around Audio.ahk lib](https://www.autohotkey.com/boards/viewtopic.php?t=123256)
+[@cyruz](https://www.autohotkey.com/boards/memberlist.php?mode=viewprofile&u=98)  [StdoutToVar.ahk](https://www.autohotkey.com/boards/viewtopic.php?f=83&t=109148&hilit=StdoutToVar)
