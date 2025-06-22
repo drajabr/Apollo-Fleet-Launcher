@@ -183,24 +183,27 @@ ReadSettingsGroup(File, group, Settings) {
 
 WriteSettingsFile(Settings := Map(), File := "settings.ini", groups := "all") {
     if FileExist(File) {
-		lastModificationTime := FileGetTime(File, "M")
+		lastContents := FileRead(File)
+		changed := 0
 		if (groups = "all" || InStr(groups, "Manager"))
-			WriteSettingsGroup(Settings, File, "Manager")
+			changed += WriteSettingsGroup(Settings, File, "Manager")
 		if (groups = "all" || InStr(groups, "Window"))
-			WriteSettingsGroup(Settings, File, "Window")
+			changed += WriteSettingsGroup(Settings, File, "Window")
 		if (groups = "all" || InStr(groups, "Paths"))
-			WriteSettingsGroup(Settings, File, "Paths")
+			changed += WriteSettingsGroup(Settings, File, "Paths")
 		if (groups = "all" || InStr(groups, "Android"))
-			WriteSettingsGroup(Settings, File, "Android")
+			changed += WriteSettingsGroup(Settings, File, "Android")
 		if (groups = "all" || InStr(groups, "Fleet"))
-			WriteSettingsGroup(Settings, File, "Fleet")
+			changed += WriteSettingsGroup(Settings, File, "Fleet")
+		if changed
+			FileOpen(File, "a").Close()
 	} else {
 		FileAppend("", File)
 		WriteSettingsFile(Settings, File, groups) ; Retry writing settings if file was just created
 	}
-	;while (FileGetTime(File, "M") = lastModificationTime) {
-	;	Sleep 10 ; Wait for file to be written
-	;}
+	while changed && (FileRead(File) = lastContents) {
+		Sleep 10 ; Wait for file to be written
+	}
 }
 
 WriteSettingsGroup(Settings, File, group) {
@@ -268,8 +271,7 @@ WriteSettingsGroup(Settings, File, group) {
 				; IniWrite(i.Audio, File, section, "Audio") ; TODO
 			}
 	}
-	if Changed
-		FileOpen(File, "a").Close()
+	return changed
 }
 InitmyGui() {
 	global savedSettings
@@ -1185,12 +1187,11 @@ FleetLaunchFleet(){
 }
 UrgentSettingWrite(srcSettings, group){
 	global savedSettings, userSettings
-	transientMap := Map()
-	transientMap := DeepClone(srcSettings)
-	savedSettings[group] := DeepClone(transientMap[group])
-	userSettings[group] := DeepClone(transientMap[group])
-	WriteSettingsFile(savedSettings)
-	Sleep(10)
+	;transientMap := Map()
+	;transientMap := DeepClone(srcSettings)
+	;savedSettings[group] := DeepClone(transientMap[group])
+	;userSettings[group] := DeepClone(transientMap[group])
+	WriteSettingsFile(srcSettings, , group)
 	bootstrapSettings()
 }
 
@@ -1645,7 +1646,6 @@ MaintainScrcpyCamProcess() {
 CleanScrcpyMicProcess(){
 	global savedSettings, guiItems
 	a := savedSettings["Android"]
-	MsgBox(a.scrcpyMicPID)
 	if SendSigInt(a.scrcpyMicPID, true){
 		a.scrcpyMicPID := 0
 		UrgentSettingWrite(savedSettings, "Android")
