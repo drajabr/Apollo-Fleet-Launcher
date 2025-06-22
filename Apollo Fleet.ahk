@@ -287,7 +287,8 @@ InitmyGui() {
 	guiItems["ButtonReload"] := myGui.Add("Button", "x520 y50 w50 h40", "Reload")
 	guiItems["ButtonLogsShow"] := myGui.Add("Button", "x520 y101 w50 h40", "Show Logs")
 	guiItems["ButtonMinimize"] := myGui.Add("Button", "x520 y150 w50 h40", "Minimize")
-
+	guiItems["ButtonReload"].Enabled := 0
+	guiItems["ButtonLockSettings"].Enabled := 0
 	myGui.Add("GroupBox", "x318 y0 w196 h90", "Fleet Options")
 	guiItems["FleetAutoLaunchCheckBox"] := myGui.Add("CheckBox", "x334 y16 w162 h23", "Auto Launch Apollo Fleet")
 	guiItems["FleetSyncVolCheckBox"] := myGui.Add("CheckBox", "x334 y40 w162 h23", "Sync Device Volume Level")
@@ -311,6 +312,7 @@ InitmyGui() {
 	guiItems["PathsApolloBrowseButton"] := myGui.Add("Button", "x267 y16 w30 h25", "📂")
 
 	guiItems["FleetListBox"] := myGui.Add("ListBox", "x16 y50 w100 h82 +0x100 Choose1")
+	guiItems["FleetListBox"].Enabled := 0
 	myGui.Add("Text", "x123 y54", "Name:Port")
 	guiItems["InstanceNameBox"] := myGui.Add("Edit", "x176 y48 w80 h23")
 	guiItems["InstancePortBox"] := myGui.Add("Edit", "x256 y48 w40 h23 +ReadOnly", "")
@@ -411,6 +413,8 @@ InitGuiItemsEvents(){
 	guiItems["InstanceAudioSelector"].OnEvent("Change", HandleAudioSelector)
 	OnMessage(0x404, TrayIconHandler)
 	guiItems["FleetListBox"].Enabled := 1
+	guiItems["ButtonReload"].Enabled := 1
+	guiItems["ButtonLockSettings"].Enabled := 1
 }
 
 HandleMicCheckBox(*) {
