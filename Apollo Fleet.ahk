@@ -369,7 +369,6 @@ ReflectSettings(Settings){
 	;guiItems["InstanceAudioSelector"].Enabled :=0
 	guiItems["FleetListBox"].Delete()
 	guiItems["FleetListBox"].Add(EveryInstanceProp(Settings))
-	guiItems["FleetListBox"].Enabled := 0
 	guiItems["InstanceNameBox"].Value := savedSettings["Fleet"][currentlySelectedIndex].Name
 	guiItems["InstancePortBox"].Value := savedSettings["Fleet"][currentlySelectedIndex].Port
 	guiItems["InstanceSyncCheckbox"].Value := f[currentlySelectedIndex].Synced 
@@ -412,7 +411,6 @@ InitGuiItemsEvents(){
 	guiItems["InstanceAudioSelector"].OnEvent("Change", HandleAudioSelector)
 	OnMessage(0x404, TrayIconHandler)
 	guiItems["FleetListBox"].Enabled := 1
-
 }
 
 HandleMicCheckBox(*) {
