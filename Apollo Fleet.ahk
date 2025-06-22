@@ -183,6 +183,7 @@ ReadSettingsGroup(File, group, Settings) {
 
 WriteSettingsFile(Settings := Map(), File := "settings.ini", groups := "all") {
     if FileExist(File) {
+		lastModificationTime := FileGetTime(File, "M")
 		if (groups = "all" || InStr(groups, "Manager"))
 			WriteSettingsGroup(Settings, File, "Manager")
 		if (groups = "all" || InStr(groups, "Window"))
@@ -193,9 +194,13 @@ WriteSettingsFile(Settings := Map(), File := "settings.ini", groups := "all") {
 			WriteSettingsGroup(Settings, File, "Android")
 		if (groups = "all" || InStr(groups, "Fleet"))
 			WriteSettingsGroup(Settings, File, "Fleet")
-		FileOpen(File, "a").Close()
+	} else {
+		FileAppend("", File)
+		WriteSettingsFile(Settings, File, groups) ; Retry writing settings if file was just created
 	}
-	
+	;while (FileGetTime(File, "M") = lastModificationTime) {
+	;	Sleep 10 ; Wait for file to be written
+	;}
 }
 
 WriteSettingsGroup(Settings, File, group) {
@@ -380,7 +385,7 @@ InitGuiItemsEvents(){
 	global myGui, guiItems
 	myGui.OnEvent('Close', (*) => ExitMyApp())
 	guiItems["ButtonMinimize"].OnEvent("Click", MinimizemyGui)
-	guiItems["ButtonLockSettings"].OnEvent("Click", HandleSettingsLock)
+	guiItems["ButtonLockSettings"].OnEvent("Click", HandleLockButton)
 	guiItems["ButtonReload"].OnEvent("Click", HandleReloadButton)
 	guiItems["ButtonLogsShow"].OnEvent("Click", HandleLogsButton)
 	guiItems["FleetListBox"].OnEvent("Change", HandleListChange)
@@ -840,7 +845,7 @@ SaveUserSettings(){
 	WriteSettingsFile(savedSettings)
 }
 global settingsLocked := 1
-HandleSettingsLock(*) {
+HandleLockButton(*) {
     global guiItems, settingsLocked, savedSettings, userSettings
 	if !UserSettingsWaiting() {
 		settingsLocked := !settingsLocked
@@ -858,7 +863,7 @@ HandleSettingsLock(*) {
 		UpdateWindowPosition()
 		savedSettings["Window"].cmdApply := 1
 		SaveUserSettings()
-		;HandleSettingsLock()
+		;HandleLockButton()
 		Reload
 	}
 }
@@ -1257,17 +1262,20 @@ ResetFlags(){
 	bootstrapSettings()
 	w.cmdReady := 1
 }
-KillGnirehtetExcept(keep := 0){
+KillProcessesExcept(pName, keep := [0]){
+	
+	if Type(keep) != "Array"
+		keep := [keep]  ; Ensure keep is an array
 
-	pids := PIDsListFromExeName("gnirehtet.exe")
+	pids := PIDsListFromExeName(pName)
 
 	for pid in pids
-		if (pid != keep)
+		if !ArrayHas(keep, pid)
 			if !SendSigInt(pid, true)
-				ShowMessage("Failed to kill gnirehtet PID: " . pid, 3)
+				ShowMessage("Failed to kill " . pName . " PID: " . pid, 3)
 	
 	for pid in pids
-		if ProcessExist(pid) && (pid != keep)
+		if ProcessExist(pid) && !ArrayHas(keep, pid)
 			return false
 	return true
 }
@@ -1279,7 +1287,7 @@ MaintainGnirehtetProcess(){
 	p := savedSettings["Paths"]
 
 	if firstRun 
-		if KillGnirehtetExcept(a.gnirehtetPID)
+		if KillProcessesExcept("gnirehtet.exe", a.gnirehtetPID)
 			firstRun := false
 
 	if !ProcessExist(a.gnirehtetPID) || a.gnirehtetPID = 0 {
@@ -1584,11 +1592,12 @@ MaintainScrcpyMicProcess() {
 
     deviceConnected := androidDevicesMap.Has(a.MicDeviceID) && androidDevicesMap[a.MicDeviceID] = "Connected"
     processRunning := a.scrcpyMicPID ? ProcessExist(a.scrcpyMicPID) : 0
-	MsgBox(deviceConnected . " > " . processRunning . " > " . a.scrcpyMicPID)
-    if (deviceConnected && !processRunning) {
+
+	if (deviceConnected && !processRunning) {        
+		if ProcessExist(a.scrcpyMicPID)
+			SendSigInt(a.scrcpyMicPID, true)
 
         RunWait(p.adbExe ' -s ' a.MicDeviceID ' shell input keyevent KEYCODE_WAKEUP', , 'Hide')
-        
         pids := RunAndGetPIDs(p.scrcpyExe, " -s " . a.MicDeviceID . " --no-video --no-window --audio-source=mic")
         newPID := pids[2]
     } else if (!deviceConnected && processRunning) {
@@ -1616,9 +1625,10 @@ MaintainScrcpyCamProcess() {
     processRunning := a.scrcpyCamPID ? ProcessExist(a.scrcpyCamPID) : 0
 
     if (deviceConnected && !processRunning) {
+		if ProcessExist(a.scrcpyCamPID) 
+			SendSigInt(a.scrcpyCamPID, true)
 
         RunWait(p.adbExe ' -s ' a.CamDeviceID ' shell input keyevent KEYCODE_WAKEUP', , 'Hide')
-        
         pids := RunAndGetPIDs(p.scrcpyExe, " -s " . a.CamDeviceID . " --video-source=camera --no-audio")
         newPID := pids[2]
 
@@ -1668,7 +1678,15 @@ bootstrapAndroid() {
 	global savedSettings, guiItems, androidDevicesMap, adbReady, androidBootsraped
 	if savedSettings["Android"].MicEnable || savedSettings["Android"].CamEnable {
 		global adbReady := false
+
 		SetTimer(RefreshAdbDevices , 1000)
+		keep := []
+		if savedSettings["Android"].MicEnable
+			keep.Push(savedSettings["Android"].scrcpyMicPID)
+		if savedSettings["Android"].CamEnable
+			keep.Push(savedSettings["Android"].scrcpyCamPID)
+		;KillProcessesExcept("scrcpy.exe", keep)
+		
 		if savedSettings["Android"].MicEnable
 			SetTimer(MaintainScrcpyMicProcess, 500)
 		else if savedSettings["Android"].scrcpyMicPID != 0
@@ -1704,7 +1722,7 @@ if savedSettings["Android"].ReverseTethering {
 	ShowMessage("Starting Gnirehtet...")
 	SetTimer(MaintainGnirehtetProcess, 1000)
 } else {
-	SetTimer(KillGnirehtetExcept(), -1)
+	SetTimer(KillProcessesExcept("gnirehtet.exe"), -1)
 }
 
 global apolloBootsraped := false
