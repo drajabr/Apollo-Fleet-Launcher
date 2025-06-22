@@ -1010,7 +1010,7 @@ FleetConfigInit(*) {
 		"file_state", "stateFile",
 		"credentials_file", "credFile",
 		"file_apps", "appsFile",
-		"virtual_sink", "AudioDevice"
+		"virtual_sink", "AudioDevice",
 		"audio_sink", "AudioDevice"
 	)	; TODO: Audio device and its consequences; the mute option/ and or others
 	newConf := false
@@ -1386,81 +1386,55 @@ FleetInitApolloLogWatch() {
     global savedSettings
     static FleetTimers := Map()
 
-    ; Cancel old timers
-    for id, fn in FleetTimers {
-        SetTimer(fn, 0)
-    }
-    FleetTimers.Clear()
-
-    f := savedSettings["Fleet"]
-    for i in f {
-        if i.Enabled && i.id = 2{
-            id := A_Index
-            fn := MakeLogWatchDog(id)  ; Each call returns a new unique closure
-            SetTimer(fn, 100)
-            FleetTimers[id] := fn
-        }
-    }
-}
-
-MakeLogWatchDog(id) {
-    return () => LogWatchDog(id)
+    SetTimer(LogWatchDog, 100)
 }
 
 
-LogWatchDog(id) {
+
+LogWatchDog() {
     global savedSettings
 
-    static lastStatus := ""        ; last detected status
-    static lastContent := ""       ; previously read content
-
 	f := savedSettings["Fleet"]
-	i := f[id]
-	logFile := i.logFile
-	aPID := i.apolloPID
-	cPID := i.consolePID
 
-    if !FileExist(logFile)
-        return
-
-    content := FileRead(logFile)
-    if content == lastContent
-        return  ; No change since last check
-
-    lastContent := content
-	;MsgBox(logFile)
-
-    status := ""
-    for line in StrSplit(content, "`n") {
-        if InStr(line, "CLIENT CONNECTED")
-            status := "CONNECTED"
-        else if InStr(line, "CLIENT DISCONNECTED")
-            status := "DISCONNECTED"
-    }
-
-    if status == "" || status == lastStatus
-        return
-
-    lastStatus := status
-
-    ; Take action
-    if status = "CONNECTED" {
-        if savedSettings["Manager"].SyncVolume {
-            ;SyncApolloVolume()
-			InitVolumeSync()
-            ShowMessage("Client Connected")
-        }
-    } else if status = "DISCONNECTED" {
-        if savedSettings["Manager"].RemoveDisconnected {
-            ;for i in f {
-			;	SendSigInt(i.apolloPID, true)
-			;}
-			;Sleep(3000)
-            ;FleetLaunchFleet()
-            ShowMessage("Client Disconnected")
-        }
-    }
+	for i in f {
+		if i.Enabled {
+			if !i.HasOwnProp("Known") {
+				i.Known := true
+				i.LogFileExists := FileExist(i.logFile)
+				i.lastLogContent := ""
+				i.Status := "DISCONNECTED"
+			}
+			thisId := i.id
+			SetTimer(() => ProcessApolloLog(thisId), -1)
+		}
+	}
 }
+ProcessApolloLog(id) {
+	global savedSettings
+	i := savedSettings["Fleet"][id]
+	if i.LogFileExists {
+		content := FileRead(i.logFile)
+		if content == i.lastLogContent
+			return  ; No change since last check
+		else
+			i.lastLogContent := content
+	} else
+		return
+
+	status := ""
+	for line in StrSplit(content, "`n") {
+		if InStr(line, "CLIENT CONNECTED")
+			status := "CONNECTED"
+		else if InStr(line, "CLIENT DISCONNECTED")
+			status := "DISCONNECTED"
+	}
+
+	if status == "" || status == i.Status
+		return
+	else
+		i.Status := status
+}
+
 MaintainApolloProcesses(){
 	global savedSettings, userSettings, currentlySelectedIndex
 	static firstRun := true
@@ -1474,36 +1448,46 @@ MaintainApolloProcesses(){
 }
 InitVolumeSync() {
 	global savedSettings
-
-	appsVol := []
-	for i in savedSettings["Fleet"] {
-		if i.Enabled {
-			appVol := AppVolume(app := i.apolloPID)
-			if appVol.ISAV
-				appsVol.Push(appVol)
-		}
-	}
+	static appsVol := Map()
+	SetTimer(() => UpdateAppsVolMap(appsVol), 1000) ; Start the timer to sync volume
 	; TODO don't rely on timer, but use event based approach once apollo starts streaming or any app start playing audio
 	; Alsoe, is there any way to get event from windows when volume level or mute status changes?
 	SetTimer(() => SyncApolloVolume(appsVol), 100)
 }
+UpdateAppsVolMap(appsVol){
+	global savedSettings
 
+	for i in savedSettings["Fleet"] {
+		if !i.HasOwnProp("Status")
+			i.Status := "DISCONNECTED" ; ensure Status exists
+
+		if 	i.Enabled && ProcessExist(i.apolloPID) && i.HasOwnProp("Status") && i.Status = "CONNECTED" {
+			appVol := AppVolume(app := i.apolloPID)
+			MsgBox("Instance: " i.id " " appVol.GetVolume() . " > " . appVol.GetMute())
+			if appVol.ISAV
+				appsVol[i.id] := appVol
+		} else if appsVol.Has(i.id)
+			appsVol.Delete(i.id) ; remove from map if not connected or not running
+	}
+}
 SyncApolloVolume(appsVol){
 	static lastSystemVolume := -1
     static lastSystemMute := -1
     ; Get current system volume and mute status
+	if (appsVol.Count = 0) 
+		return
     systemDevice := AudioDevice.GetDefault()
     systemVolume := systemDevice.GetVolume()
     systemMute := systemDevice.GetMute()
 	if (lastSystemMute != systemMute) || (lastSystemVolume != systemVolume) {
-		for appVol in appsVol {
+		for id, appVol in appsVol {
 			appVol.SetVolume(systemVolume)
 			appVol.SetMute(0)
 		}
 		lastSystemVolume := systemVolume
 		lastSystemMute := systemMute
 	} else {
-		for appVol in appsVol {
+		for id, appVol in appsVol {
 			if (appVol.GetVolume() != systemVolume) || (appVol.GetMute() = 1) {
 				appVol.SetVolume(systemVolume)
 				appVol.SetMute(0)
@@ -1668,10 +1652,10 @@ bootstrapApollo(){
 	if true {	;savedSettings["Manager"].AutoLaunch to be used for startup task at log on
 		FleetConfigInit()
 		FleetLaunchFleet()
-		SetTimer(MaintainApolloProcesses, 1000) 
+		SetTimer(MaintainApolloProcesses, 1000)
+		FleetInitApolloLogWatch()
 		if savedSettings["Manager"].SyncVolume
 			InitVolumeSync() 
-		FleetInitApolloLogWatch()
 	} 
 	apolloBootsraped := true
 	FinishBootStrap()
