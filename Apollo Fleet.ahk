@@ -1716,6 +1716,7 @@ HandleError(err, mode) {
 	if !savedSettings["Manager"].ShowErrors{
 		HandleReloadButton()
 		return true
+		; TODO pipe the error message to the status area
 	}
 }
 
