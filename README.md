@@ -5,28 +5,13 @@ A simple tool to configure multiple instances of [@ClassicOldSong/Apollo](https:
 This is the same concept of my old [Multi-streaming-setup](https://github.com/drajabr/My-Sunshine-setup) scripts, with ease of GUI and Auto Configuration, bundled with necessary binaries for Android clients stuff.
 
 ## Preview
-![image](https://github.com/user-attachments/assets/812db344-6c15-4a37-9235-e561dc6c1a5d)
+![image](https://github.com/user-attachments/assets/184d733b-0434-4ce5-b83e-3db985b22f37)
 
 
 
 
 # Current Status
 [![Build](https://github.com/drajabr/Apollo-Fleet-Launcher/actions/workflows/build.yml/badge.svg)](https://github.com/drajabr/Apollo-Fleet-Launcher/actions/workflows/build.yml)
-
-## Functionality
-- [x] Multi-instance: Add/remove Multiple instance configuration
-- [x] Multi-instance: Auto-startup on user logon
-- [x] Multi-instance: Configurable per-instance Audio Device
-- [x] Multi-instance: Sync device volume levels to all instances
-- [x] Multi-instance: Enable terminate-on-pause setting to Remove virtual display on client disconnect
-- [ ] Multi-instance: Maintain Apollo instances "in case one exit/crash" 
-- [x] Android Clients: ADB Revrse tethering via Gnirehtet
-- [x] Android Clients: Maintain client Mic to PC using scrcpy
-- [x] Android Clients: Maintain client Cam to PC using scrcpy
-- [ ] Android Clients: Automate virtual Cam (need suitable driver first)
-- [ ] Android Clients: Support Mic with other than scrcpy (like AndroidMic)
-- [ ] Android Clients: Automate virtual Cam (something like tiny obs client?)
-- [ ] Android Clients: Support Cam for Android version below 12 (like DroidCamX)
 
 ## Changelog
 * v0.2.1 - Volume Sync, Android Mic and Cam coming Alive!
@@ -70,6 +55,20 @@ This is the same concept of my old [Multi-streaming-setup](https://github.com/dr
   * Multi-instance: Automatically start instances
 
 
+## Functionality
+- [x] Multi-instance: Add/remove Multiple instance configuration
+- [x] Multi-instance: Auto-startup on user logon
+- [x] Multi-instance: Configurable per-instance Audio Device
+- [x] Multi-instance: Sync device volume levels to all instances
+- [x] Multi-instance: Enable terminate-on-pause setting to Remove virtual display on client disconnect
+- [ ] Multi-instance: Maintain Apollo instances "in case one exit/crash" 
+- [x] Android Clients: ADB Revrse tethering via Gnirehtet
+- [x] Android Clients: Maintain client Mic to PC using scrcpy
+- [x] Android Clients: Maintain client Cam to PC using scrcpy
+- [ ] Android Clients: Automate virtual Cam (need suitable driver first)
+- [ ] Android Clients: Support Mic with other than scrcpy (like AndroidMic)
+- [ ] Android Clients: Automate virtual Cam (something like tiny obs client?)
+- [ ] Android Clients: Support Cam for Android version below 12 (like DroidCamX)
 
 
 # Many thanks to:
