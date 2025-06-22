@@ -152,6 +152,7 @@ ReadSettingsGroup(File, group, Settings) {
 			i.AudioDevice := ConfRead(defaultConfFile, "virtual_sink", "Unset")
 			i.LastConfigUpdate := IniRead(File, "Instance0", "LastConfigUpdate", 0)
 			i.LastReadLogLine := IniRead(File, "Instance0", "LastReadLogLine", 0)
+			i.LastStatus := IniRead(File, "Instance0", "LastReadLogLine", "DISCONNECTED")
 			f.Push(i)
             index := 2
             sections := StrSplit(IniRead(File), "`n")
@@ -175,6 +176,7 @@ ReadSettingsGroup(File, group, Settings) {
 					i.AudioDevice := IniRead(File, section, "AudioDevice", "Unset")
 					i.LastConfigUpdate := IniRead(File, section, "LastConfigUpdate", 0)
 					i.LastReadLogLine := IniRead(File, section, "LastReadLogLine", 0)
+					i.LastStatus := IniRead(File, section, "LastStatus", "DISCONNECTED")
 					f.Push(i)
 					index += 1
                 }
@@ -268,6 +270,7 @@ WriteSettingsGroup(Settings, File, group) {
 				IniWrite(i.AudioDevice, File, section, "AudioDevice")
 				IniWrite(i.LastConfigUpdate, File, section, "LastConfigUpdate")
 				IniWrite(i.LastReadLogLine, File, section, "LastReadLogLine")
+				IniWrite(i.lastStatus, File, section, "LastStatus")
 				; IniWrite(i.Audio, File, section, "Audio") ; TODO
 			}
 	}
@@ -587,6 +590,7 @@ HandleInstanceAddButton(*){
 	i.apolloPID := 0
 	i.LastConfigUpdate := 0
 	i.LastReadLogLine := 0
+	i.LastStatus := "DISCONNECTED"
 	userSettings["Fleet"].Push(i) ; Add the i object to the userSettings["Fleet"] array
 	RefreshFleetList()
 	guiItems["FleetListBox"].Choose(i.id + 1)
@@ -1384,55 +1388,54 @@ LogMessage(msg, level, show:=0, timeout:=1000){
 
 FleetInitApolloLogWatch() {
     global savedSettings
-    static FleetTimers := Map()
 
-    SetTimer(LogWatchDog, 100)
+    for i in savedSettings["Fleet"]
+        if i.Enabled 
+			CreateTimerForInstance(i.id)
 }
-
-
-
-LogWatchDog() {
-    global savedSettings
-
-	f := savedSettings["Fleet"]
-
-	for i in f {
-		if i.Enabled {
-			if !i.HasOwnProp("Known") {
-				i.Known := true
-				i.LogFileExists := FileExist(i.logFile)
-				i.lastLogContent := ""
-				i.Status := "DISCONNECTED"
-			}
-			thisId := i.id
-			SetTimer(() => ProcessApolloLog(thisId), -1)
-		}
-	}
+CreateTimerForInstance(id) {
+    SetTimer(() => ProcessApolloLog(id), 500)
 }
 ProcessApolloLog(id) {
 	global savedSettings
+	
 	i := savedSettings["Fleet"][id]
-	if i.LogFileExists {
-		content := FileRead(i.logFile)
-		if content == i.lastLogContent
-			return  ; No change since last check
-		else
-			i.lastLogContent := content
-	} else
-		return
 
-	status := ""
-	for line in StrSplit(content, "`n") {
-		if InStr(line, "CLIENT CONNECTED")
-			status := "CONNECTED"
-		else if InStr(line, "CLIENT DISCONNECTED")
-			status := "DISCONNECTED"
-	}
+    ; Fix case sensitivity - use consistent casing
+    if !FileExist(i.LogFile) {
+        return 0
+    }
+    
+    content := FileRead(i.LogFile)
+    lines := StrSplit(content, "`n")
+    totalLines := lines.Length
+    
+    if totalLines <= i.LastReadLogLine 
+        return 0
+    
+    status := ""
+    
+    ; Process only new lines (from LastReadLogLine + 1 to totalLines)
+    Loop totalLines - i.LastReadLogLine {
+        lineIndex := i.LastReadLogLine + A_Index
+        if lineIndex <= totalLines {
+            line := lines[lineIndex]
+            
+            if InStr(line, "CLIENT CONNECTED") 
+                status := "CONNECTED"
+            else if InStr(line, "CLIENT DISCONNECTED") 
+                status := "DISCONNECTED"
+        }
+    }
 
-	if status == "" || status == i.Status
-		return
-	else
-		i.Status := status
+    i.LastReadLogLine := totalLines
+    
+    if status != "" && i.LastStatus != status{        
+		i.LastStatus := status
+		return 1
+    }
+    
+    return 0
 }
 
 MaintainApolloProcesses(){
@@ -1449,50 +1452,47 @@ MaintainApolloProcesses(){
 InitVolumeSync() {
 	global savedSettings
 	static appsVol := Map()
-	SetTimer(() => UpdateAppsVolMap(appsVol), 1000) ; Start the timer to sync volume
+    systemDevice := AudioDevice.GetDefault()
+	SetTimer(() => UpdateAppsVolMap(appsVol, systemDevice), 500) ; slower timer to update audio interfaces/default device
 	; TODO don't rely on timer, but use event based approach once apollo starts streaming or any app start playing audio
 	; Alsoe, is there any way to get event from windows when volume level or mute status changes?
-	SetTimer(() => SyncApolloVolume(appsVol), 100)
+	SetTimer(() => SyncApolloVolume(appsVol, systemDevice), 50)
 }
-UpdateAppsVolMap(appsVol){
+UpdateAppsVolMap(appsVol, systemDevice){
 	global savedSettings
-
-	for i in savedSettings["Fleet"] {
-		if !i.HasOwnProp("Status")
-			i.Status := "DISCONNECTED" ; ensure Status exists
-
-		if 	i.Enabled && ProcessExist(i.apolloPID) && i.HasOwnProp("Status") && i.Status = "CONNECTED" {
-			appVol := AppVolume(app := i.apolloPID)
-			MsgBox("Instance: " i.id " " appVol.GetVolume() . " > " . appVol.GetMute())
-			if appVol.ISAV
-				appsVol[i.id] := appVol
-		} else if appsVol.Has(i.id)
-			appsVol.Delete(i.id) ; remove from map if not connected or not running
-	}
+    systemDevice := AudioDevice.GetDefault()
+	for i in savedSettings["Fleet"]
+		if i.Enabled 
+			if AppVolume(app := i.apolloPID).ISAV
+				appsVol[i.id] := AppVolume(app := i.apolloPID)
+			else if appsVol.Has(i.id)
+				appsVol.Delete(i.id) ; remove from map if not connected or not running
 }
-SyncApolloVolume(appsVol){
+SyncApolloVolume(appsVol, systemDevice){
 	static lastSystemVolume := -1
     static lastSystemMute := -1
+
+	static desiredVolume := 0
     ; Get current system volume and mute status
 	if (appsVol.Count = 0) 
 		return
-    systemDevice := AudioDevice.GetDefault()
+
     systemVolume := systemDevice.GetVolume()
     systemMute := systemDevice.GetMute()
+
 	if (lastSystemMute != systemMute) || (lastSystemVolume != systemVolume) {
-		for id, appVol in appsVol {
-			appVol.SetVolume(systemVolume)
-			appVol.SetMute(0)
-		}
 		lastSystemVolume := systemVolume
 		lastSystemMute := systemMute
-	} else {
+
+		desiredVolume := systemMute ? 0 : systemVolume
+		for id, appVol in appsVol 
+			appVol.SetVolume(desiredVolume)
+	} 
+	else {
 		for id, appVol in appsVol {
-			if (appVol.GetVolume() != systemVolume) || (appVol.GetMute() = 1) {
-				appVol.SetVolume(systemVolume)
-				appVol.SetMute(0)
+			if (appVol.GetVolume() != desiredVolume)
+				appVol.SetVolume(desiredVolume)
 			}
-		}
 	}
 }
 
