@@ -380,7 +380,7 @@ InitGuiItemsEvents(){
 	guiItems["FleetAutoLaunchCheckBox"].OnEvent("Click", HandleCheckBoxes) ; (*) => userSettings["Manager"].AutoLaunch := guiItems["FleetAutoLaunchCheckBox"].Value)
 	guiItems["FleetSyncVolCheckBox"].OnEvent("Click", HandleCheckBoxes) ;(*) => userSettings["Manager"].SyncVolume := guiItems["FleetSyncVolCheckBox"].Value)
 	guiItems["FleetRemoveDisconnectCheckbox"].OnEvent("Click", HandleCheckBoxes) ;(*) => userSettings["Manager"].RemoveDisconnected := guiItems["FleetRemoveDisconnectCheckbox"].Value)
-	guiItems["InstanceEnableCheckbox"].OnEvent("Click", HandleFleetSyncCheck)
+	guiItems["InstanceEnableCheckbox"].OnEvent("Click", HandleCheckBoxes)
 
 	guiItems["FleetButtonAdd"].OnEvent("Click", HandleInstanceAddButton)
 	guiItems["FleetButtonDelete"].OnEvent("Click", HandleInstanceDeleteButton)
@@ -413,7 +413,6 @@ HandleMicSelector(*) {
 		guiItems["AndroidMicCheckbox"].Value := 1
 	UpdateButtonsLabels()
 }
-
 HandleCamCheckBox(*) {
 	global userSettings, guiItems
 
@@ -479,39 +478,14 @@ HandleCheckBoxes(*) {
 		guiItems[item].Enabled := launchChildrenLock ? 0 : 1
 	userSettings["Manager"].SyncVolume := guiItems["FleetSyncVolCheckBox"].Value
 	userSettings["Manager"].RemoveDisconnected := guiItems["FleetRemoveDisconnectCheckbox"].Value
+	userSettings["Fleet"][currentlySelectedIndex].Enabled := guiItems["InstanceEnableCheckbox"].Value
 	UpdateButtonsLabels()
-	WriteSettingsFile(userSettings)
-
-}
-HandleFleetSyncCheck(*){
-	global userSettings, guiItems
-	m := userSettings["Manager"]
-	f := userSettings["Fleet"]
-	configp := userSettings["Paths"].Config
-	
-	i := f[currentlySelectedIndex]
-	i.Synced := guiItems["InstanceEnableCheckbox"].Value
-
-	if i.id = 0 {
-		m.SyncSettings := i.Synced
-		i.Enabled := m.SyncSettings
-		for otherI in f{
-			otherI.Synced := m.SyncSettings
-			otherI.configFile := configp "\fleet-" otherI.id (otherI.Synced ? "-synced.conf" : ".conf")
-			otherI.logFile := configp "\fleet-" otherI.id (otherI.Synced ? "-synced.log" : ".log")
-			otherI.appsFile := otherI.Synced ? f[1].appsFile : configp "\apps-" otherI.id ".json"
-		}
-	} else if m.SyncSettings {
-		i.configFile := configp "\fleet-" i.id (i.Synced ? "-synced.conf" : ".conf")
-		i.logFile := configp "\fleet-" i.id (i.Synced ? "-synced.log" : ".log")
-		i.appsFile := i.Synced ? f[1].appsFile : configp "\apps-" i.id ".json"
-	}
-	HandleListChange()
 }
 RefreshFleetList(){
 	global guiItems, userSettings
 	guiItems["FleetListBox"].Delete()
 	guiItems["FleetListBox"].Add(EveryInstanceProp(userSettings))
+	guiItems["FleetListBox"].Choose(currentlySelectedIndex)
 	UpdateButtonsLabels()
 }
 HandlePortChange(*){
