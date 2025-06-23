@@ -307,8 +307,8 @@ InitmyGui() {
 	myLink := "https://localhost:" . savedSettings["Fleet"][(savedSettings["Manager"].SyncSettings = 1 ? 1 : currentlySelectedIndex)].Port+1
 	guiItems["FleetLinkBox"] := myGui.Add("Link", "x176 y110", '<a href="' . myLink . '">' . myLink . '</a>')
 
-	myGui.Add("Text", "x123 y137 ", "Other Settings:")
-	guiItems["InstanceSyncCheckbox"] := myGui.Add("CheckBox", "x196 y137", "Clone from Default")
+	myGui.Add("Text", "x123 y137 ", "Enable Instance:")
+	guiItems["InstanceEnableCheckbox"] := myGui.Add("CheckBox", "x196 y137", "Enable")
 
 	guiItems["FleetButtonAdd"] := myGui.Add("Button", "x43 y134 w75 h23", "Add")
 	guiItems["FleetButtonDelete"] := myGui.Add("Button", "x14 y134 w27 h23", "✖")
@@ -351,7 +351,7 @@ ReflectSettings(Settings){
 	guiItems["FleetListBox"].Add(EveryInstanceProp(Settings))
 	guiItems["InstanceNameBox"].Value := savedSettings["Fleet"][currentlySelectedIndex].Name
 	guiItems["InstancePortBox"].Value := savedSettings["Fleet"][currentlySelectedIndex].Port
-	guiItems["InstanceSyncCheckbox"].Value := f[currentlySelectedIndex].Synced 
+	guiItems["InstanceEnableCheckbox"].Value := f[currentlySelectedIndex].Enabled 
 	;RefreshAudioSelector() TODO Revist if we still need this here
 	guiItems["InstanceAudioSelector"].Text := f[currentlySelectedIndex].AudioDevice
 	UpdateButtonsLabels()
@@ -380,7 +380,7 @@ InitGuiItemsEvents(){
 	guiItems["FleetAutoLaunchCheckBox"].OnEvent("Click", HandleCheckBoxes) ; (*) => userSettings["Manager"].AutoLaunch := guiItems["FleetAutoLaunchCheckBox"].Value)
 	guiItems["FleetSyncVolCheckBox"].OnEvent("Click", HandleCheckBoxes) ;(*) => userSettings["Manager"].SyncVolume := guiItems["FleetSyncVolCheckBox"].Value)
 	guiItems["FleetRemoveDisconnectCheckbox"].OnEvent("Click", HandleCheckBoxes) ;(*) => userSettings["Manager"].RemoveDisconnected := guiItems["FleetRemoveDisconnectCheckbox"].Value)
-	guiItems["InstanceSyncCheckbox"].OnEvent("Click", HandleFleetSyncCheck)
+	guiItems["InstanceEnableCheckbox"].OnEvent("Click", HandleFleetSyncCheck)
 
 	guiItems["FleetButtonAdd"].OnEvent("Click", HandleInstanceAddButton)
 	guiItems["FleetButtonDelete"].OnEvent("Click", HandleInstanceDeleteButton)
@@ -490,7 +490,7 @@ HandleFleetSyncCheck(*){
 	configp := userSettings["Paths"].Config
 	
 	i := f[currentlySelectedIndex]
-	i.Synced := guiItems["InstanceSyncCheckbox"].Value
+	i.Synced := guiItems["InstanceEnableCheckbox"].Value
 
 	if i.id = 0 {
 		m.SyncSettings := i.Synced
@@ -607,8 +607,8 @@ HandleListChange(*) {
 	RefreshAudioSelector()
 	guiItems["InstanceAudioSelector"].Text := ArrayHas(audioDevicesList, i.AudioDevice) ? i.AudioDevice : "Unset"
 
-	guiItems["InstanceSyncCheckbox"].Value := i.Synced
-	guiItems["InstanceSyncCheckbox"].Enabled := !settingsLocked && (userSettings["Manager"].SyncSettings || currentlySelectedIndex = 1)
+	guiItems["InstanceEnableCheckbox"].Value := i.Synced
+	guiItems["InstanceEnableCheckbox"].Enabled := !settingsLocked && (userSettings["Manager"].SyncSettings || currentlySelectedIndex = 1)
 	HandlePortChange()
 	UpdateButtonsLabels()
 }
@@ -776,7 +776,7 @@ UpdateButtonsLabels(){
 	global guiItems, settingsLocked
 	guiItems["ButtonLockSettings"].Text := UserSettingsWaiting() && !settingsLocked ? "Apply" : settingsLocked ? "🔒" : "🔓" 
 	guiItems["ButtonReload"].Text := settingsLocked ?  "Reload" : "Cancel"
-	guiItems["InstanceSyncCheckbox"].Text := currentlySelectedIndex = 1 ? userSettings["Manager"].SyncSettings ? "Copy from Default" : "Disable Copy" : "Copy from Default"
+	guiItems["InstanceEnableCheckbox"].Text := currentlySelectedIndex = 1 ? userSettings["Manager"].SyncSettings ? "Copy from Default" : "Disable Copy" : "Copy from Default"
 }
 ApplyLockState() {
 	global settingsLocked, guiItems, userSettings, currentlySelectedIndex
@@ -819,7 +819,7 @@ ApplyLockState() {
 	for selector, chkbox in androidSelectors
 		guiItems[selector].Enabled := isEnabled(!settingsLocked && guiItems[chkbox].Value)
 
-	guiItems["InstanceSyncCheckbox"].Enabled := !settingsLocked && (userSettings["Manager"].SyncSettings || currentlySelectedIndex = 1)
+	guiItems["InstanceEnableCheckbox"].Enabled := !settingsLocked && (userSettings["Manager"].SyncSettings || currentlySelectedIndex = 1)
 }
 
 SaveUserSettings(){
