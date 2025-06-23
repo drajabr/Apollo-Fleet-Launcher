@@ -139,12 +139,12 @@ ReadSettingsGroup(File, group, Settings) {
 					if SubStr(section, -1)=0
 						continue
                     i := {}
-					i.id := IsNumber(SubStr(section, -1)) ? SubStr(section, -1) : index
+					i.id := IsNumber(SubStr(section, -1)) ? SubStr(section, -1) : A_Index
 					i.Name := IniRead(File, section, "Name", "i" . A_Index)
 					i.Port := IniRead(File, section, "Port", 11000 + A_Index * 1000)
 					i.Enabled := IniRead(File, section, "Enabled", 1)
-					i.configFile := configp "\fleet-" i.id (i.Synced ? "-synced.conf" : ".conf")
-					i.logFile := configp "\fleet-" i.id (i.Synced ? "-synced.log" : ".log")
+					i.configFile := configp "\fleet-" i.id ".conf"
+					i.logFile := configp "\fleet-" i.id ".log"
 					i.stateFile := configp "\state-" i.id ".json"
 					i.appsFile := i.Synced ? f[1].appsFile : configp "\apps-" i.id ".json"
 					i.stateFile := configp "\state-" i.id ".json"
@@ -485,7 +485,11 @@ RefreshFleetList(){
 	global guiItems, userSettings
 	guiItems["FleetListBox"].Delete()
 	guiItems["FleetListBox"].Add(EveryInstanceProp(userSettings))
-	guiItems["FleetListBox"].Choose(currentlySelectedIndex)
+	if currentlySelectedIndex <= EveryInstanceProp(userSettings, "Name").Length
+		guiItems["FleetListBox"].Choose(currentlySelectedIndex)
+	Loop userSettings["Fleet"].Length {
+		userSettings["Fleet"][A_Index].id := A_Index
+	}
 	UpdateButtonsLabels()
 }
 HandlePortChange(*){
@@ -518,71 +522,63 @@ HandleNameChange(*){
 HandleInstanceAddButton(*){
 	global userSettings, guiItems
 	f := userSettings["Fleet"]
-	i := {} ; Create a new object for each i
-	i.id := f.Length
 	if (f.Length > 5){
 		ShowMessage("Let's not add more than 5 is for now.", 3)
 	} else {
+	i := {} ; Create a new object for each i
+	i.id := f.Length
 	synced := userSettings["Manager"].SyncSettings = 1
 	configp := userSettings["Paths"].Config
 	i.Port := i.id = 1 ? 11000 : f[-1].port + 1000
 	i.Name := "Instance " . i.id
 	i.Enabled := 1
-	i.Synced := synced
 	i.AudioDevice := "Unset"
-	i.configFile := configp "\fleet-" i.id (i.Synced ? "-synced.conf" : ".conf")
-	i.logFile := configp "\fleet-" i.id (i.Synced ? "-synced.log" : ".log")
-	i.stateFile := i.Synced ? f[1].stateFile : configp "\state-" i.id ".json"
-	i.appsFile := i.Synced ? f[1].appsFile : configp "\apps-" i.id ".json"
-	i.stateFile := i.Synced ? f[1].stateFile : configp "\state-" i.id ".json"	
+	i.configFile := configp "\fleet-" i.id ".conf"
+	i.logFile := configp "\fleet-" i.id ".log"
+	i.stateFile :=  configp "\state-" i.id ".json"
+	i.appsFile := configp "\apps-" i.id ".json"
+	i.stateFile := configp "\state-" i.id ".json"	
 	i.consolePID := 0
 	i.apolloPID := 0
 	i.LastConfigUpdate := 0
 	i.LastReadLogLine := 0
 	i.LastStatus := "DISCONNECTED"
-	userSettings["Fleet"].Push(i) ; Add the i object to the userSettings["Fleet"] array
+	userSettings["Fleet"].Push(i)
 	RefreshFleetList()
-	guiItems["FleetListBox"].Choose(i.id + 1)
+	guiItems["FleetListBox"].Choose(i.id)
 	HandleListChange()
 	}
-	Sleep (10)
 }
 HandleInstanceDeleteButton(*){ 
 	global userSettings, guiItems, currentlySelectedIndex
-	if (currentlySelectedIndex != 1){
+	if (currentlySelectedIndex > 0){ ; TODO Remake this?
 		userSettings["Fleet"].RemoveAt(currentlySelectedIndex) ; MUST USE REMOVEAT INSTEAD OF DELETE TO REMOVE THE ITEM COMPLETELY NOT JUST ITS VALUE
 		guiItems["FleetListBox"].Delete(currentlySelectedIndex)
-		nextChoice := currentlySelectedIndex <= userSettings["Fleet"].Length ? currentlySelectedIndex : currentlySelectedIndex - 1
-		guiItems["FleetListBox"].Choose(nextChoice)
+		nextChoice := currentlySelectedIndex <= EveryInstanceProp(userSettings, "Name").Length ? currentlySelectedIndex : EveryInstanceProp(userSettings, "Name").Length
+		if nextChoice
+			guiItems["FleetListBox"].Choose(nextChoice)
 		HandleListChange()
 		Loop userSettings["Fleet"].Length { 	; Update is index
-			userSettings["Fleet"][A_Index].id := A_Index - 1
+			userSettings["Fleet"][A_Index].id := A_Index
 		}
 	}
-	else
-		ShowMessage("Can't delete the default entry", 3, 3000)
-	Sleep (10)
 }
-
 
 global currentlySelectedIndex := 1
 HandleListChange(*) {
 	global guiItems, userSettings, currentlySelectedIndex
-	currentlySelectedIndex := guiItems["FleetListBox"].Value = 0 ? 1 : guiItems["FleetListBox"].Value
-	i := userSettings["Fleet"][currentlySelectedIndex]
+	instanceCount := userSettings["Fleet"].Length
+	currentlySelectedIndex := currentlySelectedIndex <= instanceCount ? currentlySelectedIndex : instanceCount
+	i := instanceCount > 0 ? userSettings["Fleet"][currentlySelectedIndex] : 0
 	guiItems["InstanceNameBox"].Value := i.Name
 	guiItems["InstancePortBox"].Value := i.Port
-	guiItems["InstanceNameBox"].Opt(((settingsLocked || currentlySelectedIndex = 1) ? "+ReadOnly" : "-ReadOnly"))
-	guiItems["InstancePortBox"].Opt(((settingsLocked || currentlySelectedIndex = 1) ? "+ReadOnly" : "-ReadOnly"))
-	guiItems["InstanceAudioSelector"].Enabled := (settingsLocked || currentlySelectedIndex = 1) ? 0 : 1
 	myLink := "https://localhost:" . userSettings["Fleet"][(userSettings["Manager"].SyncSettings = 1 ? 1 : currentlySelectedIndex)].Port+1
 	guiItems["FleetLinkBox"].Text :=  '<a href="' . myLink . '">' . myLink . '</a>'
 
 	RefreshAudioSelector()
 	guiItems["InstanceAudioSelector"].Text := ArrayHas(audioDevicesList, i.AudioDevice) ? i.AudioDevice : "Unset"
 
-	guiItems["InstanceEnableCheckbox"].Value := i.Synced
-	guiItems["InstanceEnableCheckbox"].Enabled := !settingsLocked && (userSettings["Manager"].SyncSettings || currentlySelectedIndex = 1)
+	guiItems["InstanceEnableCheckbox"].Value := i.Enabled
 	HandlePortChange()
 	UpdateButtonsLabels()
 }
@@ -602,7 +598,6 @@ HandleLogsButton(*) {
 	guiItems["ButtonLogsShow"].Text := (userSettings["Window"].logShow = 1 ? "Hide Logs" : "Show Logs")
 	UpdateWindowPosition()
 	RestoremyGui()
-	Sleep (10)
 }
 DeleteAllTimers(){
 	SetTimer(MaintainApolloProcesses, 0)
@@ -614,14 +609,7 @@ DeleteAllTimers(){
 }
 HandleReloadButton(*) {
 	global settingsLocked, userSettings, savedSettings, currentlySelectedIndex
-	;if settingsLocked && UserSettingsWaiting() {
-	;	if (userSettings["Manager"].SyncSettings != userSettings["Manager"].SyncSettings) {
-	;		for i in userSettings["Fleet"]
-	;			if i.Enabled = 1 && FileExist(i.configFile)
-	;				FileDelete(i.configFile)
-	;	}
-	;	Reload
-	;} TODO : MAYBE Add a 3rd state in between Locked/Reload > Unlocked/Cancel > *Save/Cancel* > Apply/Discard > Lock / Reload ? 
+	
 	if settingsLocked {
 		UpdateWindowPosition()
 		savedSettings["Window"].cmdReload := 1
