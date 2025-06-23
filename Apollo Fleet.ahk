@@ -609,12 +609,12 @@ DeleteAllTimers(){
 }
 HandleReloadButton(*) {
 	global settingsLocked, userSettings, savedSettings, currentlySelectedIndex
-	
+
 	if settingsLocked {
 		UpdateWindowPosition()
 		savedSettings["Window"].cmdReload := 1
 		DeleteAllTimers()
-		; TODO maybe add seperate button to restart sertvices apart from apolo
+		; TODO maybe add seperate button to restart sertvices apart from apolo (possibly restart button)
 		if savedSettings["Android"].ReverseTethering 
 			SendSigInt(savedSettings["Android"].gnirehtetPID, true)
 		if savedSettings["Android"].MicEnable 
@@ -644,7 +644,6 @@ HandleReloadButton(*) {
 			for process in PIDsListFromExeName("gnirehtet.exe")
 				SendSigInt(process, true)
 		}
-		
 		Reload
 	}
 	else {
@@ -679,9 +678,7 @@ DeepClone(thing) {
     }
     return thing  ; primitive value
 }
-;------------------------------------------------------------------------------  
-; Recursively compare any two values (Map, Array, or primitive).  
-; Returns 1 if they differ anywhere, 0 if identical.  
+
 DeepCompare(a, b) {
     if (Type(a) != Type(b))
         return 1
@@ -729,16 +726,14 @@ DeepCompare(a, b) {
 ; Returns 1 if savedSettings vs. userSettings differ anywhere (skips "Window"), else 0  
 UserSettingsWaiting() {
     global savedSettings, userSettings
-
     return DeepCompare(savedSettings, userSettings)
 }
-
 
 UpdateButtonsLabels(){
 	global guiItems, settingsLocked
 	guiItems["ButtonLockSettings"].Text := UserSettingsWaiting() && !settingsLocked ? "Apply" : settingsLocked ? "🔒" : "🔓" 
 	guiItems["ButtonReload"].Text := settingsLocked ?  "Reload" : "Cancel"
-	guiItems["InstanceEnableCheckbox"].Text := currentlySelectedIndex = 1 ? userSettings["Manager"].SyncSettings ? "Copy from Default" : "Disable Copy" : "Copy from Default"
+	guiItems["InstanceEnableCheckbox"].Text := currentlySelectedIndex > 0 ? userSettings["Fleet"][currentlySelectedIndex].Enable ? "Enabled" : "Disabled" : ""
 }
 ApplyLockState() {
 	global settingsLocked, guiItems, userSettings, currentlySelectedIndex
@@ -747,7 +742,7 @@ ApplyLockState() {
 	isReadOnly(cond := true) => cond ? "+ReadOnly" : "-ReadOnly"
 
 	textBoxes := ["PathsApolloBox"]
-	checkBoxes := ["FleetAutoLaunchCheckBox", "AndroidReverseTetheringCheckbox", "AndroidMicCheckbox", "AndroidCamCheckbox"]
+	checkBoxes := ["InstanceEnableCheckbox", "FleetAutoLaunchCheckBox", "AndroidReverseTetheringCheckbox", "AndroidMicCheckbox", "AndroidCamCheckbox"]
 	buttons := ["FleetButtonDelete", "FleetButtonAdd", "PathsApolloBrowseButton"]
 	androidSelectors := Map(
 		"AndroidMicSelector", "AndroidMicCheckbox",
@@ -780,8 +775,6 @@ ApplyLockState() {
 
 	for selector, chkbox in androidSelectors
 		guiItems[selector].Enabled := isEnabled(!settingsLocked && guiItems[chkbox].Value)
-
-	guiItems["InstanceEnableCheckbox"].Enabled := !settingsLocked && (userSettings["Manager"].SyncSettings || currentlySelectedIndex = 1)
 }
 
 SaveUserSettings(){
@@ -818,7 +811,6 @@ ExitMyApp() {
 	UpdateWindowPosition()
 	savedSettings["Window"].cmdExit := 1
 	WriteSettingsFile(savedSettings)
-	Sleep (10)
 	myGui.Destroy()
 	ExitApp()
 }
@@ -831,10 +823,9 @@ MinimizemyGui(*) {
     ; Get position BEFORE hiding
 	UpdateWindowPosition()
 
-   userSettings["Window"].lastState := 0
+    userSettings["Window"].lastState := 0
     ; Now hide the window
     myGui.Hide()
-	Sleep (10)
 }
 RestoremyGui() {
 	global myGui, savedSettings
@@ -857,18 +848,6 @@ RestoremyGui() {
 		myGui.Show("x" xC " y" yC "w580 h" h)
 
 	savedSettings["Window"].lastState := 1
-	Sleep (10)
-}
-ShowmyGui() {
-	global myGui, userSettings
-	if savedSettings["Window"].cmdReload = 1 {
-		RestoremyGui()
-	} else if (savedSettings["Window"].lastState = 1)
-		if (savedSettings["Window"].restorePosition) {
-			savedSettings["Window"].restorePosition := 0
-			RestoremyGui()
-			savedSettings["Window"].restorePosition := 1
-		}
 }
 
 SetIfChanged(map, key, newValue) {
@@ -1015,7 +994,7 @@ bootstrapGUI(){
 	InitmyGui()
 	ApplyLockState()
 	ReflectSettings(savedSettings)
-	ShowmyGui()
+	RestoremyGui()
 	InitTray()
 }
 PIDsListFromExeName(name) {
