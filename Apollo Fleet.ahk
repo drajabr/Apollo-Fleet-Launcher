@@ -131,31 +131,8 @@ ReadSettingsGroup(File, group, Settings) {
 			a.CamEnable := IniRead(File, "Android", "CamEnable", a.CamDeviceID = "Unset" ? 0 : 1)
             a.scrcpyCamPID := IniRead(File, "Android", "scrcpyCamPID", 0)
         case "Fleet":
-		    Settings["Fleet"] := []
 			f := Settings["Fleet"]
             configp := Settings["Paths"].Config
-            synced := Settings["Manager"].SyncSettings = 1
-			i := {}
-			defConfigPath:= Settings["Paths"].Apollo . "\config"
-			defaultConfFile := defConfigPath "\sunshine.conf"
-			i.id := 0
-			i.Name := ConfRead(defaultConfFile, "sunshine_name", "Default")
-			i.Port := ConfRead(defaultConfFile, "port", "47989")
-			i.Enabled := synced ? 1 : 0
-			i.Synced := synced
-			i.configFile := defConfigPath "\sunshine.conf"
-			i.logFile := defConfigPath "\sunshine.log"
-			i.stateFile := defConfigPath "\sunshine_state.json"
-			i.appsFile := defConfigPath "\apps.json"
-			i.credFile := defConfigPath "\sunshine_state.json"
-			i.consolePID := IniRead(File, "Instance0", "consolePID", 0)
-			i.apolloPID := IniRead(File, "Instance0", "apolloPID", 0)
-			i.AudioDevice := ConfRead(defaultConfFile, "virtual_sink", "Unset")
-			i.LastConfigUpdate := IniRead(File, "Instance0", "LastConfigUpdate", 0)
-			i.LastReadLogLine := IniRead(File, "Instance0", "LastReadLogLine", 0)
-			i.LastStatus := IniRead(File, "Instance0", "LastReadLogLine", "DISCONNECTED")
-			f.Push(i)
-            index := 2
             sections := StrSplit(IniRead(File), "`n")
             for section in sections 
                 if (SubStr(section, 1, 8) = "Instance") {
@@ -163,15 +140,14 @@ ReadSettingsGroup(File, group, Settings) {
 						continue
                     i := {}
 					i.id := IsNumber(SubStr(section, -1)) ? SubStr(section, -1) : index
-					i.Name := IniRead(File, section, "Name", "i" . index)
-					i.Port := IniRead(File, section, "Port", 11000 + index * 1000)
+					i.Name := IniRead(File, section, "Name", "i" . A_Index)
+					i.Port := IniRead(File, section, "Port", 11000 + A_Index * 1000)
 					i.Enabled := IniRead(File, section, "Enabled", 1)
-					i.Synced := synced ? IniRead(File, section, "Synced", synced ) : 0
 					i.configFile := configp "\fleet-" i.id (i.Synced ? "-synced.conf" : ".conf")
 					i.logFile := configp "\fleet-" i.id (i.Synced ? "-synced.log" : ".log")
 					i.stateFile := configp "\state-" i.id ".json"
 					i.appsFile := i.Synced ? f[1].appsFile : configp "\apps-" i.id ".json"
-					i.credFile := configp "\state-" i.id ".json"
+					i.stateFile := configp "\state-" i.id ".json"
 					i.consolePID := IniRead(File, section, "consolePID", 0)
 					i.apolloPID := IniRead(File, section, "apolloPID", 0)
 					i.AudioDevice := IniRead(File, section, "AudioDevice", "Unset")
@@ -179,7 +155,6 @@ ReadSettingsGroup(File, group, Settings) {
 					i.LastReadLogLine := IniRead(File, section, "LastReadLogLine", 0)
 					i.LastStatus := IniRead(File, section, "LastStatus", "DISCONNECTED")
 					f.Push(i)
-					index += 1
                 }
     }
 }
@@ -586,7 +561,7 @@ HandleInstanceAddButton(*){
 	i.logFile := configp "\fleet-" i.id (i.Synced ? "-synced.log" : ".log")
 	i.stateFile := i.Synced ? f[1].stateFile : configp "\state-" i.id ".json"
 	i.appsFile := i.Synced ? f[1].appsFile : configp "\apps-" i.id ".json"
-	i.credFile := i.Synced ? f[1].credFile : configp "\state-" i.id ".json"	
+	i.stateFile := i.Synced ? f[1].stateFile : configp "\state-" i.id ".json"	
 	i.consolePID := 0
 	i.apolloPID := 0
 	i.LastConfigUpdate := 0
@@ -1013,7 +988,7 @@ FleetConfigInit(*) {
 		"port", "Port",
 		"log_path","logFile", 
 		"file_state", "stateFile",
-		"credentials_file", "credFile",
+		"credentials_file", "stateFile",
 		"file_apps", "appsFile",
 		"virtual_sink", "AudioDevice",
 		"audio_sink", "AudioDevice"
@@ -1173,7 +1148,7 @@ FleetLaunchFleet(){
 	configDir := p.Config
 	; to delete any unexpected file "such as residual config/log"
 	knownFiles := []
-	fileTypes := ["configFile","stateFile", "appsFile", "credFile", "logFile"]
+	fileTypes := ["configFile","stateFile", "appsFile", "stateFile", "logFile"]
 	for i in f
 		for file in fileTypes
 			knownFiles.Push(i.%file%)
