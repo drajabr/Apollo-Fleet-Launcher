@@ -96,7 +96,7 @@ ReadSettingsGroup(File, group, Settings) {
             m.RemoveDisconnected := IniRead(File, "Manager", "RemoveDisconnected", 1)
             m.SyncSettings := IniRead(File, "Manager", "SyncSettings", 1)
 			m.StockServiceEnabled := 1
-			m.ShowErrors := IniRead(File, "Manager", "ShowErrors", 0)
+			m.ShowErrors := IniRead(File, "Manager", "ShowErrors", 1)
         case "Window":
 			w := Settings["Window"]
             w.restorePosition := IniRead(File, "Window", "restorePosition", 1)
@@ -1038,7 +1038,7 @@ FleetConfigInit(*) {
 					i.thisConf.Set("auto_capture_sink", "disabled", "keep_sink_default", "disabled")
 				}
 				else {
-					i.thisConf.Set("auto_capture_sink", "enabled", "keep_sink_default", "disabled")
+					i.thisConf.Set("auto_capture_sink", "enabled", "keep_sink_default", "enabled")
 					DeleteKeyIfExist(i.thisConf, "virtual_sink")
 					DeleteKeyIfExist(i.thisConf, "audio_sink")
 
@@ -1710,20 +1710,19 @@ bootstrapAndroid() {
 
 
 
-OnError(HandleError, -1)  ; -1 = override default behavior
-
-HandleError(err, mode) {
-	if !savedSettings["Manager"].ShowErrors{
-		HandleReloadButton()
-		return true
-		; TODO pipe the error message to the status area
-	}
-}
-
-
 global myGui, guiItems, userSettings, savedSettings, runtimeSettings
 bootstrapSettings()
 bootstrapGUI()
+
+if !savedSettings["Manager"].ShowErrors{
+	OnError(HandleError, -1)  ; -1 = override default behavior
+
+	HandleError(err, mode) {
+			HandleReloadButton()
+			return true
+			; TODO pipe the error message to the status area
+	}
+}
 
 global apolloBootsraped := false
 SetTimer(bootstrapApollo, -1)
