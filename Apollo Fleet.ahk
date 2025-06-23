@@ -1669,7 +1669,7 @@ bootstrapGnirehtet(){
 		ShowMessage("Starting Gnirehtet...")
 		SetTimer(MaintainGnirehtetProcess, 1000)
 	} else {
-		SetTimer(KillProcessesExcept("gnirehtet.exe"), -1)
+		SetTimer(() => KillProcessesExcept("gnirehtet.exe"), -1)
 	}
 	gnirehtetBootsraped := true
 	FinishBootStrap()
