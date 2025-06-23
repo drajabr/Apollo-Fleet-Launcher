@@ -240,7 +240,6 @@ WriteSettingsGroup(Settings, File, group) {
 				IniWrite(i.Name, File, section, "Name")
 				IniWrite(i.Port, File, section, "Port")
 				IniWrite(i.Enabled, File, section, "Enabled")
-				IniWrite(i.Synced, File, section, "Synced")
 				IniWrite(i.consolePID, File, section, "consolePID")
 				IniWrite(i.apolloPID, File, section, "apolloPID")
 				IniWrite(i.AudioDevice, File, section, "AudioDevice")
