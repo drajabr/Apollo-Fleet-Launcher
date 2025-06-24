@@ -144,7 +144,6 @@ ReadSettingsGroup(File, group, Settings) {
 					i.Enabled := IniRead(File, section, "Enabled", 1)
 					i.configFile := configp "\fleet-" i.id ".conf"
 					i.logFile := configp "\fleet-" i.id ".log"
-					i.stateFile := configp "\state-" i.id ".json"
 					i.appsFile := configp "\apps-" i.id ".json"
 					i.stateFile := configp "\state-" i.id ".json"
 					i.consolePID := IniRead(File, section, "consolePID", 0)
@@ -507,7 +506,9 @@ HandlePortChange(*){
 	currentlySelectedIndex := guiItems["FleetListBox"].Value = 0 ? 1 : guiItems["FleetListBox"].Value
 	i := userSettings["Fleet"][currentlySelectedIndex]
 	newPort := guiItems["InstancePortBox"].Value = "" ? i.Port : guiItems["InstancePortBox"].Value 
-	valid := (1024 < newPort && newPort < 65000) ? 1 : 0
+	valid := 0
+	try 
+		valid := (1024 < newPort && newPort < 65000) ? 1 : 0
 	for otherI in userSettings["Fleet"]
 		if otherI.id != i.id
 			if (otherI.Port = newPort)
@@ -523,11 +524,12 @@ HandlePortChange(*){
 }
 HandleNameChange(*){
 	global userSettings, guiItems
+	valid := currentlySelectedIndex <= userSettings["Fleet"].Length
+	if !valid
+		return
 	newName := guiItems["InstanceNameBox"].Value
-	selectedEntryIndex := guiItems["FleetListBox"].Value
-	userSettings["Fleet"][selectedEntryIndex].Name := newName
+	userSettings["Fleet"][currentlySelectedIndex].Name := newName
 	RefreshFleetList()
-	guiItems["FleetListBox"].Choose(selectedEntryIndex)
 }
 HandleInstanceAddButton(*){
 	global userSettings, guiItems
@@ -622,36 +624,39 @@ HandleReloadButton(*) {
 		UpdateWindowPosition()
 		savedSettings["Window"].cmdReload := 1
 		DeleteAllTimers()
-		; TODO maybe add seperate button to restart sertvices apart from apolo (possibly restart button)
-		if savedSettings["Android"].ReverseTethering 
-			SendSigInt(savedSettings["Android"].gnirehtetPID, true)
-		if savedSettings["Android"].MicEnable 
-			SendSigInt(savedSettings["Android"].scrcpyMicPID, true)
-		if savedSettings["Android"].CamEnable
-			SendSigInt(savedSettings["Android"].scrcpyCamPID, true)
-		for i in savedSettings["Fleet"] {
-			if i.Enabled = 1
-				SendSigInt(i.apolloPID, true)
-			if i.Enabled = 1 && ProcessExist(i.consolePID)
-				SendSigInt(i.consolePID, true)
-			if i.Enabled = 1 && ProcessExist(i.apolloPID)
-				continue
-			if i.Enabled = 1 && FileExist(i.configFile)
-				FileDelete(i.configFile)
-			if i.Enabled = 1 && FileExist(i.logFile)
-				FileDelete(i.logFile)
-			if i.Enabled = 1 && FileExist(i.appsFile)
-				FileDelete(i.appsFile)
+		if false {
+			; TODO maybe add seperate button to restart sertvices apart from apolo (possibly restart button)
+			if savedSettings["Android"].ReverseTethering 
+				SendSigInt(savedSettings["Android"].gnirehtetPID, true)
+			if savedSettings["Android"].MicEnable 
+				SendSigInt(savedSettings["Android"].scrcpyMicPID, true)
+			if savedSettings["Android"].CamEnable
+				SendSigInt(savedSettings["Android"].scrcpyCamPID, true)
+			for i in savedSettings["Fleet"] {
+				if i.Enabled = 1
+					SendSigInt(i.apolloPID, true)
+				if i.Enabled = 1 && ProcessExist(i.consolePID)
+					SendSigInt(i.consolePID, true)
+				if i.Enabled = 1 && ProcessExist(i.apolloPID)
+					continue
+				if i.Enabled = 1 && FileExist(i.configFile)
+					FileDelete(i.configFile)
+				if i.Enabled = 1 && FileExist(i.logFile)
+					FileDelete(i.logFile)
+				if i.Enabled = 1 && FileExist(i.appsFile)
+					FileDelete(i.appsFile)
 
-			for process in PIDsListFromExeName("sunshine.exe")
-				SendSigInt(process, true)
-			for process in PIDsListFromExeName("adb.exe")
-				SendSigInt(process, true)
-			for process in PIDsListFromExeName("scrcpy.exe")
-				SendSigInt(process, true)
-			for process in PIDsListFromExeName("gnirehtet.exe")
-				SendSigInt(process, true)
+				for process in PIDsListFromExeName("sunshine.exe")
+					SendSigInt(process, true)
+				for process in PIDsListFromExeName("adb.exe")
+					SendSigInt(process, true)
+				for process in PIDsListFromExeName("scrcpy.exe")
+					SendSigInt(process, true)
+				for process in PIDsListFromExeName("gnirehtet.exe")
+					SendSigInt(process, true)
+			}
 		}
+
 		Reload
 	}
 	else {
@@ -799,7 +804,8 @@ HandleLockButton(*) {
     global guiItems, settingsLocked, savedSettings, userSettings
 	if !UserSettingsWaiting() {
 		settingsLocked := !settingsLocked
-		if !settingsLocked {	; to do if got unlocked
+		if !settingsLocked { ; to do if got unlocked
+			RefreshFleetList()
 			RefreshAudioSelector()
 			RefreshAdbSelectors()
 		}
@@ -935,39 +941,28 @@ FleetConfigInit(*) {
 		"virtual_sink", "AudioDevice",
 		"audio_sink", "AudioDevice"
 	)
-	newConfig := false
 	for i in f {
-		if i.Enabled = 1 {
-			i.configChange := false
-			i.configFileCheck := !FileExist(i.configFile) || (i.LastConfigUpdate != FileGetTime(i.configFile, "M"))
-			i.baseConfig := CreateConfigMap(i)
-			if !FileExist(i.configFile) {
-				i.configChange := true
-				i.currentConfig := i.baseConfig
-			}
-			else if i.LastConfigUpdate != FileGetTime(i.configFile, "M") {
-				i.currentConfig := ConfRead(i.configFile)
-				for option, value in i.baseConfig
-					if SetIfChanged(i.currentConfig, option, value)
-						i.configChange := true
-			}
+		i.configChange := false
+		i.baseConfig := CreateConfigMap(i)
+		if !FileExist(i.configFile) {
+			i.configChange := true
+			i.currentConfig := i.baseConfig
+		} else {
+			i.currentConfig := ConfRead(i.configFile)
+			for option, value in i.baseConfig
+				if SetIfChanged(i.currentConfig, option, value)
+					i.configChange := true
+		}
 
-			if i.configChange {
-				ConfWrite(i.configFile, i.currentConfig)
-				i.LastConfigUpdate := FileGetTime(i.configFile, "M")
-				newConfig := true
-			}
-			if !FileExist(i.appsFile) {
-				FileAppend(appsJsonText, i.appsFile)
-			} else if i.configChange {
-				; TODO proper per instance apps file handling
+		if i.configChange {
+			newConfig := true
+			ConfWrite(i.configFile, i.currentConfig)
+			i.LastConfigUpdate := FileGetTime(i.configFile, "M")
+			if FileExist(i.appsFile)
 				FileDelete(i.appsFile)	; delete old file if exists
-				FileAppend(appsJsonText, i.appsFile)	; write new file
-			}
+			FileAppend(appsJsonText, i.appsFile)
 		}
 	}
-	if newConfig
-		UrgentSettingWrite(savedSettings, "Fleet")
 }
 CreateConfigMap(instance){
 	optionsMap := Map(
@@ -1020,7 +1015,7 @@ PIDsListFromExeName(name) {
 
     return PIDs 
 }
-SendSigInt(pid, force:=false) {
+SendSigInt(pid, force:=false, wait := 0) {
 	if ProcessExist(pid) {
 		; 1. Tell this script to ignore Ctrl+C and Ctrl+Break
 		DllCall("SetConsoleCtrlHandler", "Ptr", 0, "UInt", 1)
@@ -1031,9 +1026,10 @@ SendSigInt(pid, force:=false) {
 		DllCall("GenerateConsoleCtrlEvent", "UInt", 0, "UInt", 0)
 		DllCall("FreeConsole")
 
-		Sleep 10  ; Give the target process time to exit
-
-		if force && ProcessExist(pid)
+		timeSent := A_TickCount
+		while force && ProcessExist(pid) && (wait + timeSent) > A_TickCount 
+			sleep 10
+		if force && ProcessExist(pid) 
 			ProcessClose(pid)
 	}
 	return !ProcessExist(pid)
@@ -1059,8 +1055,6 @@ RunAndGetPIDs(exePath, args := "", workingDir := "", flags := "Hide") {
 	return [consolePID, apolloPID]
 }
 
-
-
 ArrayHas(arr, val) {
     for _, v in arr
         if (v = val)
@@ -1073,46 +1067,29 @@ FleetLaunchFleet(){
 	f := savedSettings["Fleet"]
 	p := savedSettings["Paths"]
 
-	; TODO: when adding an instance, on reload, even if configchange is set during init, this shit doesn't appear here, find a better fix
-	for i in f
-		if !i.HasOwnProp("configChange")
-			i.configChange := 1
-	; get currently running PIDs terminate anything unknown to us
-	currentPIDs := PIDsListFromExeName("sunshine.exe")
-	knownPIDs := []
-	for i in f
+	fileTypes := ["configFile","stateFile", "appsFile", "logFile"]
+
+	keepPIDs := []
+	keepFiles := []
+	for i in f{
 		if (i.Enabled && !i.configChange)
-			knownPIDs.Push(i.apolloPID)	
-	wait := 0
-	for pid in currentPIDs
-		if !ArrayHas(knownPIDs, pid)
-			if SendSigInt(pid, true)
-				wait := 100
-			; TODO maybe  we need to check pid if they still exist 
-	for i in f
-		if (!i.Enabled || i.configChange) && (ProcessExist(i.apolloPID) || ProcessExist(i.consolePID))
-			if SendSigInt(i.apolloPID) || SendSigInt(i.consolePID)
-				continue 
-	Sleep(wait) ; keep it here for now,  
-
-	; Now we can delete the files, after all unnecessary processes terminated
-	configDir := p.Config
-	; to delete any unexpected file "such as residual config/log"
-	knownFiles := []
-	fileTypes := ["configFile","stateFile", "appsFile", "stateFile", "logFile"]
-	for i in f
+			keepPIDs.Push(i.apolloPID)
 		for file in fileTypes
-			knownFiles.Push(i.%file%)
-	Loop Files configDir . '\*.*' 
-		if !ArrayHas(knownFiles, A_LoopFileFullPath)
-			FileDelete(A_LoopFileFullPath)
+				if FileExist(i.%file%) && file != "logFile"
+					keepFiles.Push(i.%file%)
+	}
 
+	KillProcessesExcept("sunshine.exe", keepPIDs, 3000)
+
+	Loop Files p.Config . '\*.*' 
+		if !ArrayHas(keepFiles, A_LoopFileFullPath)
+			try
+				FileDelete(A_LoopFileFullPath)
+		
 	exe := savedSettings["Paths"].apolloExe
 	newPID := 0
 	for i in f
-		if i.Enabled && (!ProcessExist(i.apolloPID) || i.configChange) {	; TODO add test for the instance if it responds or not, also, may check if display is connected deattach it/force exit? 
-			if FileExist(i.LogFile)
-				FileDelete(i.LogFile)
+		if i.Enabled && i.configChange {	; TODO add test for the instance if it responds or not, also, may check if display is connected deattach it/force exit? 
 			pids := RunAndGetPIDs(exe, i.configFile)
 			i.consolePID := pids[1]
 			i.apolloPID := pids[2]
@@ -1197,22 +1174,37 @@ ResetFlags(){
 	bootstrapSettings()
 	w.cmdReady := 1
 }
-KillProcessesExcept(pName, keep := [0]){
+KillProcessesExcept(pName, keep := [0], wait := 100){
 	
 	if Type(keep) != "Array"
 		keep := [keep]  ; Ensure keep is an array
 
 	pids := PIDsListFromExeName(pName)
+	targetKill := []
+	for pid in pids
+		if !ArrayHas(keep, pid){
+			KillWithoutBlocking(pid, true, wait)
+			targetKill.Push(pid)
+		}
 
-	for pid in pids
-		if !ArrayHas(keep, pid)
-			if !SendSigInt(pid, true)
-				ShowMessage("Failed to kill " . pName . " PID: " . pid, 3)
-	
-	for pid in pids
-		if ProcessExist(pid) && !ArrayHas(keep, pid)
+	lastSent := A_TickCount
+	while AnyProcessAlive(targetKill) && (wait + lastSent) > A_TickCount 
+		sleep 10
+	for pid in targetKill
+		if ProcessExist(pid) && !ArrayHas(keep, pid) {
+			ShowMessage("Failed to kill " . pName . " PID: " . pid, 3)
 			return false
+		}
 	return true
+}
+AnyProcessAlive(pids){
+	for pid in pids
+		if ProcessExist(pid)
+			return true
+	return false
+}
+KillWithoutBlocking(pid, force:=false, wait:=0) {
+	SetTimer(()=>SendSigInt(pid, force, wait), -1)
 }
 MaintainGnirehtetProcess(){
 	global savedSettings
