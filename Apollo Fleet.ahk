@@ -125,7 +125,7 @@ ReadSettingsGroup(File, group, Settings) {
             a.gnirehtetPID := IniRead(File, "Android", "gnirehtetPID", 0)
             a.MicDeviceID := IniRead(File, "Android", "MicDeviceID", "Unset")
 			a.MicEnable := IniRead(File, "Android", "MicEnable", a.MicDeviceID = "Unset" ? 0 : 1) = "1" ? 1 : 0
-            a.scrcpyMicPID := IniRead(File, "Android", "scrcpyMicPID", 0) = "1" ? 1 : 0
+            a.scrcpyMicPID := IniRead(File, "Android", "scrcpyMicPID", 0)
             a.CamDeviceID := IniRead(File, "Android", "CamDeviceID", "Unset")
 			a.CamEnable := IniRead(File, "Android", "CamEnable", a.CamDeviceID = "Unset" ? 0 : 1) = "1" ? 1 : 0
             a.scrcpyCamPID := IniRead(File, "Android", "scrcpyCamPID", 0)
