@@ -13,12 +13,13 @@ This is the same concept of my old [Multi-streaming-setup](https://github.com/dr
 # Current Status
 [![Build](https://github.com/drajabr/Apollo-Fleet-Launcher/actions/workflows/build.yml/badge.svg)](https://github.com/drajabr/Apollo-Fleet-Launcher/actions/workflows/build.yml)
 
+
 ## Changelog
 * v0.3.0 - Standalone operation
   * FIX: Don't use default instance as a reference
   * FIX: Non-blocking termination of unnecessary processes
-  * FIX: Settings Apply/Cancel logic, with proper type matching between saved and session settings
-  * UI: Removed sync instaces with default instance checkbox, not needed now
+  * FIX: More validation for list selected item
+  * UI: Removed sync instaces with default instance checkbox
   * UI:  Add enable/disable checkbox to control each instance
 * v0.2.2 - Nothing exciting, dumb hotfixes
   * FIX: more non-blocking bootstrap
@@ -72,6 +73,7 @@ This is the same concept of my old [Multi-streaming-setup](https://github.com/dr
 - [x] Multi-instance: Sync device volume levels to all instances
 - [x] Multi-instance: Enable terminate-on-pause setting to Remove virtual display on client disconnect
 - [ ] Multi-instance: Maintain Apollo instances "in case one exit/crash" 
+- [ ] Multi-instance: Fix volume level sync 
 - [x] Android Clients: ADB Revrse tethering via Gnirehtet
 - [x] Android Clients: Maintain client Mic to PC using scrcpy
 - [x] Android Clients: Maintain client Cam to PC using scrcpy
