@@ -518,7 +518,7 @@ RefreshFleetList(){
 	UpdateButtonsLabels()
 }
 HandlePortChange(*){
-	global userSettings, guiItems
+	global userSettings, guiItems, currentlySelectedIndex
 	valid := currentlySelectedIndex > 0 && currentlySelectedIndex <= userSettings["Fleet"].Length 
 	currentlySelectedIndex := valid ? currentlySelectedIndex : 1
 	i := userSettings["Fleet"][currentlySelectedIndex]
