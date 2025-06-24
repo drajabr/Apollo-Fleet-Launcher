@@ -349,7 +349,7 @@ ReflectSettings(Settings){
 	f := Settings["Fleet"]
 	guiItems["FleetAutoLaunchCheckBox"].Value := m.AutoLaunch
 	guiItems["FleetSyncVolCheckBox"].Value := m.SyncVolume
-	guiItems["FleetRemoveDisconnectCheckbox"].Value := m.RemoveDisconnected
+	guiItems["FleetRemoveDisconnectCheckbox"].Value := m.RemoveDisconnected = "true" ? 1 : 0
 	guiItems["AndroidReverseTetheringCheckbox"].Value := a.ReverseTethering
 	guiItems["AndroidMicCheckbox"].Value := a.MicEnable
 	guiItems["AndroidMicSelector"].Text := a.MicDeviceID
@@ -499,7 +499,7 @@ HandleCheckBoxes(*) {
 	for item in launchChildren
 		guiItems[item].Enabled := launchChildrenLock ? 0 : 1
 	userSettings["Manager"].SyncVolume := guiItems["FleetSyncVolCheckBox"].Value
-	userSettings["Manager"].RemoveDisconnected := guiItems["FleetRemoveDisconnectCheckbox"].Value
+	userSettings["Manager"].RemoveDisconnected := guiItems["FleetRemoveDisconnectCheckbox"].Value ? "true" : "false"
 	valid := currentlySelectedIndex > 0 && currentlySelectedIndex <= userSettings["Fleet"].Length 
 	currentlySelectedIndex := valid ? currentlySelectedIndex : 1
 	userSettings["Fleet"][currentlySelectedIndex].Enabled := guiItems["InstanceEnableCheckbox"].Value
