@@ -14,6 +14,12 @@ This is the same concept of my old [Multi-streaming-setup](https://github.com/dr
 [![Build](https://github.com/drajabr/Apollo-Fleet-Launcher/actions/workflows/build.yml/badge.svg)](https://github.com/drajabr/Apollo-Fleet-Launcher/actions/workflows/build.yml)
 
 ## Changelog
+* v0.3.0 - Standalone operation
+  * FIX: Don't use default instance as a reference
+  * FIX: Non-blocking termination of unnecessary processes
+  * FIX: Settings Apply/Cancel logic, with proper type matching between saved and session settings
+  * UI: Removed sync instaces with default instance checkbox, not needed now
+  * UI:  Add enable/disable checkbox to control each instance
 * v0.2.2 - Nothing exciting, dumb hotfixes
   * FIX: more non-blocking bootstrap
   * FIX: Volume level sync for multi instance

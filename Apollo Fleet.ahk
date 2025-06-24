@@ -103,7 +103,7 @@ ReadSettingsGroup(File, group, Settings) {
             w.xPos := IniRead(File, "Window", "xPos", (A_ScreenWidth - 580) / 2)
             w.yPos := IniRead(File, "Window", "yPos", (A_ScreenHeight - 198) / 2)
             w.lastState := IniRead(File, "Window", "lastState", 1)
-            w.logShow := IniRead(File, "Window", "logShow", 1)
+            w.logShow := IniRead(File, "Window", "logShow", 0)
 			w.cmdReload := IniRead(File, "Window", "cmdReload", 0)
 			w.cmdExit := IniRead(File, "Window", "cmdExit", 0)
 			w.cmdApply := IniRead(File, "Window", "cmdApply", 0)
@@ -361,7 +361,7 @@ ReflectSettings(Settings){
 	guiItems["FleetListBox"].Delete()
 	guiItems["FleetListBox"].Add(EveryInstanceProp(Settings))
 	instanceCount := Settings["Fleet"].Length
-	valid := 0 < currentlySelectedIndex && currentlySelectedIndex <= Settings["Fleet"].Length
+	valid := currentlySelectedIndex <= Settings["Fleet"].Length
 	guiItems["InstanceNameBox"].Value := valid ? Settings["Fleet"][currentlySelectedIndex].Name : ""
 	guiItems["InstancePortBox"].Value := valid ? Settings["Fleet"][currentlySelectedIndex].Port : ""
 	guiItems["InstanceEnableCheckbox"].Value := valid ? f[currentlySelectedIndex].Enabled : 0
@@ -502,17 +502,18 @@ HandleCheckBoxes(*) {
 		guiItems[item].Enabled := launchChildrenLock ? 0 : 1
 	userSettings["Manager"].SyncVolume := guiItems["FleetSyncVolCheckBox"].Value
 	userSettings["Manager"].RemoveDisconnected := guiItems["FleetRemoveDisconnectCheckbox"].Value
-	valid := currentlySelectedIndex <= userSettings["Fleet"].Length
-	if valid
-		userSettings["Fleet"][currentlySelectedIndex].Enabled := guiItems["InstanceEnableCheckbox"].Value
+	valid := currentlySelectedIndex > 0 && currentlySelectedIndex <= userSettings["Fleet"].Length 
+	currentlySelectedIndex := valid ? currentlySelectedIndex : 1
+	userSettings["Fleet"][currentlySelectedIndex].Enabled := guiItems["InstanceEnableCheckbox"].Value
 	UpdateButtonsLabels()
 }
 RefreshFleetList(){
-	global guiItems, userSettings
+	global guiItems, userSettings, currentlySelectedIndex
+	valid := currentlySelectedIndex > 0 && currentlySelectedIndex <= userSettings["Fleet"].Length 
+	currentlySelectedIndex := valid ? currentlySelectedIndex : 1
 	guiItems["FleetListBox"].Delete()
 	guiItems["FleetListBox"].Add(EveryInstanceProp(userSettings))
-	if currentlySelectedIndex <= userSettings["Fleet"].Length
-		guiItems["FleetListBox"].Choose(currentlySelectedIndex)
+	guiItems["FleetListBox"].Choose(currentlySelectedIndex)
 	Loop userSettings["Fleet"].Length {
 		userSettings["Fleet"][A_Index].id := A_Index
 	}
@@ -520,7 +521,8 @@ RefreshFleetList(){
 }
 HandlePortChange(*){
 	global userSettings, guiItems
-	currentlySelectedIndex := guiItems["FleetListBox"].Value = 0 ? 1 : guiItems["FleetListBox"].Value
+	valid := currentlySelectedIndex > 0 && currentlySelectedIndex <= userSettings["Fleet"].Length 
+	currentlySelectedIndex := valid ? currentlySelectedIndex : 1
 	i := userSettings["Fleet"][currentlySelectedIndex]
 	newPort := guiItems["InstancePortBox"].Value = "" ? i.Port : guiItems["InstancePortBox"].Value 
 	valid := 0
@@ -541,15 +543,14 @@ HandlePortChange(*){
 }
 HandleNameChange(*){
 	global userSettings, guiItems
-	valid := currentlySelectedIndex <= userSettings["Fleet"].Length
-	if !valid
-		return
+	valid := currentlySelectedIndex > 0 && currentlySelectedIndex <= userSettings["Fleet"].Length 
+	currentlySelectedIndex := valid ? currentlySelectedIndex : 1
 	newName := guiItems["InstanceNameBox"].Value
 	userSettings["Fleet"][currentlySelectedIndex].Name := newName
 	RefreshFleetList()
 }
 HandleInstanceAddButton(*){
-	global userSettings, guiItems
+	global userSettings, guiItems, currentlySelectedIndex
 	f := userSettings["Fleet"]
 	if (f.Length > 5){
 		ShowMessage("Let's not add more than 5 is for now.", 3)
@@ -571,30 +572,33 @@ HandleInstanceAddButton(*){
 	i.consolePID := 0
 	i.apolloPID := 0
 	userSettings["Fleet"].Push(i)
+	currentlySelectedIndex += currentlySelectedIndex < userSettings["Fleet"].Length ? 1 : 0
 	RefreshFleetList()
-	currentlySelectedIndex:=i.id
-	guiItems["FleetListBox"].Choose(i.id)
+	HandleListChange()
 	}
 }
 HandleInstanceDeleteButton(*){ 
 	global userSettings, guiItems, currentlySelectedIndex
-	if (currentlySelectedIndex > 0){ ; TODO Remake this?
+	if (userSettings["Fleet"].Length > 1){ ; TODO Remake this?
 		userSettings["Fleet"].RemoveAt(currentlySelectedIndex) ; MUST USE REMOVEAT INSTEAD OF DELETE TO REMOVE THE ITEM COMPLETELY NOT JUST ITS VALUE
-		guiItems["FleetListBox"].Delete(currentlySelectedIndex)
-		currentlySelectedIndex -= currentlySelectedIndex - 1
+		currentlySelectedIndex -= currentlySelectedIndex > 1 ? 1 : 0
 		RefreshFleetList()
 		HandleListChange()
-	}
+	} else
+		ShowMessage("Lets keep at least 1 instance.." , 3, 3000)
 }
 
 global currentlySelectedIndex := 1
 HandleListChange(*) {
 	global guiItems, userSettings, currentlySelectedIndex
-	valid := currentlySelectedIndex <= userSettings["Fleet"].Length 
-	if !valid
-		return
+	currentlySelectedIndex := guiItems["FleetListBox"].Value
+	if currentlySelectedIndex < 1 
+		currentlySelectedIndex := 1
+	if currentlySelectedIndex > userSettings["Fleet"].Length 
+		currentlySelectedIndex := userSettings["Fleet"].Length 
+	valid := currentlySelectedIndex > 0 && currentlySelectedIndex <= userSettings["Fleet"].Length 
+	currentlySelectedIndex := valid ? currentlySelectedIndex : 1
 	instanceCount := userSettings["Fleet"].Length
-	currentlySelectedIndex := instanceCount >= guiItems["FleetListBox"].Value && guiItems["FleetListBox"].Value  > 0 ? guiItems["FleetListBox"].Value : instanceCount 
 	i := userSettings["Fleet"][currentlySelectedIndex]
 	guiItems["InstanceNameBox"].Value := i.Name
 	guiItems["InstancePortBox"].Value := i.Port
@@ -677,7 +681,6 @@ HandleReloadButton(*) {
 		ApplyLockState()
 		UpdateButtonsLabels()
 		bootstrapSettings()
-		currentlySelectedIndex := 1
 		ReflectSettings(savedSettings)
 		Sleep (100)
 	}
@@ -706,18 +709,18 @@ DeepClone(thing) {
 
 DeepCompare(a, b, path := "") {
     if (Type(a) != Type(b)) {
-        MsgBox("Type mismatch at " . (path = "" ? "root" : path) . ": " . Type(a) . " vs " . Type(b))
+        ;MsgBox("Type mismatch at " . (path = "" ? "root" : path) . ": " . Type(a) . " vs " . Type(b))
         return 1
     }
 
     if (Type(a) = "Map") {
         if a.Count != b.Count {
-            MsgBox("Map count difference at " . (path = "" ? "root" : path) . ": " . a.Count . " vs " . b.Count)
+            ;MsgBox("Map count difference at " . (path = "" ? "root" : path) . ": " . a.Count . " vs " . b.Count)
             return 1
         }
         for key, val in a {
             if !b.Has(key) {
-                MsgBox("Missing key in second map at " . (path = "" ? "root" : path) . ": " . key)
+                ;MsgBox("Missing key in second map at " . (path = "" ? "root" : path) . ": " . key)
                 return 1
             }
             currentPath := path = "" ? String(key) : path . "." . String(key)
@@ -729,7 +732,7 @@ DeepCompare(a, b, path := "") {
 
     if (Type(a) = "Array") {
         if a.Length != b.Length {
-            MsgBox("Array length difference at " . (path = "" ? "root" : path) . ": " . a.Length . " vs " . b.Length)
+            ;MsgBox("Array length difference at " . (path = "" ? "root" : path) . ": " . a.Length . " vs " . b.Length)
             return 1
         }
         for index, val in a {
@@ -742,12 +745,12 @@ DeepCompare(a, b, path := "") {
 
     if (Type(a) = "Object") {
         if ObjOwnPropCount(a) != ObjOwnPropCount(b) {
-            MsgBox("Object property count difference at " . (path = "" ? "root" : path) . ": " . ObjOwnPropCount(a) . " vs " . ObjOwnPropCount(b))
+            ;MsgBox("Object property count difference at " . (path = "" ? "root" : path) . ": " . ObjOwnPropCount(a) . " vs " . ObjOwnPropCount(b))
             return 1
         }
         for key in ObjOwnProps(a) {
             if !b.HasOwnProp(key) {
-                MsgBox("Missing property in second object at " . (path = "" ? "root" : path) . ": " . key)
+                ;MsgBox("Missing property in second object at " . (path = "" ? "root" : path) . ": " . key)
                 return 1
             }
             currentPath := path = "" ? key : path . "." . key
@@ -784,8 +787,7 @@ UpdateButtonsLabels(){
 	global guiItems, settingsLocked
 	guiItems["ButtonLockSettings"].Text := (UserSettingsWaiting() && !settingsLocked) ? "Apply" : settingsLocked ? "🔒" : "🔓" 
 	guiItems["ButtonReload"].Text := settingsLocked ?  "Reload" : "Cancel"
-	valid := currentlySelectedIndex <= userSettings["Fleet"].Length 
-	guiItems["InstanceEnableCheckbox"].Text := valid ? userSettings["Fleet"][currentlySelectedIndex].Enabled ? "Enabled" : "Disabled" : ""
+	guiItems["InstanceEnableCheckbox"].Text := userSettings["Fleet"][currentlySelectedIndex].Enabled ? "Enabled" : "Disabled"
 	; TODO here we could also show the running/not running status of each selected instance 
 }
 ApplyLockState() {
