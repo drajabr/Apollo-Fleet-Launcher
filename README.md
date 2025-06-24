@@ -5,14 +5,13 @@ A simple tool to configure multiple instances of [@ClassicOldSong/Apollo](https:
 This is the same concept of my old [Multi-streaming-setup](https://github.com/drajabr/My-Sunshine-setup) scripts, with ease of GUI and Auto Configuration, bundled with necessary binaries for Android clients stuff.
 
 ## Preview
-![image](https://github.com/user-attachments/assets/184d733b-0434-4ce5-b83e-3db985b22f37)
+![image](https://github.com/user-attachments/assets/84510044-baa8-4d75-8768-832ed5c8e009)
 
 
 
 
 # Current Status
-![image](https://github.com/user-attachments/assets/9d6f084c-6ea6-4ee1-8839-02fa6c9c8955)
-
+[![Build](https://github.com/drajabr/Apollo-Fleet-Launcher/actions/workflows/build.yml/badge.svg)](https://github.com/drajabr/Apollo-Fleet-Launcher/actions/workflows/build.yml)
 
 ## Changelog
 * v0.2.9 - Standalone operation fix
