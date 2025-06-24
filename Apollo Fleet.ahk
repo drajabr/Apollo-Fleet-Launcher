@@ -200,7 +200,6 @@ WriteSettingsGroup(Settings, File, group) {
 			WriteIfChanged(File, "Manager", "AutoLaunch", m.AutoLaunch)
 			WriteIfChanged(File, "Manager", "SyncVolume", m.SyncVolume)
 			WriteIfChanged(File, "Manager", "RemoveDisconnected", m.RemoveDisconnected)
-			WriteIfChanged(File, "Manager", "SyncSettings", m.SyncSettings)
 			WriteIfChanged(File, "Manager", "ShowErrors", m.ShowErrors)
         case "Window":
 			w := Settings["Window"]
@@ -350,11 +349,10 @@ ReflectSettings(Settings){
 	;guiItems["InstanceAudioSelector"].Enabled :=0
 	guiItems["FleetListBox"].Delete()
 	guiItems["FleetListBox"].Add(EveryInstanceProp(Settings))
-	instanceCount := userSettings["Fleet"].Length
-	currentlySelectedIndex := instanceCount >= guiItems["FleetListBox"].Value > 0 ? guiItems["FleetListBox"].Value : 1 
-	valid := currentlySelectedIndex <= savedSettings["Fleet"].Length
-	guiItems["InstanceNameBox"].Value := valid ? savedSettings["Fleet"][currentlySelectedIndex].Name : ""
-	guiItems["InstancePortBox"].Value := valid ? savedSettings["Fleet"][currentlySelectedIndex].Port : ""
+	instanceCount := Settings["Fleet"].Length
+	valid := 0 < currentlySelectedIndex && currentlySelectedIndex <= Settings["Fleet"].Length
+	guiItems["InstanceNameBox"].Value := valid ? Settings["Fleet"][currentlySelectedIndex].Name : ""
+	guiItems["InstancePortBox"].Value := valid ? Settings["Fleet"][currentlySelectedIndex].Port : ""
 	guiItems["InstanceEnableCheckbox"].Value := valid ? f[currentlySelectedIndex].Enabled : 0
 	;RefreshAudioSelector() TODO Revist if we still need this here
 	guiItems["InstanceAudioSelector"].Text := valid ? f[currentlySelectedIndex].AudioDevice : "Unset"
@@ -438,7 +436,7 @@ HandleCamSelector(*) {
 
 HandleAudioSelector(*){
 	global userSettings
-	valid := currentlySelectedIndex <= savedSettings["Fleet"].Length
+	valid := currentlySelectedIndex <= userSettings["Fleet"].Length
 	if !valid
 		return
 	i := userSettings["Fleet"][currentlySelectedIndex]
@@ -447,7 +445,7 @@ HandleAudioSelector(*){
 }
 RefreshAudioSelector(*){
 	global guiItems, audioDevicesList
-	valid := currentlySelectedIndex <= savedSettings["Fleet"].Length
+	valid := currentlySelectedIndex <= userSettings["Fleet"].Length
 	if !valid
 		return
 	selection := userSettings["Fleet"][currentlySelectedIndex].AudioDevice
@@ -488,7 +486,7 @@ HandleCheckBoxes(*) {
 		guiItems[item].Enabled := launchChildrenLock ? 0 : 1
 	userSettings["Manager"].SyncVolume := guiItems["FleetSyncVolCheckBox"].Value
 	userSettings["Manager"].RemoveDisconnected := guiItems["FleetRemoveDisconnectCheckbox"].Value
-	valid := currentlySelectedIndex <= savedSettings["Fleet"].Length
+	valid := currentlySelectedIndex <= userSettings["Fleet"].Length
 	if valid
 		userSettings["Fleet"][currentlySelectedIndex].Enabled := guiItems["InstanceEnableCheckbox"].Value
 	UpdateButtonsLabels()
@@ -497,7 +495,7 @@ RefreshFleetList(){
 	global guiItems, userSettings
 	guiItems["FleetListBox"].Delete()
 	guiItems["FleetListBox"].Add(EveryInstanceProp(userSettings))
-	if currentlySelectedIndex <= EveryInstanceProp(userSettings, "Name").Length
+	if currentlySelectedIndex <= userSettings["Fleet"].Length
 		guiItems["FleetListBox"].Choose(currentlySelectedIndex)
 	Loop userSettings["Fleet"].Length {
 		userSettings["Fleet"][A_Index].id := A_Index
@@ -539,7 +537,6 @@ HandleInstanceAddButton(*){
 	} else {
 	i := {} ; Create a new object for each i
 	i.id := f.Length + 1
-	synced := userSettings["Manager"].SyncSettings = 1
 	configp := userSettings["Paths"].Config
 	i.Port := i.id = 1 ? 11000 : f[-1].port + 1000
 	i.Name := "Instance " . i.id
@@ -560,7 +557,7 @@ HandleInstanceAddButton(*){
 	userSettings["Fleet"].Push(i)
 	RefreshFleetList()
 	guiItems["FleetListBox"].Choose(i.id)
-	HandleListChange()
+	ReflectSettings(userSettings)
 	}
 }
 HandleInstanceDeleteButton(*){ 
@@ -568,28 +565,24 @@ HandleInstanceDeleteButton(*){
 	if (currentlySelectedIndex > 0){ ; TODO Remake this?
 		userSettings["Fleet"].RemoveAt(currentlySelectedIndex) ; MUST USE REMOVEAT INSTEAD OF DELETE TO REMOVE THE ITEM COMPLETELY NOT JUST ITS VALUE
 		guiItems["FleetListBox"].Delete(currentlySelectedIndex)
-		nextChoice := currentlySelectedIndex <= EveryInstanceProp(userSettings, "Name").Length ? currentlySelectedIndex : EveryInstanceProp(userSettings, "Name").Length
-		if nextChoice
-			guiItems["FleetListBox"].Choose(nextChoice)
+		currentlySelectedIndex -= 1
+		RefreshFleetList()
 		HandleListChange()
-		Loop userSettings["Fleet"].Length { 	; Update is index
-			userSettings["Fleet"][A_Index].id := A_Index
-		}
 	}
 }
 
 global currentlySelectedIndex := 1
 HandleListChange(*) {
 	global guiItems, userSettings, currentlySelectedIndex
-	valid := currentlySelectedIndex <= savedSettings["Fleet"].Length
+	valid := currentlySelectedIndex <= userSettings["Fleet"].Length 
 	if !valid
 		return
 	instanceCount := userSettings["Fleet"].Length
-	currentlySelectedIndex := instanceCount >= guiItems["FleetListBox"].Value > 0 ? guiItems["FleetListBox"].Value : 1 
+	currentlySelectedIndex := instanceCount >= guiItems["FleetListBox"].Value && guiItems["FleetListBox"].Value  > 0 ? guiItems["FleetListBox"].Value : instanceCount 
 	i := userSettings["Fleet"][currentlySelectedIndex]
 	guiItems["InstanceNameBox"].Value := i.Name
 	guiItems["InstancePortBox"].Value := i.Port
-	myLink := "https://localhost:" . userSettings["Fleet"][(userSettings["Manager"].SyncSettings = 1 ? 1 : currentlySelectedIndex)].Port+1
+	myLink := "https://localhost:" . userSettings["Fleet"][currentlySelectedIndex].Port+1
 	guiItems["FleetLinkBox"].Text :=  '<a href="' . myLink . '">' . myLink . '</a>'
 
 	RefreshAudioSelector()
@@ -663,13 +656,12 @@ HandleReloadButton(*) {
 	}
 	else {
 		settingsLocked := !settingsLocked
-		currentlySelectedIndex := 1
-		HandleListChange()
 		ApplyLockState()
 		UpdateButtonsLabels()
-		ReflectSettings(savedSettings)
 		bootstrapSettings()
-		Sleep (200)
+		currentlySelectedIndex := 1
+		ReflectSettings(savedSettings)
+		Sleep (100)
 	}
 }
 DeepClone(thing) {
@@ -741,17 +733,17 @@ DeepCompare(a, b) {
 ; Returns 1 if savedSettings vs. userSettings differ anywhere (skips "Window"), else 0  
 UserSettingsWaiting() {
     global savedSettings, userSettings
-	changed := false
 	for category in userSettings
-    	changed := DeepCompare(savedSettings[category], userSettings[category])
-	return
+		if category != "Window" && DeepCompare(savedSettings[category], userSettings[category])
+			return true
+	return false
 }
 
 UpdateButtonsLabels(){
 	global guiItems, settingsLocked
 	guiItems["ButtonLockSettings"].Text := (UserSettingsWaiting() && !settingsLocked) ? "Apply" : settingsLocked ? "🔒" : "🔓" 
 	guiItems["ButtonReload"].Text := settingsLocked ?  "Reload" : "Cancel"
-	valid := currentlySelectedIndex <= savedSettings["Fleet"].Length
+	valid := currentlySelectedIndex <= userSettings["Fleet"].Length
 	guiItems["InstanceEnableCheckbox"].Text := valid ? userSettings["Fleet"][currentlySelectedIndex].Enabled ? "Enabled" : "Disabled" : ""
 	; TODO here we could also show the running/not running status of each selected instance 
 }
@@ -1143,9 +1135,6 @@ UrgentSettingWrite(srcSettings, group){
 FleetRemoveDisconnected(*){
 }
 
-FleetSyncSettings(*){
-}
-
 ADBWatchDog(*){
 }
 SetupFleetTask() {
@@ -1254,7 +1243,7 @@ UpdateStatusArea() {
 	f := savedSettings["Fleet"]
 	a := savedSettings["Android"]
 	if  msgTimeout {
-		valid := currentlySelectedIndex <= f.Length
+		valid := f.Length < 1
 		apolloRunning := valid ? 1 : 0
 		for i in f {
 			if i.Enabled = 0
