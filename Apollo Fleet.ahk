@@ -361,7 +361,7 @@ ReflectSettings(Settings){
 	guiItems["FleetListBox"].Delete()
 	guiItems["FleetListBox"].Add(EveryInstanceProp(Settings))
 	instanceCount := Settings["Fleet"].Length
-	valid := currentlySelectedIndex <= Settings["Fleet"].Length
+	valid := currentlySelectedIndex > 0 && currentlySelectedIndex <= userSettings["Fleet"].Length 
 	guiItems["InstanceNameBox"].Value := valid ? Settings["Fleet"][currentlySelectedIndex].Name : ""
 	guiItems["InstancePortBox"].Value := valid ? Settings["Fleet"][currentlySelectedIndex].Port : ""
 	guiItems["InstanceEnableCheckbox"].Value := valid ? f[currentlySelectedIndex].Enabled : 0
@@ -451,19 +451,17 @@ HandleCamSelector(*) {
 }
 
 HandleAudioSelector(*){
-	global userSettings
-	valid := currentlySelectedIndex <= userSettings["Fleet"].Length
-	if !valid
-		return
+	global userSettings, currentlySelectedIndex
+	valid := currentlySelectedIndex > 0 && currentlySelectedIndex <= userSettings["Fleet"].Length 
+	currentlySelectedIndex := valid ? currentlySelectedIndex : 1
 	i := userSettings["Fleet"][currentlySelectedIndex]
 	i.AudioDevice := guiItems["InstanceAudioSelector"].Text	; TODO devices list array and index instead of text, or maybe its just fine to use text? 
 	UpdateButtonsLabels()
 }
 RefreshAudioSelector(*){
-	global guiItems, audioDevicesList
-	valid := currentlySelectedIndex <= userSettings["Fleet"].Length
-	if !valid
-		return
+	global guiItems, audioDevicesList, currentlySelectedIndex
+	valid := currentlySelectedIndex > 0 && currentlySelectedIndex <= userSettings["Fleet"].Length 
+	currentlySelectedIndex := valid ? currentlySelectedIndex : 1
 	selection := userSettings["Fleet"][currentlySelectedIndex].AudioDevice
 	audioDevicesList := ["Unset"]
 	for dev in AudioDevice.GetAll()
@@ -493,7 +491,7 @@ TrayIconHandler(wParam, lParam, msg, hwnd) {
     }
 }
 HandleCheckBoxes(*) {
-	global userSettings, guiItems
+	global userSettings, guiItems, currentlySelectedIndex
 	userSettings["Android"].ReverseTethering := guiItems["AndroidReverseTetheringCheckbox"].Value
 	userSettings["Manager"].AutoLaunch := guiItems["FleetAutoLaunchCheckBox"].Value
 	launchChildren := ["FleetSyncVolCheckBox", "FleetRemoveDisconnectCheckbox"]
@@ -542,7 +540,7 @@ HandlePortChange(*){
 	UpdateButtonsLabels()
 }
 HandleNameChange(*){
-	global userSettings, guiItems
+	global userSettings, guiItems, currentlySelectedIndex
 	valid := currentlySelectedIndex > 0 && currentlySelectedIndex <= userSettings["Fleet"].Length 
 	currentlySelectedIndex := valid ? currentlySelectedIndex : 1
 	newName := guiItems["InstanceNameBox"].Value
