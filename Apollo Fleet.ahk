@@ -91,10 +91,10 @@ ReadSettingsGroup(File, group, Settings) {
     switch group {
         case "Manager":
 			m := Settings["Manager"]
-			m.AutoLaunch := IniRead(File, "Manager", "AutoLaunch", 1)
-            m.SyncVolume := IniRead(File, "Manager", "SyncVolume", 1)
-            m.RemoveDisconnected := IniRead(File, "Manager", "RemoveDisconnected", 1)
-            m.SyncSettings := IniRead(File, "Manager", "SyncSettings", 1)
+			m.AutoLaunch := IniRead(File, "Manager", "AutoLaunch", 1) = "1" ? 1 : 0
+            m.SyncVolume := IniRead(File, "Manager", "SyncVolume", 1) = "1" ? 1 : 0
+            m.RemoveDisconnected := IniRead(File, "Manager", "RemoveDisconnected", 1) = "1" ? 1 : 0
+            m.SyncSettings := IniRead(File, "Manager", "SyncSettings", 1) = "1" ? 1 : 0
 			m.StockServiceEnabled := 1
 			m.ShowErrors := IniRead(File, "Manager", "ShowErrors", 1)
         case "Window":
@@ -121,13 +121,13 @@ ReadSettingsGroup(File, group, Settings) {
 			; OR wait when apollo support working outside its own dir
         case "Android":
             a := Settings["Android"]
-            a.ReverseTethering := IniRead(File, "Android", "ReverseTethering", 1)
+            a.ReverseTethering := IniRead(File, "Android", "ReverseTethering", 1) = "1" ? 1 : 0
             a.gnirehtetPID := IniRead(File, "Android", "gnirehtetPID", 0)
             a.MicDeviceID := IniRead(File, "Android", "MicDeviceID", "Unset")
-			a.MicEnable := IniRead(File, "Android", "MicEnable", a.MicDeviceID = "Unset" ? 0 : 1)
-            a.scrcpyMicPID := IniRead(File, "Android", "scrcpyMicPID", 0)
+			a.MicEnable := IniRead(File, "Android", "MicEnable", a.MicDeviceID = "Unset" ? 0 : 1) = "1" ? 1 : 0
+            a.scrcpyMicPID := IniRead(File, "Android", "scrcpyMicPID", 0) = "1" ? 1 : 0
             a.CamDeviceID := IniRead(File, "Android", "CamDeviceID", "Unset")
-			a.CamEnable := IniRead(File, "Android", "CamEnable", a.CamDeviceID = "Unset" ? 0 : 1)
+			a.CamEnable := IniRead(File, "Android", "CamEnable", a.CamDeviceID = "Unset" ? 0 : 1) = "1" ? 1 : 0
             a.scrcpyCamPID := IniRead(File, "Android", "scrcpyCamPID", 0)
         case "Fleet":
 			Settings["Fleet"] := []
@@ -142,7 +142,7 @@ ReadSettingsGroup(File, group, Settings) {
 					instanceNumber += 1
 					i.Name := IniRead(File, section, "Name", "i" . A_Index)
 					i.Port := IniRead(File, section, "Port", 11000 + A_Index * 1000)
-					i.Enabled := IniRead(File, section, "Enabled", 1)
+					i.Enabled := IniRead(File, section, "Enabled", 1) = "1" ? 1 : 0
 					i.configFile := configp "\fleet-" i.id ".conf"
 					i.logFile := configp "\fleet-" i.id ".log"
 					i.appsFile := configp "\apps-" i.id ".json"
@@ -706,18 +706,18 @@ DeepClone(thing) {
 
 DeepCompare(a, b, path := "") {
     if (Type(a) != Type(b)) {
-        ;MsgBox("Type mismatch at " . (path = "" ? "root" : path) . ": " . Type(a) . " vs " . Type(b))
+        MsgBox("Type mismatch at " . (path = "" ? "root" : path) . ": " . Type(a) . " vs " . Type(b))
         return 1
     }
 
     if (Type(a) = "Map") {
         if a.Count != b.Count {
-            ;MsgBox("Map count difference at " . (path = "" ? "root" : path) . ": " . a.Count . " vs " . b.Count)
+            MsgBox("Map count difference at " . (path = "" ? "root" : path) . ": " . a.Count . " vs " . b.Count)
             return 1
         }
         for key, val in a {
             if !b.Has(key) {
-                ;MsgBox("Missing key in second map at " . (path = "" ? "root" : path) . ": " . key)
+                MsgBox("Missing key in second map at " . (path = "" ? "root" : path) . ": " . key)
                 return 1
             }
             currentPath := path = "" ? String(key) : path . "." . String(key)
@@ -729,7 +729,7 @@ DeepCompare(a, b, path := "") {
 
     if (Type(a) = "Array") {
         if a.Length != b.Length {
-            ;MsgBox("Array length difference at " . (path = "" ? "root" : path) . ": " . a.Length . " vs " . b.Length)
+            MsgBox("Array length difference at " . (path = "" ? "root" : path) . ": " . a.Length . " vs " . b.Length)
             return 1
         }
         for index, val in a {
@@ -742,12 +742,12 @@ DeepCompare(a, b, path := "") {
 
     if (Type(a) = "Object") {
         if ObjOwnPropCount(a) != ObjOwnPropCount(b) {
-            ;MsgBox("Object property count difference at " . (path = "" ? "root" : path) . ": " . ObjOwnPropCount(a) . " vs " . ObjOwnPropCount(b))
+            MsgBox("Object property count difference at " . (path = "" ? "root" : path) . ": " . ObjOwnPropCount(a) . " vs " . ObjOwnPropCount(b))
             return 1
         }
         for key in ObjOwnProps(a) {
             if !b.HasOwnProp(key) {
-                ;MsgBox("Missing property in second object at " . (path = "" ? "root" : path) . ": " . key)
+                MsgBox("Missing property in second object at " . (path = "" ? "root" : path) . ": " . key)
                 return 1
             }
             currentPath := path = "" ? key : path . "." . key
