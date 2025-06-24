@@ -93,7 +93,7 @@ ReadSettingsGroup(File, group, Settings) {
 			m := Settings["Manager"]
 			m.AutoLaunch := IniRead(File, "Manager", "AutoLaunch", 1) = "1" ? 1 : 0
             m.SyncVolume := IniRead(File, "Manager", "SyncVolume", 1) = "1" ? 1 : 0
-            m.RemoveDisconnected := IniRead(File, "Manager", "RemoveDisconnected", 1) = "1" ? 1 : 0
+            m.RemoveDisconnected := IniRead(File, "Manager", "RemoveDisconnected", "true")
             m.SyncSettings := IniRead(File, "Manager", "SyncSettings", 1) = "1" ? 1 : 0
 			m.StockServiceEnabled := 1
 			m.ShowErrors := IniRead(File, "Manager", "ShowErrors", 1)
@@ -945,7 +945,7 @@ FleetConfigInit(*) {
 				"image-path": "desktop.png",
 				"name": "Desktop",
 				"state-cmd": [],
-				"terminate-on-pause": true
+				"terminate-on-pause": "true"
 			}
 		],
 		"env": {},
