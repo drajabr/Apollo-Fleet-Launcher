@@ -410,7 +410,7 @@ InitGuiItemsEvents(){
 CheckAdbRefresh(){
 	userRequire := userSettings["Android"].MicEnable || userSettings["Android"].CamEnable
 	if userRequire && !adbReady
-		bootstrapAndroid()
+	RefreshAdbDevices()
 }
 HandleMicCheckBox(*) {
 	global userSettings, guiItems
@@ -1617,21 +1617,19 @@ bootstrapAndroid() {
 	savedRequire := savedSettings["Android"].MicEnable || savedSettings["Android"].CamEnable
 	userRequire := userSettings["Android"].MicEnable || userSettings["Android"].CamEnable
 	if savedRequire || userRequire {
-		if !adbReady {
-			KillProcessesExcept("adb.exe", , 5000)
-			SetTimer(RefreshAdbDevices , 1000)
-			keep := []
-			if savedSettings["Android"].MicEnable
-				keep.Push(savedSettings["Android"].scrcpyMicPID)
-			if savedSettings["Android"].CamEnable
-				keep.Push(savedSettings["Android"].scrcpyCamPID)
-			KillProcessesExcept("scrcpy.exe", keep, 5000)
-			
-			if savedSettings["Android"].MicEnable
-				SetTimer(MaintainScrcpyMicProcess, 500)
-			if savedSettings["Android"].CamEnable
-				SetTimer(MaintainScrcpyCamProcess, 500)
-		}
+		KillProcessesExcept("adb.exe", , 5000)
+		SetTimer(RefreshAdbDevices , 1000)
+		keep := []
+		if savedSettings["Android"].MicEnable
+			keep.Push(savedSettings["Android"].scrcpyMicPID)
+		if savedSettings["Android"].CamEnable
+			keep.Push(savedSettings["Android"].scrcpyCamPID)
+		KillProcessesExcept("scrcpy.exe", keep, 5000)
+		
+		if savedSettings["Android"].MicEnable
+			SetTimer(MaintainScrcpyMicProcess, 500)
+		if savedSettings["Android"].CamEnable
+			SetTimer(MaintainScrcpyCamProcess, 500)
 	} else {
 		SetTimer(() => KillProcessesExcept("adb.exe", , 5000), -1) ; TODO maybe use adb-kill server here
 		SetTimer(() => KillProcessesExcept("scrcpy.exe", , 5000), -1) ; TODO maybe use adb-kill server here
