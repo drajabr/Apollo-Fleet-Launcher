@@ -885,43 +885,37 @@ FleetConfigInit(*) {
 	if !DirExist(p.Config)	
 		DirCreate(p.Config)
 
-	defaultAppsFile := p.Apollo . "\config\apps.json"
-	text := FileRead(defaultAppsFile)
-	baseApps := jsongo.Parse(text)
-	appsFileChanged := false
-	if baseApps.Has("apps") && baseApps["apps"].Length > 0
-		for app in baseApps["apps"]
-			if app.Has("name") && app["name"] == "Desktop"
-				if app.Has("terminate-on-pause")
-					if !!app["terminate-on-pause"] != m.RemoveDisconnected {
-						app["terminate-on-pause"] := m.RemoveDisconnected ? "true" : "false"
-						appsFileChanged := true
-					} else
-						break
-				else
-					MsgBox("Please Upgrade to latest Apollo Version")
-			else
-				MsgBox("Apps.json file doesn't include Desktop app, please clean install Apollo")
-			; TODO: Better error handling 
-	if appsFileChanged {
+	defaultAppsFile := p.Config . "\apps.json"
+	defaultAppsTemplate :="
+	(
+	{
+		"apps": [
+			{
+				"cmd": "",
+				"exit-timeout": 0,
+				"image-path": "desktop.png",
+				"name": "Desktop",
+				"state-cmd": [],
+				"terminate-on-pause": true
+			}
+		],
+		"env": {},
+		"version": 2
+	}
+	)"
+	baseApps := jsongo.Parse(defaultAppsTemplate)
+	app := baseApps["apps"][1]
+	if app["terminate-on-pause"] != m.RemoveDisconnected {
+		app["terminate-on-pause"] := m.RemoveDisconnected ? "true" : "false"
 		text := jsongo.Stringify(baseApps, , '    ')
 		text := RegExReplace(text, ':\s*"true"', ': true')
 		text := RegExReplace(text, ':\s*"false"', ': false')
-		FileDelete(defaultAppsFile)	; delete old file if exists
+		If FileExist(defaultAppsFile)
+			FileDelete(defaultAppsFile)	; delete old file if exists
 		FileAppend(text, defaultAppsFile)
 	}
 	; TODO: Simple text find and replace instead of JXON maybe enough?
-	; import default conf if sync is ticked
-	baseConf := Map()
-	if (m.SyncSettings) {
-		defaultConfFile := p.Apollo . "\config\sunshine.conf"
-		baseConf := ConfRead(defaultConfFile)
-		excludeOptions := ["sunshine_name", "port", "file_state", "credentials_file", "file_apps"]	; TODO: Audio device
-		for option in excludeOptions
-			if baseConf.Has(option) 
-				baseConf.Delete(option)
-		baseConf.Set("headless_mode", "enabled")
-	}
+
 	; assign and create conf files if not created
 	optionMap := Map(
 		"sunshine_name", "Name",
@@ -932,8 +926,8 @@ FleetConfigInit(*) {
 		"file_apps", "appsFile",
 		"virtual_sink", "AudioDevice",
 		"audio_sink", "AudioDevice"
-	)	; TODO: Audio device and its consequences; the mute option/ and or others
-	newConf := false
+	)
+
 	for i in f {
 		if i.id = 0 {
 			i.configChange := (i.LastConfigUpdate != FileGetTime(i.configFile, "M"))
