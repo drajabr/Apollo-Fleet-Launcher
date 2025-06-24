@@ -1044,7 +1044,7 @@ PIDsListFromExeName(name) {
 
     return PIDs 
 }
-SendSigInt(pid, force:=false, wait := 0) {
+SendSigInt(pid, force:=false, wait := 1000) {
 	if ProcessExist(pid) {
 		; 1. Tell this script to ignore Ctrl+C and Ctrl+Break
 		DllCall("SetConsoleCtrlHandler", "Ptr", 0, "UInt", 1)
@@ -1202,7 +1202,7 @@ ResetFlags(){
 	SaveUserSettings()
 	w.cmdReady := 1
 }
-KillProcessesExcept(pName, keep := [0], wait := 100){
+KillProcessesExcept(pName, keep := [0], wait := 1000){
 	
 	if Type(keep) != "Array"
 		keep := [keep]  ; Ensure keep is an array
@@ -1231,7 +1231,7 @@ AnyProcessAlive(pids){
 			return true
 	return false
 }
-KillWithoutBlocking(pid, force:=false, wait:=0) {
+KillWithoutBlocking(pid, force:=false, wait:=1000) {
 	SetTimer(()=>SendSigInt(pid, force, wait), -1)
 }
 MaintainGnirehtetProcess(){
