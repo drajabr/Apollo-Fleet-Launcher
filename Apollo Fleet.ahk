@@ -830,7 +830,7 @@ ApplyLockState() {
 }
 
 SaveUserSettings(){
-	global userSettings, savedSettings, currentlySelectedIndex
+	global userSettings, savedSettings
 	; TODO verify settings before save? 
 	savedSettings := DeepClone(userSettings)
 	WriteSettingsFile(savedSettings)
@@ -849,7 +849,6 @@ HandleLockButton(*) {
 			UpdateWindowPosition()
 			userSettings["Window"].cmdApply := 1
 			SaveUserSettings()
-			;HandleLockButton()
 			Reload
 		}
 	}
@@ -1584,14 +1583,6 @@ CleanScrcpyMicProcess(){
 		UrgentSettingWrite(savedSettings, "Android")
 	}
 }
-CleanScrcpyCamProcess(){
-	global savedSettings, guiItems
-	a := savedSettings["Android"]
-	if SendSigInt(a.scrcpyCamPID, true) {
-		a.scrcpyCamPID := 0
-		UrgentSettingWrite(savedSettings, "Android")
-	}
-}
 
 bootstrapApollo(){
 	global savedSettings, guiItems, currentlySelectedIndex, apolloBootsraped
@@ -1625,8 +1616,9 @@ bootstrapAndroid() {
 	global savedSettings, guiItems, androidDevicesMap, adbReady, androidBootsraped
 	savedRequire := savedSettings["Android"].MicEnable || savedSettings["Android"].CamEnable
 	userRequire := userSettings["Android"].MicEnable || userSettings["Android"].CamEnable
-	if savedRequire || userRequire{
+	if savedRequire || userRequire {
 		if !adbReady {
+			KillProcessesExcept("adb.exe", keep, 5000)
 			SetTimer(RefreshAdbDevices , 1000)
 			keep := []
 			if savedSettings["Android"].MicEnable
@@ -1637,13 +1629,8 @@ bootstrapAndroid() {
 			
 			if savedSettings["Android"].MicEnable
 				SetTimer(MaintainScrcpyMicProcess, 500)
-			else if savedSettings["Android"].scrcpyMicPID != 0
-				CleanScrcpyMicProcess()
-			
 			if savedSettings["Android"].CamEnable
 				SetTimer(MaintainScrcpyCamProcess, 500)
-			else if savedSettings["Android"].scrcpyCamPID != 0
-				CleanScrcpyCamProcess()
 		}
 	} else {
 		SetTimer(() => KillProcessesExcept("adb.exe", , 5000), -1) ; TODO maybe use adb-kill server here
