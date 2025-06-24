@@ -843,8 +843,6 @@ HandleLockButton(*) {
 		RefreshAudioSelector()
 		RefreshAdbSelectors()
 	} else {
-		currentlySelectedIndex := 1
-		HandleListChange()
 		if UserSettingsWaiting(){
 			UpdateWindowPosition()
 			userSettings["Window"].cmdApply := 1
