@@ -11,7 +11,7 @@ This is the same concept of my old [Multi-streaming-setup](https://github.com/dr
 
 
 # Current Status
-[![Build](https://github.com/drajabr/Apollo-Fleet-Launcher/actions/workflows/build.yml/badge.svg)](https://github.com/drajabr/Apollo-Fleet-Launcher/actions/workflows/build.yml)
+![image](https://github.com/user-attachments/assets/9d6f084c-6ea6-4ee1-8839-02fa6c9c8955)
 
 
 ## Changelog
