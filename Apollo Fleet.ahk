@@ -151,6 +151,8 @@ ReadSettingsGroup(File, group, Settings) {
 					i.consolePID := IniRead(File, section, "consolePID", 0)
 					i.apolloPID := IniRead(File, section, "apolloPID", 0)
 					i.AudioDevice := IniRead(File, section, "AudioDevice", "Unset")
+					i.AutoCaptureSink := i.AudioDevice = "Unset" ? "Disabled" : "disabled"
+					i.KeepSinkDefault := i.AudioDevice = "Unset" ? "enabled" : "disabled" ; TODO Revise exact behaviour here
 					i.LastConfigUpdate := IniRead(File, section, "LastConfigUpdate", 0)
 					i.LastReadLogLine := IniRead(File, section, "LastReadLogLine", 0)
 					i.LastStatus := IniRead(File, section, "LastStatus", "DISCONNECTED")
@@ -179,7 +181,7 @@ WriteSettingsFile(Settings := Map(), File := "settings.ini", groups := "all") {
 		FileAppend("", File)
 		WriteSettingsFile(Settings, File, groups) ; Retry writing settings if file was just created
 	}
-	while changed && (FileRead(File) = lastContents) {
+	while changed && (FileRead(File) = lastContents) { ; TODO Check do we really need this? 
 		Sleep 10 ; Wait for file to be written
 	}
 }
@@ -533,6 +535,8 @@ HandleInstanceAddButton(*){
 	i.Name := "Instance " . i.id
 	i.Enabled := 1
 	i.AudioDevice := "Unset"
+	i.AutoCaptureSink := i.AudioDevice = "Unset" ? "Disabled" : "disabled"
+	i.KeepSinkDefault := i.AudioDevice = "Unset" ? "enabled" : "disabled" ; TODO Revise exact behaviour here
 	i.configFile := configp "\fleet-" i.id ".conf"
 	i.logFile := configp "\fleet-" i.id ".log"
 	i.stateFile :=  configp "\state-" i.id ".json"
@@ -850,10 +854,10 @@ RestoremyGui() {
 	savedSettings["Window"].lastState := 1
 }
 
-SetIfChanged(map, key, newValue) {
-    if map.Get(key,0) != newValue {
+SetIfChanged(map, option, newValue) {
+    if map.Get(option,0) != newValue {
 		;MsgBox( map.Get(key,0) . " > " . newValue)
-        map.set(key, newValue)
+        map.set(option, newValue)
         return true
     }
     return false
@@ -885,7 +889,6 @@ FleetConfigInit(*) {
 	if !DirExist(p.Config)	
 		DirCreate(p.Config)
 
-	defaultAppsFile := p.Config . "\apps.json"
 	defaultAppsTemplate :="
 	(
 	{
@@ -905,19 +908,17 @@ FleetConfigInit(*) {
 	)"
 	baseApps := jsongo.Parse(defaultAppsTemplate)
 	app := baseApps["apps"][1]
-	if app["terminate-on-pause"] != m.RemoveDisconnected {
+	if app["terminate-on-pause"] != m.RemoveDisconnected 
 		app["terminate-on-pause"] := m.RemoveDisconnected ? "true" : "false"
-		text := jsongo.Stringify(baseApps, , '    ')
-		text := RegExReplace(text, ':\s*"true"', ': true')
-		text := RegExReplace(text, ':\s*"false"', ': false')
-		If FileExist(defaultAppsFile)
-			FileDelete(defaultAppsFile)	; delete old file if exists
-		FileAppend(text, defaultAppsFile)
-	}
+
+	appsJsonText := jsongo.Stringify(baseApps, , '    ')
+	appsJsonText := RegExReplace(appsJsonText, ':\s*"true"', ': true')
+	appsJsonText := RegExReplace(appsJsonText, ':\s*"false"', ': false')
+
 	; TODO: Simple text find and replace instead of JXON maybe enough?
 
 	; assign and create conf files if not created
-	optionMap := Map(
+	optionsMap := Map(
 		"sunshine_name", "Name",
 		"port", "Port",
 		"log_path","logFile", 
@@ -927,54 +928,62 @@ FleetConfigInit(*) {
 		"virtual_sink", "AudioDevice",
 		"audio_sink", "AudioDevice"
 	)
-
+	newConfig := false
 	for i in f {
-		if i.id = 0 {
-			i.configChange := (i.LastConfigUpdate != FileGetTime(i.configFile, "M"))
-		}
-		else if i.id > 0 && i.Enabled = 1 {
-			i.configChange := i.Synced ? ((!FileExist(i.configFile) || f[1].configChange) ? 1 : 0 ) : (!FileExist(i.configFile) || (i.LastConfigUpdate != FileGetTime(i.configFile, "M")))
-			i.thisConf := FileExist(i.configFile) ? (i.Synced ?  MergeConfMap(ConfRead(i.configFile), DeepClone(baseConf)):  ConfRead(i.configFile)) : Map()
-			for option, key in optionMap 
-				if !(option = "virtual_sink" && i.%key% = "Unset")
-					if SetIfChanged(i.thisConf, option, i.%key%)
-						i.configChange := true
-
-			if SetIfChanged(i.thisConf, "headless_mode", "enabled")
+		if i.Enabled = 1 {
+			i.configFileCheck := !FileExist(i.configFile) || (i.LastConfigUpdate != FileGetTime(i.configFile, "M"))
+			i.baseConfig := CreateConfigMap(i)
+			if !FileExist(i.configFile) 
 				i.configChange := true
-			if i.configChange 
-				if i.AudioDevice != "Unset" {
-					i.thisConf.Set("auto_capture_sink", "disabled", "keep_sink_default", "disabled")
-				}
-				else {
-					i.thisConf.Set("auto_capture_sink", "enabled", "keep_sink_default", "enabled")
-					DeleteKeyIfExist(i.thisConf, "virtual_sink")
-					DeleteKeyIfExist(i.thisConf, "audio_sink")
+			else if i.LastConfigUpdate != FileGetTime(i.configFile, "M") {
+				i.currentConfig := ConfRead(i.configFile)
+				for option, value in i.baseConfig
+					if SetIfChanged(i.currentConfig, option, value)
+						i.configChange := true
+			}
+			else 
+				i.currentConfig := i.baseConfig
 
-				}
-			if !FileExist(i.configFile) || i.configChange {
-				ConfWrite(i.configFile, i.thisConf)
+			if i.configChange {
+				ConfWrite(i.configFile, i.currentConfig)
 				i.LastConfigUpdate := FileGetTime(i.configFile, "M")
-				newConf := true
+				newConfig := true
 			}
 			if !FileExist(i.appsFile) {
-				FileAppend(text, i.appsFile)
-			} else if appsFileChanged {
+				FileAppend(appsJsonText, i.appsFile)
+			} else if i.configChange {
 				; TODO proper per instance apps file handling
 				FileDelete(i.appsFile)	; delete old file if exists
-				FileAppend(text, i.appsFile)	; write new file
+				FileAppend(appsJsonText, i.appsFile)	; write new file
 			}
 		}
 	}
-	if f[1].LastConfigUpdate != FileGetTime(f[1].configFile, "M") {
-		f[1].LastConfigUpdate := FileGetTime(f[1].configFile, "M")
-		f[1].configChange := 1
-	} else
-		f[1].configChange := 0
-	if newConf
+	if newConfig
 		UrgentSettingWrite(savedSettings, "Fleet")
 }
-
+CreateConfigMap(instance){
+	optionsMap := Map(
+		"sunshine_name", "Name",
+		"port", "Port",
+		"log_path","logFile", 
+		"file_state", "stateFile",
+		"credentials_file", "stateFile",
+		"file_apps", "appsFile",
+		"virtual_sink", "AudioDevice",
+		"audio_sink", "AudioDevice",
+		"auto_capture_sink", "AudioCaptureSingleDevice",
+		"keep_sink_default", "AudioCaptureSingleDevice"
+	)
+	staticOptions := (
+		"headless_mode", "enabled"
+	)
+	configMap := Map()
+	for option, key in optionsMap 
+		SetIfChanged(configMap, option, i.%key%)
+	for option, key in staticOptions
+		SetIfChanged(configMap, option, key)
+	return configMap
+}
 bootstrapSettings() {
 	global savedSettings := Map(), userSettings := Map(), runtimeSettings := Map()
 
