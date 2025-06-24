@@ -1524,7 +1524,7 @@ MaintainScrcpyMicProcess() {
 		return
 
     deviceConnected := androidDevicesMap.Has(a.MicDeviceID) && androidDevicesMap[a.MicDeviceID] = "Connected"
-    processRunning := a.scrcpyMicPID ? ProcessExist(a.scrcpyMicPID) : ProcessExist(newPID)
+    processRunning := a.scrcpyMicPID ? ProcessExist(a.scrcpyMicPID) : 0
 
 	if (deviceConnected && !processRunning) {        
 		if ProcessExist(a.scrcpyMicPID)
@@ -1555,7 +1555,7 @@ MaintainScrcpyCamProcess() {
 		return
 
     deviceConnected := androidDevicesMap.Has(a.CamDeviceID) && androidDevicesMap[a.CamDeviceID] = "Connected"
-    processRunning := a.scrcpyCamPID ? ProcessExist(a.scrcpyCamPID) : ProcessExist(newPID)
+    processRunning := a.scrcpyCamPID ? ProcessExist(a.scrcpyCamPID) : 0
 
     if (deviceConnected && !processRunning) {
 		if ProcessExist(a.scrcpyCamPID) 
