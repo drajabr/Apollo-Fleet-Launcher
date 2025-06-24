@@ -135,10 +135,12 @@ ReadSettingsGroup(File, group, Settings) {
 			f := Settings["Fleet"]
             configp := Settings["Paths"].Config
             sections := StrSplit(IniRead(File), "`n")
+			instanceNumber := 1
             for section in sections 
                 if (SubStr(section, 1, 8) = "Instance") {
                     i := {}
-					i.id := IsNumber(SubStr(section, -1)) ? SubStr(section, -1) : A_Index
+					i.id := instanceNumber
+					instanceNumber += 1
 					i.Name := IniRead(File, section, "Name", "i" . A_Index)
 					i.Port := IniRead(File, section, "Port", 11000 + A_Index * 1000)
 					i.Enabled := IniRead(File, section, "Enabled", 1)
@@ -153,9 +155,26 @@ ReadSettingsGroup(File, group, Settings) {
 					i.KeepSinkDefault := i.AudioDevice = "Unset" ? "enabled" : "disabled" ; TODO Revise exact behaviour here
 					f.Push(i)
                 }
+			if f.Length = 0 {
+				i := {} ; Create a new object for each i
+				i.id := 1
+				i.Port := 11000
+				i.Name := "Instance " . i.id
+				i.Enabled := 1
+				i.AudioDevice := "Unset"
+				i.AutoCaptureSink := i.AudioDevice = "Unset" ? "Disabled" : "disabled"
+				i.KeepSinkDefault := i.AudioDevice = "Unset" ? "enabled" : "disabled" ; TODO Revise exact behaviour here
+				i.configFile := configp "\fleet-" i.id ".conf"
+				i.logFile := configp "\fleet-" i.id ".log"
+				i.stateFile :=  configp "\state-" i.id ".json"
+				i.appsFile := configp "\apps-" i.id ".json"
+				i.stateFile := configp "\state-" i.id ".json"	
+				i.consolePID := 0
+				i.apolloPID := 0	
+				f.Push(i)
+			}
     }
 }
-
 WriteSettingsFile(Settings := Map(), File := "settings.ini", groups := "all") {
     if FileExist(File) {
 		lastContents := FileRead(File)
@@ -239,7 +258,6 @@ WriteSettingsGroup(Settings, File, group) {
 				IniWrite(i.consolePID, File, section, "consolePID")
 				IniWrite(i.apolloPID, File, section, "apolloPID")
 				IniWrite(i.AudioDevice, File, section, "AudioDevice")
-				IniWrite(i.LastConfigUpdate, File, section, "LastConfigUpdate")
 				; IniWrite(i.Audio, File, section, "Audio") ; TODO
 			}
 	}
@@ -614,7 +632,7 @@ HandleReloadButton(*) {
 
 	if settingsLocked {
 		UpdateWindowPosition()
-		savedSettings["Window"].cmdReload := 1
+		userSettings["Window"].cmdReload := 1
 		DeleteAllTimers()
 		if false {
 			; TODO maybe add seperate button to restart sertvices apart from apolo (possibly restart button)
@@ -648,7 +666,6 @@ HandleReloadButton(*) {
 					SendSigInt(process, true)
 			}
 		}
-
 		Reload
 	}
 	else {
@@ -749,6 +766,9 @@ DeepCompare(a, b, path := "") {
 ; Returns 1 if savedSettings vs. userSettings differ anywhere (skips "Window"), else 0  
 UserSettingsWaiting() {
     global savedSettings, userSettings
+	w := userSettings["Window"]
+	if !w.cmdReady
+		return false
 	for category in userSettings
 		if category != "Window" && DeepCompare(savedSettings[category], userSettings[category], category){
 			return true
@@ -830,15 +850,15 @@ HandleLockButton(*) {
 			userSettings["Window"].cmdApply := 1
 			SaveUserSettings()
 			;HandleLockButton()
-			Reload
+			;Reload
 		}
 	}
 }
 ExitMyApp() {
 	global myGui, savedSettings
 	UpdateWindowPosition()
-	savedSettings["Window"].cmdExit := 1
-	WriteSettingsFile(savedSettings)
+	userSettings["Window"].cmdExit := 1
+	SaveUserSettings()
 	myGui.Destroy()
 	ExitApp()
 }
@@ -1180,8 +1200,8 @@ ResetFlags(){
 	w.cmdReload := 0
 	w.cmdExit := 0
 	w.cmdApply := 0
-	w.cmdReady := 1
 	SaveUserSettings()
+	w.cmdReady := 1
 }
 KillProcessesExcept(pName, keep := [0], wait := 100){
 	
@@ -1244,7 +1264,7 @@ UpdateStatusArea() {
 	f := savedSettings["Fleet"]
 	a := savedSettings["Android"]
 	if  msgTimeout {
-		valid := f.Length < 1
+		valid := f.Length > 0
 		apolloRunning := valid ? 1 : 0
 		for i in f {
 			if i.Enabled = 0
@@ -1317,14 +1337,14 @@ FleetInitApolloLogWatch() {
 
     for i in savedSettings["Fleet"]
         if i.Enabled 
-			CreateTimerForInstance(i.id)
+			CreateTimerForInstance(A_Index)
 }
 CreateTimerForInstance(id) {
     SetTimer(() => ProcessApolloLog(id), 500)
 }
 ProcessApolloLog(id) {
 	global savedSettings
-	static LastReadLogLine := -1
+	static LastReadLogLine := 0
 
 	i := savedSettings["Fleet"][id]
 
@@ -1638,7 +1658,7 @@ if !savedSettings["Manager"].ShowErrors{
 	OnError(HandleError, -1)  ; -1 = override default behavior
 
 	HandleError(err, mode) {
-			HandleReloadButton()
+			;HandleReloadButton()
 			return true
 			; TODO pipe the error message to the status area
 	}
@@ -1656,6 +1676,11 @@ SetTimer(bootstrapAndroid, -1)
 SetTimer UpdateStatusArea, 1000
 
 FinishBootStrap() {
+	global apolloBootsraped, gnirehtetBootsraped, androidBootsraped
+	If !(savedSettings["Android"].MicEnable || savedSettings["Android"].CamEnable)
+		androidBootsraped := true
+	if !savedSettings["Android"].ReverseTethering
+		gnirehtetBootsraped := true
 	if !apolloBootsraped || !androidBootsraped || !gnirehtetBootsraped
 		return false
 	InitGuiItemsEvents()
