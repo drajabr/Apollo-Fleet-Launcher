@@ -702,18 +702,18 @@ DeepClone(thing) {
 
 DeepCompare(a, b, path := "") {
     if (Type(a) != Type(b)) {
-        MsgBox("Type mismatch at " . (path = "" ? "root" : path) . ": " . Type(a) . " vs " . Type(b))
+        ;MsgBox("Type mismatch at " . (path = "" ? "root" : path) . ": " . Type(a) . " vs " . Type(b))
         return 1
     }
 
     if (Type(a) = "Map") {
         if a.Count != b.Count {
-            MsgBox("Map count difference at " . (path = "" ? "root" : path) . ": " . a.Count . " vs " . b.Count)
+            ;MsgBox("Map count difference at " . (path = "" ? "root" : path) . ": " . a.Count . " vs " . b.Count)
             return 1
         }
         for key, val in a {
             if !b.Has(key) {
-                MsgBox("Missing key in second map at " . (path = "" ? "root" : path) . ": " . key)
+                ;MsgBox("Missing key in second map at " . (path = "" ? "root" : path) . ": " . key)
                 return 1
             }
             currentPath := path = "" ? String(key) : path . "." . String(key)
@@ -725,7 +725,7 @@ DeepCompare(a, b, path := "") {
 
     if (Type(a) = "Array") {
         if a.Length != b.Length {
-            MsgBox("Array length difference at " . (path = "" ? "root" : path) . ": " . a.Length . " vs " . b.Length)
+            ;MsgBox("Array length difference at " . (path = "" ? "root" : path) . ": " . a.Length . " vs " . b.Length)
             return 1
         }
         for index, val in a {
@@ -738,12 +738,12 @@ DeepCompare(a, b, path := "") {
 
     if (Type(a) = "Object") {
         if ObjOwnPropCount(a) != ObjOwnPropCount(b) {
-            MsgBox("Object property count difference at " . (path = "" ? "root" : path) . ": " . ObjOwnPropCount(a) . " vs " . ObjOwnPropCount(b))
+            ;MsgBox("Object property count difference at " . (path = "" ? "root" : path) . ": " . ObjOwnPropCount(a) . " vs " . ObjOwnPropCount(b))
             return 1
         }
         for key in ObjOwnProps(a) {
             if !b.HasOwnProp(key) {
-                MsgBox("Missing property in second object at " . (path = "" ? "root" : path) . ": " . key)
+                ;MsgBox("Missing property in second object at " . (path = "" ? "root" : path) . ": " . key)
                 return 1
             }
             currentPath := path = "" ? key : path . "." . key
@@ -755,7 +755,7 @@ DeepCompare(a, b, path := "") {
 
     ; Primitive (number, string, etc.)
     if (a != b) {
-        MsgBox("Value difference at " . (path = "" ? "root" : path) . ": '" . String(a) . "' vs '" . String(b) . "'")
+        ;MsgBox("Value difference at " . (path = "" ? "root" : path) . ": '" . String(a) . "' vs '" . String(b) . "'")
         return 1
     }
     return 0
@@ -850,7 +850,7 @@ HandleLockButton(*) {
 			userSettings["Window"].cmdApply := 1
 			SaveUserSettings()
 			;HandleLockButton()
-			;Reload
+			Reload
 		}
 	}
 }
@@ -1109,7 +1109,7 @@ FleetLaunchFleet(){
 					keepFiles.Push(i.%file%)
 	}
 
-	KillProcessesExcept("sunshine.exe", keepPIDs, 3000)
+	KillProcessesExcept("sunshine.exe", keepPIDs, 5000)
 
 	Loop Files p.Config . '\*.*' 
 		if !ArrayHas(keepFiles, A_LoopFileFullPath)
@@ -1345,7 +1345,8 @@ CreateTimerForInstance(id) {
 ProcessApolloLog(id) {
 	global savedSettings
 	static LastReadLogLine := 0
-
+	if savedSettings["Fleet"].Length < id
+		return 0
 	i := savedSettings["Fleet"][id]
 
     ; Fix case sensitivity - use consistent casing
@@ -1609,7 +1610,7 @@ bootstrapGnirehtet(){
 		ShowMessage("Starting Gnirehtet...")
 		SetTimer(MaintainGnirehtetProcess, 1000)
 	} else {
-		SetTimer(() => KillProcessesExcept("gnirehtet.exe"), -1)
+		SetTimer(() => KillProcessesExcept("gnirehtet.exe", , 3000), -1)
 	}
 	gnirehtetBootsraped := true
 	FinishBootStrap()
@@ -1626,7 +1627,7 @@ bootstrapAndroid() {
 			keep.Push(savedSettings["Android"].scrcpyMicPID)
 		if savedSettings["Android"].CamEnable
 			keep.Push(savedSettings["Android"].scrcpyCamPID)
-		;KillProcessesExcept("scrcpy.exe", keep)
+		KillProcessesExcept("scrcpy.exe", keep, 3000)
 		
 		if savedSettings["Android"].MicEnable
 			SetTimer(MaintainScrcpyMicProcess, 500)
