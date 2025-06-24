@@ -151,9 +151,6 @@ ReadSettingsGroup(File, group, Settings) {
 					i.AudioDevice := IniRead(File, section, "AudioDevice", "Unset")
 					i.AutoCaptureSink := i.AudioDevice = "Unset" ? "Disabled" : "disabled"
 					i.KeepSinkDefault := i.AudioDevice = "Unset" ? "enabled" : "disabled" ; TODO Revise exact behaviour here
-					i.LastConfigUpdate := IniRead(File, section, "LastConfigUpdate", 0)
-					i.LastReadLogLine := IniRead(File, section, "LastReadLogLine", 0)
-					i.LastStatus := IniRead(File, section, "LastStatus", "DISCONNECTED")
 					f.Push(i)
                 }
     }
@@ -243,8 +240,6 @@ WriteSettingsGroup(Settings, File, group) {
 				IniWrite(i.apolloPID, File, section, "apolloPID")
 				IniWrite(i.AudioDevice, File, section, "AudioDevice")
 				IniWrite(i.LastConfigUpdate, File, section, "LastConfigUpdate")
-				IniWrite(i.LastReadLogLine, File, section, "LastReadLogLine")
-				IniWrite(i.lastStatus, File, section, "LastStatus")
 				; IniWrite(i.Audio, File, section, "Audio") ; TODO
 			}
 	}
@@ -553,9 +548,6 @@ HandleInstanceAddButton(*){
 	i.stateFile := configp "\state-" i.id ".json"	
 	i.consolePID := 0
 	i.apolloPID := 0
-	i.LastConfigUpdate := 0
-	i.LastReadLogLine := 0
-	i.LastStatus := "DISCONNECTED"
 	userSettings["Fleet"].Push(i)
 	RefreshFleetList()
 	currentlySelectedIndex:=i.id
@@ -691,46 +683,65 @@ DeepClone(thing) {
     return thing  ; primitive value
 }
 
-DeepCompare(a, b) {
-    if (Type(a) != Type(b))
+DeepCompare(a, b, path := "") {
+    if (Type(a) != Type(b)) {
+        MsgBox("Type mismatch at " . (path = "" ? "root" : path) . ": " . Type(a) . " vs " . Type(b))
         return 1
+    }
 
     if (Type(a) = "Map") {
-        if a.Count != b.Count
+        if a.Count != b.Count {
+            MsgBox("Map count difference at " . (path = "" ? "root" : path) . ": " . a.Count . " vs " . b.Count)
             return 1
+        }
         for key, val in a {
-            if !b.Has(key)
+            if !b.Has(key) {
+                MsgBox("Missing key in second map at " . (path = "" ? "root" : path) . ": " . key)
                 return 1
-            if DeepCompare(val, b[key])
+            }
+            currentPath := path = "" ? String(key) : path . "." . String(key)
+            if DeepCompare(val, b[key], currentPath)
                 return 1
         }
         return 0
     }
 
     if (Type(a) = "Array") {
-        if a.Length != b.Length
+        if a.Length != b.Length {
+            MsgBox("Array length difference at " . (path = "" ? "root" : path) . ": " . a.Length . " vs " . b.Length)
             return 1
+        }
         for index, val in a {
-            if DeepCompare(val, b[index])
+            currentPath := path = "" ? "[" . index . "]" : path . "[" . index . "]"
+            if DeepCompare(val, b[index], currentPath)
                 return 1
         }
         return 0
     }
 
     if (Type(a) = "Object") {
-        if ObjOwnPropCount(a) != ObjOwnPropCount(b)
+        if ObjOwnPropCount(a) != ObjOwnPropCount(b) {
+            MsgBox("Object property count difference at " . (path = "" ? "root" : path) . ": " . ObjOwnPropCount(a) . " vs " . ObjOwnPropCount(b))
             return 1
+        }
         for key in ObjOwnProps(a) {
-            if !b.HasOwnProp(key)
+            if !b.HasOwnProp(key) {
+                MsgBox("Missing property in second object at " . (path = "" ? "root" : path) . ": " . key)
                 return 1
-            if DeepCompare(a.%key%, b.%key%)
+            }
+            currentPath := path = "" ? key : path . "." . key
+            if DeepCompare(a.%key%, b.%key%, currentPath)
                 return 1
         }
         return 0
     }
 
     ; Primitive (number, string, etc.)
-    return a != b
+    if (a != b) {
+        MsgBox("Value difference at " . (path = "" ? "root" : path) . ": '" . String(a) . "' vs '" . String(b) . "'")
+        return 1
+    }
+    return 0
 }
 
 
@@ -739,8 +750,9 @@ DeepCompare(a, b) {
 UserSettingsWaiting() {
     global savedSettings, userSettings
 	for category in userSettings
-		if category != "Window" && DeepCompare(savedSettings[category], userSettings[category])
+		if category != "Window" && DeepCompare(savedSettings[category], userSettings[category], category){
 			return true
+		}
 	return false
 }
 
@@ -748,7 +760,7 @@ UpdateButtonsLabels(){
 	global guiItems, settingsLocked
 	guiItems["ButtonLockSettings"].Text := (UserSettingsWaiting() && !settingsLocked) ? "Apply" : settingsLocked ? "🔒" : "🔓" 
 	guiItems["ButtonReload"].Text := settingsLocked ?  "Reload" : "Cancel"
-	valid := currentlySelectedIndex <= userSettings["Fleet"].Length
+	valid := currentlySelectedIndex <= userSettings["Fleet"].Length 
 	guiItems["InstanceEnableCheckbox"].Text := valid ? userSettings["Fleet"][currentlySelectedIndex].Enabled ? "Enabled" : "Disabled" : ""
 	; TODO here we could also show the running/not running status of each selected instance 
 }
@@ -815,7 +827,7 @@ HandleLockButton(*) {
 		HandleListChange()
 		if UserSettingsWaiting(){
 			UpdateWindowPosition()
-			savedSettings["Window"].cmdApply := 1
+			userSettings["Window"].cmdApply := 1
 			SaveUserSettings()
 			;HandleLockButton()
 			Reload
@@ -956,7 +968,6 @@ FleetConfigInit(*) {
 		if i.configChange {
 			newConfig := true
 			ConfWrite(i.configFile, i.currentConfig)
-			i.LastConfigUpdate := FileGetTime(i.configFile, "M")
 			if FileExist(i.appsFile)
 				FileDelete(i.appsFile)	; delete old file if exists
 			FileAppend(appsJsonText, i.appsFile)
@@ -1165,13 +1176,12 @@ SetupFleetTask() {
 
 ResetFlags(){
 	global savedSettings, guiItems
-	w := savedSettings["Window"]
+	w := userSettings["Window"]
 	w.cmdReload := 0
 	w.cmdExit := 0
 	w.cmdApply := 0
-	UrgentSettingWrite(savedSettings, "Window")
-	bootstrapSettings()
 	w.cmdReady := 1
+	SaveUserSettings()
 }
 KillProcessesExcept(pName, keep := [0], wait := 100){
 	
@@ -1314,7 +1324,8 @@ CreateTimerForInstance(id) {
 }
 ProcessApolloLog(id) {
 	global savedSettings
-	
+	static LastReadLogLine := -1
+
 	i := savedSettings["Fleet"][id]
 
     ; Fix case sensitivity - use consistent casing
@@ -1325,15 +1336,14 @@ ProcessApolloLog(id) {
     content := FileRead(i.LogFile)
     lines := StrSplit(content, "`n")
     totalLines := lines.Length
-    
-    if totalLines <= i.LastReadLogLine 
+    if totalLines <= LastReadLogLine 
         return 0
     
     status := ""
     
     ; Process only new lines (from LastReadLogLine + 1 to totalLines)
-    Loop totalLines - i.LastReadLogLine {
-        lineIndex := i.LastReadLogLine + A_Index
+    Loop totalLines - LastReadLogLine {
+        lineIndex := LastReadLogLine + A_Index
         if lineIndex <= totalLines {
             line := lines[lineIndex]
             
@@ -1344,13 +1354,8 @@ ProcessApolloLog(id) {
         }
     }
 
-    i.LastReadLogLine := totalLines
-    
-    if status != "" && i.LastStatus != status{        
-		i.LastStatus := status
-		return 1
-    }
-    
+    LastReadLogLine := totalLines
+
     return 0
 }
 
