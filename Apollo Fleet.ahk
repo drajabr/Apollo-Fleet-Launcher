@@ -1618,7 +1618,7 @@ bootstrapAndroid() {
 	userRequire := userSettings["Android"].MicEnable || userSettings["Android"].CamEnable
 	if savedRequire || userRequire {
 		if !adbReady {
-			KillProcessesExcept("adb.exe", keep, 5000)
+			KillProcessesExcept("adb.exe", , 5000)
 			SetTimer(RefreshAdbDevices , 1000)
 			keep := []
 			if savedSettings["Android"].MicEnable
