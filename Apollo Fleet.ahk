@@ -107,7 +107,6 @@ ReadSettingsGroup(File, group, Settings) {
 			w.cmdReload := IniRead(File, "Window", "cmdReload", 0)
 			w.cmdExit := IniRead(File, "Window", "cmdExit", 0)
 			w.cmdApply := IniRead(File, "Window", "cmdApply", 0)
-			w.cmdReady := 0
         case "Paths":
             base := A_ScriptDir
 			p := Settings["Paths"]
@@ -772,7 +771,7 @@ DeepCompare(a, b, path := "") {
 UserSettingsWaiting() {
     global savedSettings, userSettings
 	w := userSettings["Window"]
-	if !w.cmdReady
+	if !initDone
 		return false
 	for category in userSettings
 		if category != "Window" && DeepCompare(savedSettings[category], userSettings[category], category){
@@ -1199,13 +1198,13 @@ SetupFleetTask() {
 }
 
 ResetFlags(){
-	global savedSettings, guiItems
+	global userSettings, guiItems, initDone
 	w := userSettings["Window"]
 	w.cmdReload := 0
 	w.cmdExit := 0
 	w.cmdApply := 0
 	SaveUserSettings()
-	w.cmdReady := 1
+	initDone := true
 }
 KillProcessesExcept(pName, keep := [0], wait := 1000){
 	
@@ -1662,7 +1661,7 @@ bootstrapAndroid() {
 
 
 
-global myGui, guiItems, userSettings, savedSettings, runtimeSettings
+global myGui, guiItems, userSettings, savedSettings, runtimeSettings, initDone := false
 bootstrapSettings()
 bootstrapGUI()
 
@@ -1693,5 +1692,4 @@ FinishBootStrap() {
 		return false
 	InitGuiItemsEvents()
 	ResetFlags()
-	return true
 }
