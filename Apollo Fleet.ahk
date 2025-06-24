@@ -835,8 +835,6 @@ global settingsLocked := 1
 HandleLockButton(*) {
     global guiItems, settingsLocked, savedSettings, userSettings
 	settingsLocked := !settingsLocked
-	ApplyLockState()
-	UpdateButtonsLabels()
 
 	if !settingsLocked { ; to do if got unlocked
 		RefreshFleetList()
@@ -851,6 +849,9 @@ HandleLockButton(*) {
 			Reload
 		}
 	}
+	ApplyLockState()
+	UpdateButtonsLabels()
+
 }
 ExitMyApp() {
 	global myGui, savedSettings
