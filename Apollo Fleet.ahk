@@ -408,13 +408,17 @@ InitGuiItemsEvents(){
 	guiItems["ButtonReload"].Enabled := 1
 	guiItems["ButtonLockSettings"].Enabled := 1
 }
-
+CheckAdbRefresh(){
+	userRequire := userSettings["Android"].MicEnable || userSettings["Android"].CamEnable
+	if userRequire && !adbReady
+		bootstrapAndroid()
+}
 HandleMicCheckBox(*) {
 	global userSettings, guiItems
 
 	guiItems["AndroidMicSelector"].Enabled := guiItems["AndroidMicCheckbox"].Value
 	userSettings["Android"].MicEnable := guiItems["AndroidMicCheckbox"].Value
-		
+	CheckAdbRefresh()
 	RefreshAdbSelectors("Mic")
 	UpdateButtonsLabels()
 }
@@ -432,7 +436,8 @@ HandleCamCheckBox(*) {
 
 	guiItems["AndroidCamSelector"].Enabled := guiItems["AndroidCamCheckbox"].Value
 	userSettings["Android"].CamEnable := guiItems["AndroidCamCheckbox"].Value
-
+	
+	CheckAdbRefresh()
 	RefreshAdbSelectors("Cam")
 	UpdateButtonsLabels()
 }
@@ -1437,10 +1442,13 @@ SyncApolloVolume(appsVol, systemDevice){
 	}
 }
 
-global androidDevicesMap := Map("Unset", "Unset"), androidDevicesList := ["Unset"]
+global androidDevicesMap := Map("Unset", "Unset"), androidDevicesList := ["Unset"], adbReady := false
 RefreshAdbSelectors(item:="") {
 	global guiItems, androidDevicesMap, androidDevicesList
 	a := savedSettings["Android"]
+
+	if !adbReady
+		return 
 
 	micID := a.MicDeviceID
 	camID := a.CamDeviceID
@@ -1489,7 +1497,6 @@ RefreshAdbDevices(){
 	if camID != "Unset" && camID != micID
 		tempMap[camID] := "Disconnected"
 	
-
 	result := StdoutToVar('"' p.adbExe '" devices', , "UTF-8")
 	output := result.Output
 	for key, value in tempMap
@@ -1617,26 +1624,31 @@ bootstrapGnirehtet(){
 
 bootstrapAndroid() {
 	global savedSettings, guiItems, androidDevicesMap, adbReady, androidBootsraped
-	if savedSettings["Android"].MicEnable || savedSettings["Android"].CamEnable {
-		global adbReady := false
-
-		SetTimer(RefreshAdbDevices , 1000)
-		keep := []
-		if savedSettings["Android"].MicEnable
-			keep.Push(savedSettings["Android"].scrcpyMicPID)
-		if savedSettings["Android"].CamEnable
-			keep.Push(savedSettings["Android"].scrcpyCamPID)
-		KillProcessesExcept("scrcpy.exe", keep, 3000)
-		
-		if savedSettings["Android"].MicEnable
-			SetTimer(MaintainScrcpyMicProcess, 500)
-		else if savedSettings["Android"].scrcpyMicPID != 0
-			CleanScrcpyMicProcess()
-		
-		if savedSettings["Android"].CamEnable
-			SetTimer(MaintainScrcpyCamProcess, 500)
-		else if savedSettings["Android"].scrcpyCamPID != 0
-			CleanScrcpyCamProcess()
+	savedRequire := savedSettings["Android"].MicEnable || savedSettings["Android"].CamEnable
+	userRequire := userSettings["Android"].MicEnable || userSettings["Android"].CamEnable
+	if savedRequire || userRequire{
+		if !adbReady {
+			SetTimer(RefreshAdbDevices , 1000)
+			keep := []
+			if savedSettings["Android"].MicEnable
+				keep.Push(savedSettings["Android"].scrcpyMicPID)
+			if savedSettings["Android"].CamEnable
+				keep.Push(savedSettings["Android"].scrcpyCamPID)
+			KillProcessesExcept("scrcpy.exe", keep, 5000)
+			
+			if savedSettings["Android"].MicEnable
+				SetTimer(MaintainScrcpyMicProcess, 500)
+			else if savedSettings["Android"].scrcpyMicPID != 0
+				CleanScrcpyMicProcess()
+			
+			if savedSettings["Android"].CamEnable
+				SetTimer(MaintainScrcpyCamProcess, 500)
+			else if savedSettings["Android"].scrcpyCamPID != 0
+				CleanScrcpyCamProcess()
+		}
+	} else {
+		SetTimer(() => KillProcessesExcept("adb.exe", , 5000), -1) ; TODO maybe use adb-kill server here
+		SetTimer(() => KillProcessesExcept("scrcpy.exe", , 5000), -1) ; TODO maybe use adb-kill server here
 	}
 	androidBootsraped := true
 	FinishBootStrap()
@@ -1677,10 +1689,6 @@ SetTimer UpdateStatusArea, 1000
 
 FinishBootStrap() {
 	global apolloBootsraped, gnirehtetBootsraped, androidBootsraped
-	If !(savedSettings["Android"].MicEnable || savedSettings["Android"].CamEnable)
-		androidBootsraped := true
-	if !savedSettings["Android"].ReverseTethering
-		gnirehtetBootsraped := true
 	if !apolloBootsraped || !androidBootsraped || !gnirehtetBootsraped
 		return false
 	InitGuiItemsEvents()
