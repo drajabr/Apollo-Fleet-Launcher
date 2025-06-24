@@ -558,8 +558,8 @@ HandleInstanceAddButton(*){
 	i.LastStatus := "DISCONNECTED"
 	userSettings["Fleet"].Push(i)
 	RefreshFleetList()
+	currentlySelectedIndex:=i.id
 	guiItems["FleetListBox"].Choose(i.id)
-	ReflectSettings(userSettings)
 	}
 }
 HandleInstanceDeleteButton(*){ 
@@ -567,7 +567,7 @@ HandleInstanceDeleteButton(*){
 	if (currentlySelectedIndex > 0){ ; TODO Remake this?
 		userSettings["Fleet"].RemoveAt(currentlySelectedIndex) ; MUST USE REMOVEAT INSTEAD OF DELETE TO REMOVE THE ITEM COMPLETELY NOT JUST ITS VALUE
 		guiItems["FleetListBox"].Delete(currentlySelectedIndex)
-		currentlySelectedIndex -= 1
+		currentlySelectedIndex -= currentlySelectedIndex - 1
 		RefreshFleetList()
 		HandleListChange()
 	}
@@ -802,25 +802,24 @@ SaveUserSettings(){
 global settingsLocked := 1
 HandleLockButton(*) {
     global guiItems, settingsLocked, savedSettings, userSettings
-	if !UserSettingsWaiting() {
-		settingsLocked := !settingsLocked
-		if !settingsLocked { ; to do if got unlocked
-			RefreshFleetList()
-			RefreshAudioSelector()
-			RefreshAdbSelectors()
-		}
-		ApplyLockState()
-		UpdateButtonsLabels()
+	settingsLocked := !settingsLocked
+	ApplyLockState()
+	UpdateButtonsLabels()
+
+	if !settingsLocked { ; to do if got unlocked
+		RefreshFleetList()
+		RefreshAudioSelector()
+		RefreshAdbSelectors()
 	} else {
 		currentlySelectedIndex := 1
 		HandleListChange()
-		; hence we need to save settings "clone staged into active and save them"
-		;MsgBox(savedSettings["Android"].MicDeviceID . " > " . userSettings["Android"].MicDeviceID)
-		UpdateWindowPosition()
-		savedSettings["Window"].cmdApply := 1
-		SaveUserSettings()
-		;HandleLockButton()
-		Reload
+		if UserSettingsWaiting(){
+			UpdateWindowPosition()
+			savedSettings["Window"].cmdApply := 1
+			SaveUserSettings()
+			;HandleLockButton()
+			Reload
+		}
 	}
 }
 ExitMyApp() {
