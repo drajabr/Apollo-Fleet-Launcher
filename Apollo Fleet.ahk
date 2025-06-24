@@ -350,6 +350,8 @@ ReflectSettings(Settings){
 	;guiItems["InstanceAudioSelector"].Enabled :=0
 	guiItems["FleetListBox"].Delete()
 	guiItems["FleetListBox"].Add(EveryInstanceProp(Settings))
+	instanceCount := userSettings["Fleet"].Length
+	currentlySelectedIndex := instanceCount >= guiItems["FleetListBox"].Value > 0 ? guiItems["FleetListBox"].Value : 1 
 	valid := currentlySelectedIndex <= savedSettings["Fleet"].Length
 	guiItems["InstanceNameBox"].Value := valid ? savedSettings["Fleet"][currentlySelectedIndex].Name : ""
 	guiItems["InstancePortBox"].Value := valid ? savedSettings["Fleet"][currentlySelectedIndex].Port : ""
@@ -583,8 +585,7 @@ HandleListChange(*) {
 	if !valid
 		return
 	instanceCount := userSettings["Fleet"].Length
-	currentlySelectedIndex := guiItems["FleetListBox"].Value
-	currentlySelectedIndex := currentlySelectedIndex <= instanceCount ? currentlySelectedIndex : instanceCount
+	currentlySelectedIndex := instanceCount >= guiItems["FleetListBox"].Value > 0 ? guiItems["FleetListBox"].Value : 1 
 	i := userSettings["Fleet"][currentlySelectedIndex]
 	guiItems["InstanceNameBox"].Value := i.Name
 	guiItems["InstancePortBox"].Value := i.Port
@@ -740,15 +741,19 @@ DeepCompare(a, b) {
 ; Returns 1 if savedSettings vs. userSettings differ anywhere (skips "Window"), else 0  
 UserSettingsWaiting() {
     global savedSettings, userSettings
-    return DeepCompare(savedSettings, userSettings)
+	changed := false
+	for category in userSettings
+    	changed := DeepCompare(savedSettings[category], userSettings[category])
+	return
 }
 
 UpdateButtonsLabels(){
 	global guiItems, settingsLocked
-	guiItems["ButtonLockSettings"].Text := UserSettingsWaiting() && !settingsLocked ? "Apply" : settingsLocked ? "🔒" : "🔓" 
+	guiItems["ButtonLockSettings"].Text := (UserSettingsWaiting() && !settingsLocked) ? "Apply" : settingsLocked ? "🔒" : "🔓" 
 	guiItems["ButtonReload"].Text := settingsLocked ?  "Reload" : "Cancel"
 	valid := currentlySelectedIndex <= savedSettings["Fleet"].Length
 	guiItems["InstanceEnableCheckbox"].Text := valid ? userSettings["Fleet"][currentlySelectedIndex].Enabled ? "Enabled" : "Disabled" : ""
+	; TODO here we could also show the running/not running status of each selected instance 
 }
 ApplyLockState() {
 	global settingsLocked, guiItems, userSettings, currentlySelectedIndex
