@@ -150,8 +150,7 @@ ReadSettingsGroup(File, group, Settings) {
 					i.consolePID := IniRead(File, section, "consolePID", 0)
 					i.apolloPID := IniRead(File, section, "apolloPID", 0)
 					i.AudioDevice := IniRead(File, section, "AudioDevice", "Unset")
-					i.AutoCaptureSink := i.AudioDevice = "Unset" ? "Disabled" : "disabled"
-					i.KeepSinkDefault := i.AudioDevice = "Unset" ? "enabled" : "disabled" ; TODO Revise exact behaviour here
+					i.AutoCaptureSink := i.AudioDevice = "Unset" ? "enabled" : "disabled"
 					f.Push(i)
                 }
 			if f.Length = 0 {
@@ -161,8 +160,7 @@ ReadSettingsGroup(File, group, Settings) {
 				i.Name := "Instance " . i.id
 				i.Enabled := 1
 				i.AudioDevice := "Unset"
-				i.AutoCaptureSink := i.AudioDevice = "Unset" ? "Disabled" : "disabled"
-				i.KeepSinkDefault := i.AudioDevice = "Unset" ? "enabled" : "disabled" ; TODO Revise exact behaviour here
+				i.AutoCaptureSink := i.AudioDevice = "Unset" ? "enabled" : "disabled"
 				i.configFile := configp "\fleet-" i.id ".conf"
 				i.logFile := configp "\fleet-" i.id ".log"
 				i.stateFile :=  configp "\state-" i.id ".json"
@@ -560,8 +558,7 @@ HandleInstanceAddButton(*){
 	i.Name := "Instance " . i.id
 	i.Enabled := 1
 	i.AudioDevice := "Unset"
-	i.AutoCaptureSink := i.AudioDevice = "Unset" ? "Disabled" : "disabled"
-	i.KeepSinkDefault := i.AudioDevice = "Unset" ? "enabled" : "disabled" ; TODO Revise exact behaviour here
+	i.AutoCaptureSink := i.AudioDevice = "Unset" ? "enabled" : "disabled"
 	i.configFile := configp "\fleet-" i.id ".conf"
 	i.logFile := configp "\fleet-" i.id ".log"
 	i.stateFile :=  configp "\state-" i.id ".json"
@@ -974,7 +971,7 @@ FleetConfigInit(*) {
 		i.configChange := false
 		i.baseConfig := CreateConfigMap(i)
 		if !FileExist(i.configFile) {
-			i.currentConfig := i.baseConfig
+			i.currentConfig := DeepClone(i.baseConfig)
 			if MirrorMapItemsIntoAnother(i.baseConfig, i.currentConfig)
 				i.configChange := true
 		} else {
@@ -993,10 +990,10 @@ FleetConfigInit(*) {
 MirrorMapItemsIntoAnother(inputMap, outputMap){
 	modified := false
 		for option, value in inputMap {
+			if MapSetIfChanged(outputMap, option, value)
+				modified := true
 			if value = "Unset" && MapDeleteItemIfExist(outputMap, option)
-				modified := true
-			else if MapSetIfChanged(outputMap, option, value)
-				modified := true
+				modified := !modified
 		}
 	return modified
 }
@@ -1011,15 +1008,14 @@ CreateConfigMap(instance){
 		"virtual_sink", "AudioDevice",
 		"audio_sink", "AudioDevice",
 		"auto_capture_sink", "AutoCaptureSink",
-		"keep_sink_default", "KeepSinkDefault"
 	)
 	staticOptions := Map(
 		"headless_mode", "enabled"
 	)
 
 	configMap := Map()
-	for option, value in optionsMap
-		configMap.Set(option, instance.%value%)
+	for option, value in optionsMap	;TODO depricate this keep_sink_default unset thing
+		configMap.Set(option, option = "keep_sink_default" ? "Unset" : instance.%value%)
 	
 	
 	for option, value in staticOptions

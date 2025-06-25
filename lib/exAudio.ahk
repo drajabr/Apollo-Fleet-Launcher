@@ -545,9 +545,6 @@ class AudioDevice {
 
 
 
-; Many thanks to ntepa for this code 
-; https://www.autohotkey.com/boards/viewtopic.php?t=123256
-
 class AppVolume {
     ISAV := 0
     __New(app:=0, device?) {
@@ -557,39 +554,93 @@ class AppVolume {
         loop se.GetCount() {
             sc := se.GetSession(A_Index - 1).QueryInterface(IAudioSessionControl2)
             pid := sc.GetProcessId()
-            if (pid = app) || (pid && ProcessGetName(pid) = app) {
+            
+            ; Fixed logic: Handle both PID (integer) and process name (string)
+            if app is Integer && pid = app {
+                ; Match by PID
                 this.ISAV := sc.QueryInterface(ISimpleAudioVolume)
                 break
+            } else if app is String && app != "" {
+                ; Match by process name - get process name from PID
+                try {
+                    processName := ProcessGetName(pid)
+                    if (processName = app) {
+                        this.ISAV := sc.QueryInterface(ISimpleAudioVolume)
+                        break
+                    }
+                } catch {
+                    ; Process might have ended, continue to next session
+                    continue
+                }
             }
         }
     }
+    
     GetVolume() {
         if !this.ISAV
-            return
-        return this.ISAV.GetMasterVolume() * 100
+            return -1  ; Return -1 to indicate no audio session found
+        return Round(this.ISAV.GetMasterVolume() * 100, 2)
     }
+    
     ; amount - range from 0 to 100. If number is string and preceded by - or +, amount is relative.
     SetVolume(amount) {
         if !this.ISAV
-            return
-        if amount < 0 || (amount is String && IsInteger(amount) && amount ~= "^(?:\+|-)\d+")
-            amount += this.GetVolume()
+            return false
+        if amount is String && (amount ~= "^[+-]") {
+            ; Relative volume change
+            currentVol := this.GetVolume()
+            if (currentVol = -1)
+                return false
+            amount := currentVol + Integer(amount)
+        }
         amount := Min(Max(amount / 100, 0), 1.00)
         this.ISAV.SetMasterVolume(amount)
+        return true
     }
+    
     GetMute() {
         if !this.ISAV
-            return
-        return this.ISAV && this.ISAV.GetMute() * 100
+            return -1
+        return this.ISAV.GetMute()
     }
+    
     SetMute(bMute) {
         if !this.ISAV
-            return
+            return false
         this.ISAV.SetMute(bMute)
+        return true
     }
-    ToggleMute() => this.SetMute(!this.GetMute())
+    
+    ToggleMute() {
+        if !this.ISAV
+            return false
+        return this.SetMute(!this.GetMute())
+    }
+    
+    ; Helper method to check if audio session was found
+    IsValid() {
+        return this.ISAV != 0
+    }
 }
 
+
+; Example usage:
+; By PID:
+; pids := PIDsListFromExeName("sunshine.exe")
+; for pid in pids {
+;     appVol := AppVolume(pid)
+;     if appVol.IsValid() {
+;         MsgBox("PID: " pid " Volume: " appVol.GetVolume() "%")
+;     } else {
+;         MsgBox("No audio session found for PID: " pid)
+;     }
+; }
+
+; By process name:
+; appVol := AppVolume("sunshine.exe")
+; if appVol.IsValid() {
+;     MsgBox("sunshine.exe Volume: " appVol.GetVolume() "%")
+; }
 
 ; Again, Many thanks to ntepa for this piece of code
 ; https://www.autohotkey.com/boards/viewtopic.php?t=123256
