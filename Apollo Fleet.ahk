@@ -1179,13 +1179,29 @@ SetupFleetTask() {
 
 	if autoLaunch {
 		if !isTask || pathMismatch {
-			exeCmd := A_IsCompiled
-				? exePath                                 ; no quotes here
-				: Format('"{1}" "{2}"', A_AhkPath, exePath)
+			Task := ComObject("Schedule.Service")
+			Task.Connect()
+			rootFolder := Task.GetFolder("\")
+			taskDef := Task.NewTask(0)
 
-			; escape for /TR --> needs outer quotes
-			exeCmd := StrReplace(exeCmd, '"', '\"')
-			RunWait Format('schtasks /Create /TN "{1}" /TR "\"{2}\"" /SC ONLOGON /RL HIGHEST /F', taskName, exeCmd), , "Hide"
+			; Set logon trigger
+			trigger := taskDef.Triggers.Create(9)  ; 9 = Logon
+			trigger.Delay := "PT30S"
+
+			; Set high privileges
+			taskDef.Principal.RunLevel := 1  ; 1 = Highest
+
+			; Set action: this is where we split program & arguments!
+			action := taskDef.Actions.Create(0)  ; 0 = Exec
+			action.Path := A_IsCompiled ? exePath : A_AhkPath
+			action.Arguments := A_IsCompiled ? "" : '"' exePath '"'
+
+			taskDef.RegistrationInfo.Description := "Apollo Fleet Manager"
+			taskDef.Settings.Enabled := true
+			taskDef.Settings.StartWhenAvailable := true
+
+			rootFolder.RegisterTaskDefinition(taskName, taskDef, 6, "", "", 3) ; 6 = create/overwrite, 3 = logon
+
 		} else if !isEnabled {
 			RunWait Format('schtasks /Change /TN "{1}" /ENABLE', taskName), , "Hide"
 		}
@@ -1395,28 +1411,37 @@ MaintainApolloProcesses(){
 }
 InitVolumeSync() {
 	global savedSettings
-	static appsVol := Map()
-    systemDevice := AudioDevice.GetDefault()
-	SetTimer(() => UpdateAppsVolMap(appsVol, systemDevice), 500) ; slower timer to update audio interfaces/default device
 	; TODO don't rely on timer, but use event based approach once apollo starts streaming or any app start playing audio
 	; Alsoe, is there any way to get event from windows when volume level or mute status changes?
-	SetTimer(() => SyncApolloVolume(appsVol, systemDevice), 50)
+	SetTimer(() => SyncApolloVolume(), 50)
 }
-UpdateAppsVolMap(appsVol, systemDevice){
+
+SyncApolloVolume(){
 	global savedSettings
-    systemDevice := AudioDevice.GetDefault()
-	for i in savedSettings["Fleet"]
-		if i.Enabled 
-			if AppVolume(app := i.apolloPID).ISAV
-				appsVol[i.id] := AppVolume(app := i.apolloPID)
-			else if appsVol.Has(i.id)
-				appsVol.Delete(i.id) ; remove from map if not connected or not running
-}
-SyncApolloVolume(appsVol, systemDevice){
+
 	static lastSystemVolume := -1
     static lastSystemMute := -1
-
 	static desiredVolume := 0
+
+	static counter := 0
+	static systemDevice := AudioDevice.GetDefault()
+
+	static appsVol := Map()
+
+	if counter = 0 {
+		systemDevice := AudioDevice.GetDefault()
+		for i in savedSettings["Fleet"]
+			if i.Enabled 
+				if AppVolume(app := i.apolloPID).ISAV
+					appsVol[i.id] := AppVolume(app := i.apolloPID)
+				else if appsVol.Has(i.id)
+					appsVol.Delete(i.id) 
+
+	} else if counter = 10
+		counter := 0
+
+	counter += 1
+		
     ; Get current system volume and mute status
 	if (appsVol.Count = 0) 
 		return
@@ -1586,8 +1611,7 @@ CleanScrcpyMicProcess(){
 
 bootstrapApollo(){
 	global savedSettings, guiItems, currentlySelectedIndex, apolloBootsraped
-	if A_IsCompiled
-		SetupFleetTask()
+	SetupFleetTask()
 	if true {	;savedSettings["Manager"].AutoLaunch to be used for startup task at log on
 		FleetConfigInit()
 		FleetLaunchFleet()
