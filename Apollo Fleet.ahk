@@ -593,7 +593,7 @@ HandleListChange(*) {
 	if currentlySelectedIndex < 1 
 		currentlySelectedIndex := 1
 	if currentlySelectedIndex > userSettings["Fleet"].Length 
-		currentlySelectedIndex := userSettings["Fleet"].Length 
+		currentlySelectedIndex := userSettings["Fleet"].Length
 	valid := currentlySelectedIndex > 0 && currentlySelectedIndex <= userSettings["Fleet"].Length 
 	currentlySelectedIndex := valid ? currentlySelectedIndex : 1
 	instanceCount := userSettings["Fleet"].Length
@@ -606,6 +606,7 @@ HandleListChange(*) {
 	RefreshAudioSelector()
 	guiItems["InstanceAudioSelector"].Text := ArrayHas(audioDevicesList, i.AudioDevice) ? i.AudioDevice : "Unset"
 	guiItems["InstanceEnableCheckbox"].Value := i.Enabled
+	guiItems["InstanceEnableCheckbox"].Text := userSettings["Fleet"][currentlySelectedIndex].Enabled ? "Enabled" : "Disabled"
 	UpdateButtonsLabels()
 }
 UpdateWindowPosition(){
@@ -785,7 +786,6 @@ UpdateButtonsLabels(){
 	global guiItems, settingsLocked
 	guiItems["ButtonLockSettings"].Text := (UserSettingsWaiting() && !settingsLocked) ? "Apply" : settingsLocked ? "🔒" : "🔓" 
 	guiItems["ButtonReload"].Text := settingsLocked ?  "Reload" : "Cancel"
-	guiItems["InstanceEnableCheckbox"].Text := userSettings["Fleet"][currentlySelectedIndex].Enabled ? "Enabled" : "Disabled"
 	; TODO here we could also show the running/not running status of each selected instance 
 }
 ApplyLockState() {
