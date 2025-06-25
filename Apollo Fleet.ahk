@@ -900,13 +900,20 @@ RestoremyGui() {
 	savedSettings["Window"].lastState := 1
 }
 
-SetIfChanged(map, option, newValue) {
+MapSetIfChanged(map, option, newValue) {
     if map.Get(option,0) != newValue {
 		;MsgBox( map.Get(key,0) . " > " . newValue)
         map.set(option, newValue)
         return true
     }
     return false
+}
+MapDeleteItemIfExist(map, option){
+	if map.Has(option){
+		map.Delete(option)
+		return true
+	} else
+		return false
 }
 MergeConfMap(map1, map2) {
     merged := Map()
@@ -963,38 +970,35 @@ FleetConfigInit(*) {
 
 	; TODO: Simple text find and replace instead of JXON maybe enough?
 
-	; assign and create conf files if not created
-	optionsMap := Map(
-		"sunshine_name", "Name",
-		"port", "Port",
-		"log_path","logFile", 
-		"file_state", "stateFile",
-		"credentials_file", "stateFile",
-		"file_apps", "appsFile",
-		"virtual_sink", "AudioDevice",
-		"audio_sink", "AudioDevice"
-	)
 	for i in f {
 		i.configChange := false
 		i.baseConfig := CreateConfigMap(i)
 		if !FileExist(i.configFile) {
-			i.configChange := true
 			i.currentConfig := i.baseConfig
+			if MirrorMapItemsIntoAnother(i.baseConfig, i.currentConfig)
+				i.configChange := true
 		} else {
 			i.currentConfig := ConfRead(i.configFile)
-			for option, value in i.baseConfig
-				if SetIfChanged(i.currentConfig, option, value)
-					i.configChange := true
+			if MirrorMapItemsIntoAnother(i.baseConfig, i.currentConfig)
+				i.configChange := true
 		}
-
 		if i.configChange {
-			newConfig := true
 			ConfWrite(i.configFile, i.currentConfig)
 			if FileExist(i.appsFile)
 				FileDelete(i.appsFile)	; delete old file if exists
 			FileAppend(appsJsonText, i.appsFile)
 		}
 	}
+}
+MirrorMapItemsIntoAnother(inputMap, outputMap){
+	modified := false
+		for option, value in inputMap {
+			if value = "Unset" && MapDeleteItemIfExist(outputMap, option)
+				modified := true
+			else if MapSetIfChanged(outputMap, option, value)
+				modified := true
+		}
+	return modified
 }
 CreateConfigMap(instance){
 	optionsMap := Map(
@@ -1012,11 +1016,15 @@ CreateConfigMap(instance){
 	staticOptions := Map(
 		"headless_mode", "enabled"
 	)
+
 	configMap := Map()
-	for option, key in optionsMap 
-		SetIfChanged(configMap, option, instance.%key%)
-	for option, key in staticOptions
-		SetIfChanged(configMap, option, key)
+	for option, value in optionsMap
+		configMap.Set(option, instance.%value%)
+	
+	
+	for option, value in staticOptions
+		configMap.Set(option, value)
+
 	return configMap
 }
 bootstrapSettings() {
@@ -1409,12 +1417,6 @@ MaintainApolloProcesses(){
 	; TODO WATCH APOLLO PIDS AND IN CASE ONE DIES RESTART IT AND RECORD NEW PIDS
 
 }
-InitVolumeSync() {
-	global savedSettings
-	; TODO don't rely on timer, but use event based approach once apollo starts streaming or any app start playing audio
-	; Alsoe, is there any way to get event from windows when volume level or mute status changes?
-	SetTimer(() => SyncApolloVolume(), 50)
-}
 
 SyncApolloVolume(){
 	global savedSettings
@@ -1423,24 +1425,23 @@ SyncApolloVolume(){
     static lastSystemMute := -1
 	static desiredVolume := 0
 
-	static counter := 0
+	static counter := -1
 	static systemDevice := AudioDevice.GetDefault()
 
 	static appsVol := Map()
 
+	counter += 1
+
 	if counter = 0 {
 		systemDevice := AudioDevice.GetDefault()
 		for i in savedSettings["Fleet"]
-			if i.Enabled 
-				if AppVolume(app := i.apolloPID).ISAV
-					appsVol[i.id] := AppVolume(app := i.apolloPID)
-				else if appsVol.Has(i.id)
-					appsVol.Delete(i.id) 
-
+			if i.Enabled && ProcessExist(i.apolloPID)
+				appsVol[i.id] := AppVolume(i.apolloPID)
+			else if appsVol.Has(i.id)
+				appsVol.Delete(i.id)
 	} else if counter = 10
-		counter := 0
+		counter := -1
 
-	counter += 1
 		
     ; Get current system volume and mute status
 	if (appsVol.Count = 0) 
@@ -1459,9 +1460,12 @@ SyncApolloVolume(){
 	} 
 	else {
 		for id, appVol in appsVol {
-			if (appVol.GetVolume() != desiredVolume)
+			if (appVol.GetVolume() != desiredVolume){
+				;MsgBox("System Volume: " systemDevice.GetVolume() " id: " id " CurrentVol: " appVol.GetVolume())
 				appVol.SetVolume(desiredVolume)
+
 			}
+		}
 	}
 }
 
@@ -1618,7 +1622,7 @@ bootstrapApollo(){
 		SetTimer(MaintainApolloProcesses, 1000)
 		FleetInitApolloLogWatch()
 		if savedSettings["Manager"].SyncVolume
-			InitVolumeSync() 
+			SetTimer(SyncApolloVolume, 100)
 	} 
 	apolloBootsraped := true
 	FinishBootStrap()

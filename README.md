@@ -83,6 +83,7 @@ This is the same concept of my old [Multi-streaming-setup](https://github.com/dr
 - [ ] Android Clients: Support Mic with other than scrcpy (like AndroidMic)
 - [ ] Android Clients: Automate virtual Cam (something like tiny obs client?)
 - [ ] Android Clients: Support Cam for Android version below 12 (like DroidCamX)
+- [ ] Android Clients: Possibly bind instance to a device, thus that as soon as it connects launch the client using adb shell?
 
 
 # Many thanks to:
