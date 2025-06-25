@@ -1119,13 +1119,13 @@ FleetLaunchFleet(){
 				FileDelete(A_LoopFileFullPath)
 		
 	exe := savedSettings["Paths"].apolloExe
-	newPID := 0
+	newPID := false
 	for i in f
-		if i.Enabled && i.configChange {	; TODO add test for the instance if it responds or not, also, may check if display is connected deattach it/force exit? 
+		if i.Enabled && (i.configChange || !ProcessExist(i.apolloPID)) {	; TODO add test for the instance if it responds or not, also, may check if display is connected deattach it/force exit? 
 			pids := RunAndGetPIDs(exe, i.configFile)
 			i.consolePID := pids[1]
 			i.apolloPID := pids[2]
-			newPID := 1
+			newPID := true
 		}
 	if newPID
 		UrgentSettingWrite(savedSettings, "Fleet")
