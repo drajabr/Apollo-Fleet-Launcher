@@ -570,7 +570,7 @@ HandleInstanceAddButton(*){
 	i.consolePID := 0
 	i.apolloPID := 0
 	userSettings["Fleet"].Push(i)
-	currentlySelectedIndex += currentlySelectedIndex < userSettings["Fleet"].Length ? 1 : 0
+	currentlySelectedIndex := userSettings["Fleet"].Length
 	RefreshFleetList()
 	HandleListChange()
 	}
@@ -579,7 +579,7 @@ HandleInstanceDeleteButton(*){
 	global userSettings, guiItems, currentlySelectedIndex
 	if (userSettings["Fleet"].Length > 1){ ; TODO Remake this?
 		userSettings["Fleet"].RemoveAt(currentlySelectedIndex) ; MUST USE REMOVEAT INSTEAD OF DELETE TO REMOVE THE ITEM COMPLETELY NOT JUST ITS VALUE
-		currentlySelectedIndex -= currentlySelectedIndex > 1 ? 1 : 0
+		currentlySelectedIndex := currentlySelectedIndex <= userSettings["Fleet"].Length ? currentlySelectedIndex : currentlySelectedIndex - 1
 		RefreshFleetList()
 		HandleListChange()
 	} else
