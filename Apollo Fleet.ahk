@@ -992,8 +992,8 @@ MirrorMapItemsIntoAnother(inputMap, outputMap){
 		for option, value in inputMap {
 			if MapSetIfChanged(outputMap, option, value)
 				modified := true
-			if value = "Unset" && MapDeleteItemIfExist(outputMap, option)
-				modified := !modified
+			if value = "Unset"
+				MapDeleteItemIfExist(outputMap, option)
 		}
 	return modified
 }
