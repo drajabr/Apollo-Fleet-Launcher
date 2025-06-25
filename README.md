@@ -14,6 +14,9 @@ This is the same concept of my old [Multi-streaming-setup](https://github.com/dr
 [![Build](https://github.com/drajabr/Apollo-Fleet-Launcher/actions/workflows/build.yml/badge.svg)](https://github.com/drajabr/Apollo-Fleet-Launcher/actions/workflows/build.yml)
 
 ## Changelog
+* v0.2.9hotfix - Standalone operation hotfix
+  * FIX: Launch process if its killed or not launched
+  * FIX: Delay startup run 30 sec to allow systray init properly
 * v0.2.9 - Standalone operation fix
   * FIX: Don't use default instance as a reference
   * FIX: Non-blocking termination of unnecessary processes
