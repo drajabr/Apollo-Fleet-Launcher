@@ -543,25 +543,77 @@ class AudioDevice {
     }
 }
 
+GetDeviceID(deviceName) {
+    de := IMMDeviceEnumerator()
+    deviceCollection := de.EnumAudioEndpoints(0, 1)
+    
+    loop deviceCollection.GetCount() {
+        device := deviceCollection.Item(A_Index - 1)
+        tempAudioDevice := AudioDevice("")
+        tempAudioDevice.device := device
+        
+        if (tempAudioDevice.GetName() = deviceName)
+            return device.GetId()
+    }
+    return ""
+}
+
+GetDeviceInfo() {
+    de := IMMDeviceEnumerator()
+    deviceCollection := de.EnumAudioEndpoints(0, 1)  ; Render devices, active only
+    
+    info := "Audio Devices:`n"
+    loop deviceCollection.GetCount() {
+        device := deviceCollection.Item(A_Index - 1)
+        
+        ; Create temporary AudioDevice to get name
+        tempAudio := AudioDevice("")
+        tempAudio.device := device
+        name := tempAudio.GetName()
+        id := device.GetId()
+        
+        info .= A_Index . ". " . name . "`n"
+        info .= "   ID: " . id . "`n`n"
+    }
+    
+    return info
+}
 
 
 class AppVolume {
     ISAV := 0
     __New(app:=0, device?) {
         de := IMMDeviceEnumerator()
-        IMMD := IsSet(device) ? de.GetDevice(device) : de.GetDefaultAudioEndpoint()
+        
+        ; Handle device parameter properly
+        if IsSet(device) {
+            ; Check if device is a device ID (GUID format) or device name
+            if RegExMatch(device, "^{.*}$") {
+                ; It's a device ID (GUID format)
+                IMMD := de.GetDevice(device)
+            } else {
+                ; It's a device name, need to find the device ID
+                deviceId := GetDeviceID(device)
+                if (deviceId = "") {
+                    ; Device not found, fall back to default
+                    IMMD := de.GetDefaultAudioEndpoint()
+                } else {
+                    IMMD := de.GetDevice(deviceId)
+                }
+            }
+        } else {
+            ; No device specified, use default
+            IMMD := de.GetDefaultAudioEndpoint()
+        }
+        
         se := IMMD.Activate(IAudioSessionManager2).GetSessionEnumerator()
         loop se.GetCount() {
             sc := se.GetSession(A_Index - 1).QueryInterface(IAudioSessionControl2)
             pid := sc.GetProcessId()
-            
-            ; Fixed logic: Handle both PID (integer) and process name (string)
             if app is Integer && pid = app {
-                ; Match by PID
                 this.ISAV := sc.QueryInterface(ISimpleAudioVolume)
                 break
             } else if app is String && app != "" {
-                ; Match by process name - get process name from PID
                 try {
                     processName := ProcessGetName(pid)
                     if (processName = app) {
@@ -569,7 +621,6 @@ class AppVolume {
                         break
                     }
                 } catch {
-                    ; Process might have ended, continue to next session
                     continue
                 }
             }

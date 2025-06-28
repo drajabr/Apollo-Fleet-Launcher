@@ -122,13 +122,13 @@ ReadSettingsGroup(File, group, Settings) {
         case "Android":
             a := Settings["Android"]
             a.ReverseTethering := IniRead(File, "Android", "ReverseTethering", 1) = "1" ? 1 : 0
-            a.gnirehtetPID := IniRead(File, "Android", "gnirehtetPID", 0)
+            a.gnirehtetPID := Integer(IniRead(File, "Android", "gnirehtetPID", 0))
             a.MicDeviceID := IniRead(File, "Android", "MicDeviceID", "Unset")
 			a.MicEnable := IniRead(File, "Android", "MicEnable", a.MicDeviceID = "Unset" ? 0 : 1) = "1" ? 1 : 0
-            a.scrcpyMicPID := IniRead(File, "Android", "scrcpyMicPID", 0)
+            a.scrcpyMicPID := Integer(IniRead(File, "Android", "scrcpyMicPID", 0))
             a.CamDeviceID := IniRead(File, "Android", "CamDeviceID", "Unset")
 			a.CamEnable := IniRead(File, "Android", "CamEnable", a.CamDeviceID = "Unset" ? 0 : 1) = "1" ? 1 : 0
-            a.scrcpyCamPID := IniRead(File, "Android", "scrcpyCamPID", 0)
+            a.scrcpyCamPID := Integer(IniRead(File, "Android", "scrcpyCamPID", 0))
         case "Fleet":
 			Settings["Fleet"] := []
 			f := Settings["Fleet"]
@@ -147,8 +147,8 @@ ReadSettingsGroup(File, group, Settings) {
 					i.logFile := configp "\fleet-" i.id ".log"
 					i.appsFile := configp "\apps-" i.id ".json"
 					i.stateFile := configp "\state-" i.id ".json"
-					i.consolePID := IniRead(File, section, "consolePID", 0)
-					i.apolloPID := IniRead(File, section, "apolloPID", 0)
+					i.consolePID := Integer(IniRead(File, section, "consolePID", 0))
+					i.apolloPID := Integer(IniRead(File, section, "apolloPID", 0))
 					i.AudioDevice := IniRead(File, section, "AudioDevice", "Unset")
 					i.AutoCaptureSink := i.AudioDevice = "Unset" ? "enabled" : "disabled"
 					f.Push(i)
@@ -1427,19 +1427,21 @@ SyncApolloVolume(){
 	static appsVol := Map()
 
 	counter += 1
-
+	f := savedSettings["Fleet"]
 	if counter = 0 {
 		systemDevice := AudioDevice.GetDefault()
 		for i in savedSettings["Fleet"]
 			if i.Enabled && ProcessExist(i.apolloPID)
-				appsVol[i.id] := AppVolume(i.apolloPID)
-			else if appsVol.Has(i.id)
-				appsVol.Delete(i.id)
+				if i.AudioDevice = "Unset" && AppVolume(i.apolloPID).IsValid()
+					appsVol[i.apolloPID] := AppVolume(i.apolloPID)
+				else if i.AudioDevice != "Unset" && AppVolume(i.apolloPID, GetDeviceID(i.AudioDevice)).IsValid()
+					appsVol[i.apolloPID] := AppVolume(i.apolloPID, GetDeviceID(i.AudioDevice))
+		for pid, appVol in appsVol
+			if !appVol.IsValid()
+				appsVol.Delete(pid)
 	} else if counter = 10
 		counter := -1
 
-		
-    ; Get current system volume and mute status
 	if (appsVol.Count = 0) 
 		return
 
@@ -1453,16 +1455,10 @@ SyncApolloVolume(){
 		desiredVolume := systemMute ? 0 : systemVolume
 		for id, appVol in appsVol 
 			appVol.SetVolume(desiredVolume)
-	} 
-	else {
-		for id, appVol in appsVol {
-			if (appVol.GetVolume() != desiredVolume){
-				;MsgBox("System Volume: " systemDevice.GetVolume() " id: " id " CurrentVol: " appVol.GetVolume())
+	} else 
+		for pid, appVol in appsVol 
+			if (appVol.GetVolume() != desiredVolume)
 				appVol.SetVolume(desiredVolume)
-
-			}
-		}
-	}
 }
 
 global androidDevicesMap := Map("Unset", "Unset"), androidDevicesList := ["Unset"], adbReady := false
