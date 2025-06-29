@@ -92,7 +92,7 @@ ReadSettingsGroup(File, group, Settings) {
     switch group {
         case "Manager":
 			m := Settings["Manager"]
-			m.AutoLaunch := IniRead(File, "Manager", "AutoLaunch", 1) = "1" ? 1 : 0
+			m.AutoStart := IniRead(File, "Manager", "AutoStart", 1) = "1" ? 1 : 0
             m.SyncVolume := IniRead(File, "Manager", "SyncVolume", 1) = "1" ? 1 : 0
             m.RemoveDisconnected := IniRead(File, "Manager", "RemoveDisconnected", "true")
             m.SyncSettings := IniRead(File, "Manager", "SyncSettings", 1) = "1" ? 1 : 0
@@ -210,7 +210,7 @@ WriteSettingsGroup(Settings, File, group) {
     switch group {
         case "Manager":
 			m := Settings["Manager"]
-			WriteIfChanged(File, "Manager", "AutoLaunch", m.AutoLaunch)
+			WriteIfChanged(File, "Manager", "AutoStart", m.AutoStart)
 			WriteIfChanged(File, "Manager", "SyncVolume", m.SyncVolume)
 			WriteIfChanged(File, "Manager", "RemoveDisconnected", m.RemoveDisconnected)
 			WriteIfChanged(File, "Manager", "ShowErrors", m.ShowErrors)
@@ -279,7 +279,7 @@ InitmyGui() {
 	guiItems["ButtonLockSettings"].Enabled := 0
 
 	myGui.Add("GroupBox", "x318 y0 w196 h90", "Fleet Options")
-	guiItems["FleetAutoLaunchCheckBox"] := myGui.Add("CheckBox", "x334 y16 w162 h23", "Auto Launch Apollo Fleet")
+	guiItems["FleetAutoStartCheckBox"] := myGui.Add("CheckBox", "x334 y16 w162 h23", "Auto Start Apollo Fleet")
 	guiItems["FleetSyncVolCheckBox"] := myGui.Add("CheckBox", "x334 y40 w162 h23", "Sync Device Volume Level")
 	guiItems["FleetRemoveDisconnectCheckbox"] := myGui.Add("CheckBox", "x334 y64 w167 h23", "Remove on Disconnect")
 
@@ -347,7 +347,7 @@ ReflectSettings(Settings){
 	a := Settings["Android"]
 	m := Settings["Manager"]
 	f := Settings["Fleet"]
-	guiItems["FleetAutoLaunchCheckBox"].Value := m.AutoLaunch
+	guiItems["FleetAutoStartCheckBox"].Value := m.AutoStart
 	guiItems["FleetSyncVolCheckBox"].Value := m.SyncVolume
 	guiItems["FleetRemoveDisconnectCheckbox"].Value := m.RemoveDisconnected = "true" ? 1 : 0
 	guiItems["AndroidReverseTetheringCheckbox"].Value := a.ReverseTethering
@@ -390,7 +390,7 @@ InitGuiItemsEvents(){
 	guiItems["AndroidMicSelector"].OnEvent("Change", HandleMicSelector)
 	guiItems["AndroidCamSelector"].OnEvent("Change", HandleCamSelector)
 
-	guiItems["FleetAutoLaunchCheckBox"].OnEvent("Click", HandleCheckBoxes) ; (*) => userSettings["Manager"].AutoLaunch := guiItems["FleetAutoLaunchCheckBox"].Value)
+	guiItems["FleetAutoStartCheckBox"].OnEvent("Click", HandleCheckBoxes) ; (*) => userSettings["Manager"].AutoStart := guiItems["FleetAutoStartCheckBox"].Value)
 	guiItems["FleetSyncVolCheckBox"].OnEvent("Click", HandleCheckBoxes) ;(*) => userSettings["Manager"].SyncVolume := guiItems["FleetSyncVolCheckBox"].Value)
 	guiItems["FleetRemoveDisconnectCheckbox"].OnEvent("Click", HandleCheckBoxes) ;(*) => userSettings["Manager"].RemoveDisconnected := guiItems["FleetRemoveDisconnectCheckbox"].Value)
 	guiItems["InstanceEnableCheckbox"].OnEvent("Click", HandleCheckBoxes)
@@ -493,7 +493,7 @@ TrayIconHandler(wParam, lParam, msg, hwnd) {
 HandleCheckBoxes(*) {
 	global userSettings, guiItems, currentlySelectedIndex
 	userSettings["Android"].ReverseTethering := guiItems["AndroidReverseTetheringCheckbox"].Value
-	userSettings["Manager"].AutoLaunch := guiItems["FleetAutoLaunchCheckBox"].Value
+	userSettings["Manager"].AutoStart := guiItems["FleetAutoStartCheckBox"].Value
 	userSettings["Manager"].SyncVolume := guiItems["FleetSyncVolCheckBox"].Value
 	userSettings["Manager"].RemoveDisconnected := guiItems["FleetRemoveDisconnectCheckbox"].Value ? "true" : "false"
 	valid := currentlySelectedIndex > 0 && currentlySelectedIndex <= userSettings["Fleet"].Length 
@@ -790,7 +790,7 @@ ApplyLockState() {
 	isReadOnly(cond := true) => cond ? "+ReadOnly" : "-ReadOnly"
 
 	textBoxes := ["PathsApolloBox"]
-	checkBoxes := ["InstanceEnableCheckbox", "FleetAutoLaunchCheckBox", "AndroidReverseTetheringCheckbox", "AndroidMicCheckbox", "AndroidCamCheckbox"]
+	checkBoxes := ["InstanceEnableCheckbox", "FleetAutoStartCheckBox", "AndroidReverseTetheringCheckbox", "AndroidMicCheckbox", "AndroidCamCheckbox"]
 	buttons := ["FleetButtonDelete", "FleetButtonAdd", "PathsApolloBrowseButton"]
 	androidSelectors := Map(
 		"AndroidMicSelector", "AndroidMicCheckbox",
@@ -1189,15 +1189,15 @@ ADBWatchDog(*){
 SetupFleetTask() {
     taskName := "Apollo Fleet Launcher"
     exePath := A_ScriptFullPath
-    autoLaunch := savedSettings["Manager"].AutoLaunch
+    AutoStart := savedSettings["Manager"].AutoStart
     stockService := savedSettings["Manager"].StockServiceEnabled
     if stockService {
         if RunWait("cmd /c sc query ApolloService >nul 2>&1", , "Hide") == 0 {
-            if autoLaunch {
+            if AutoStart {
                 RunWait('sc stop ApolloService', , "Hide")
                 RunWait('sc config ApolloService start=disabled', , "Hide")
             } else {
-				; TODO if this is the first run lets keep the stock service disabled if we disable autoLaunch 
+				; TODO if this is the first run lets keep the stock service disabled if we disable AutoStart 
                 RunWait('sc config ApolloService start=auto', , "Hide")
                 RunWait('sc start ApolloService', , "Hide")
             }
@@ -1217,7 +1217,7 @@ SetupFleetTask() {
 		pathMismatch := true
 	}
 
-	if autoLaunch {
+	if AutoStart {
 		if !isTask || pathMismatch {
 			Task := ComObject("Schedule.Service")
 			Task.Connect()
@@ -1644,7 +1644,7 @@ CleanScrcpyMicProcess(){
 bootstrapApollo(){
 	global savedSettings, guiItems, currentlySelectedIndex, apolloBootsraped
 	SetupFleetTask()
-	if true {	;savedSettings["Manager"].AutoLaunch to be used for startup task at log on
+	if true {	;savedSettings["Manager"].AutoStart to be used for startup task at log on
 		FleetConfigInit()
 		FleetLaunchFleet()
 		SetTimer(MaintainApolloProcesses, 1000)
