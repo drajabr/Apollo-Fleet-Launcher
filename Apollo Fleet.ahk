@@ -333,6 +333,47 @@ InitmyGui() {
 
 	guiItems["LogTextBox"] := myGui.Add("Edit", "x8 y199 w562 h393 -VScroll +ReadOnly")
 	myGui.Title := "Apollo Fleet Manager"
+
+	if IsSystemDarkMode() {
+		EnableDarkMode(myGui, guiItems)
+		SetWindowAttribute(myGui, true)
+		SetWindowTheme(myGui, true)
+	}
+}
+EnableDarkMode(gui, guiItems) {
+    ; Replace CheckBoxes with dark ones
+    for k, ctrl in guiItems {
+        if ctrl.Type = "CheckBox" {
+            rect := GuiControlGetPos(ctrl)
+            txt := ctrl.Text
+            val := ctrl.Value
+            ctrl.Visible := false
+            ctrl.Opt("+Disabled")
+            opts := Format("x{} y{} w{} h{}", rect.x, rect.y, rect.w, rect.h)
+            guiItems[k] := AddDarkCheckBox(gui, opts, txt)
+            guiItems[k].Value := val
+        }
+    }
+
+    ; Manually re-add GroupBoxes as dark versions
+    AddDarkGroupBox(gui, "x318 y0 w196 h90", "Fleet Options")
+    AddDarkGroupBox(gui, "x318 y96 w196 h95", "Android Clients")
+    AddDarkGroupBox(gui, "x8 y0 w300 h192", "Fleet")
+}
+GuiControlGetPos(ctrl) {
+    rect := Buffer(16, 0)
+    DllCall("GetWindowRect", "ptr", ctrl.hwnd, "ptr", rect.Ptr)
+    x := NumGet(rect, 0, "int")
+    y := NumGet(rect, 4, "int")
+    w := NumGet(rect, 8, "int") - x
+    h := NumGet(rect, 12, "int") - y
+
+    pt := Buffer(8)
+    NumPut("int", x, pt, 0)
+    NumPut("int", y, pt, 4)
+    DllCall("ScreenToClient", "ptr", ctrl.Gui.Hwnd, "ptr", pt.Ptr)
+
+    return {x: NumGet(pt, 0, "int"), y: NumGet(pt, 4, "int"), w: w, h: h}
 }
 InitTray(){
 	global myGui
@@ -882,11 +923,6 @@ RestoremyGui() {
 		x := xC
 		y := yC
 	}
-	if IsSystemDarkMode() {
-		EnableDarkMode(myGui, guiItems)
-		SetWindowAttribute(myGui, true)
-		SetWindowTheme(myGui, true)
-	}
 
 	if (savedSettings["Window"].restorePosition = 1) 
 		myGui.Show("x" x " y" y " w580 h" h)
@@ -895,45 +931,6 @@ RestoremyGui() {
 
 	savedSettings["Window"].lastState := 1
 }
-EnableDarkMode(gui, guiItems) {
-    ; Replace CheckBoxes with dark ones
-    for k, ctrl in guiItems {
-        if ctrl.Type = "CheckBox" {
-            rect := GuiControlGetPos(ctrl)
-            txt := ctrl.Text
-            val := ctrl.Value
-            ctrl.Visible := false
-            ctrl.Opt("+Disabled")
-            opts := Format("x{} y{} w{} h{}", rect.x, rect.y, rect.w, rect.h)
-            guiItems[k] := AddDarkCheckBox(gui, opts, txt)
-            guiItems[k].Value := val
-        }
-    }
-
-    ; Manually re-add GroupBoxes as dark versions
-    AddDarkGroupBox(gui, "x318 y0 w196 h90", "Fleet Options")
-    AddDarkGroupBox(gui, "x318 y96 w196 h95", "Android Clients")
-    AddDarkGroupBox(gui, "x8 y0 w300 h192", "Fleet")
-}
-
-
-
-GuiControlGetPos(ctrl) {
-    rect := Buffer(16, 0)
-    DllCall("GetWindowRect", "ptr", ctrl.hwnd, "ptr", rect.Ptr)
-    x := NumGet(rect, 0, "int")
-    y := NumGet(rect, 4, "int")
-    w := NumGet(rect, 8, "int") - x
-    h := NumGet(rect, 12, "int") - y
-
-    pt := Buffer(8)
-    NumPut("int", x, pt, 0)
-    NumPut("int", y, pt, 4)
-    DllCall("ScreenToClient", "ptr", ctrl.Gui.Hwnd, "ptr", pt.Ptr)
-
-    return {x: NumGet(pt, 0, "int"), y: NumGet(pt, 4, "int"), w: w, h: h}
-}
-
 
 MapSetIfChanged(map, option, newValue) {
     if map.Get(option,0) != newValue {
