@@ -279,12 +279,12 @@ InitmyGui() {
 	guiItems["ButtonLockSettings"].Enabled := 0
 
 	myGui.Add("GroupBox", "x318 y0 w196 h90", "Fleet Options")
-	guiItems["FleetAutoStartCheckBox"] := myGui.Add("CheckBox", "x334 y16 w162 h23", "Auto Start Apollo Fleet")
-	guiItems["FleetSyncVolCheckBox"] := myGui.Add("CheckBox", "x334 y40 w162 h23", "Sync Device Volume Level")
-	guiItems["FleetRemoveDisconnectCheckbox"] := myGui.Add("CheckBox", "x334 y64 w167 h23", "Remove on Disconnect")
+	guiItems["FleetAutoStartCheckBox"] := myGui.Add("CheckBox", "x334 y21 w162 h21", "Auto Start Apollo Fleet")
+	guiItems["FleetSyncVolCheckBox"] := myGui.Add("CheckBox", "x334 y43 w162 h21", "Sync Device Volume Level")
+	guiItems["FleetRemoveDisconnectCheckbox"] := myGui.Add("CheckBox", "x334 y65 w167 h21", "Remove on Disconnect")
 
 	myGui.Add("GroupBox", "x318 y96 w196 h95", "Android Clients")
-	guiItems["AndroidReverseTetheringCheckbox"] := myGui.Add("CheckBox", "x334 y112 w139 h23", "ADB Reverse Tethering")
+	guiItems["AndroidReverseTetheringCheckbox"] := myGui.Add("CheckBox", "x334 y116 w139 h21", "ADB Reverse Tethering")
 	guiItems["AndroidMicCheckbox"] := myGui.Add("CheckBox", "x334 y140 ", "Mic:")
 	presetAndroidDevices := ["Unset"]
 	if savedSettings["Android"].MicDeviceID != "Unset" 
@@ -296,33 +296,32 @@ InitmyGui() {
 	guiItems["AndroidCamSelector"] := myGui.Add("DropDownList", "x382 y160 w122 Choose1", presetAndroidDevices)
 
 	myGui.Add("GroupBox", "x8 y0 w300 h192", "Fleet")
-	guiItems["PathsApolloBox"] := myGui.Add("Edit", "x53 y16 w212 h23")
+	guiItems["PathsApolloBox"] := myGui.Add("Edit", "x53 y17 w212 h21")
 	myGui.Add("Text", "x16 y21", "Apollo:")
-	guiItems["PathsApolloBrowseButton"] := myGui.Add("Button", "x267 y16 w30 h25", "📂")
+	guiItems["PathsApolloBrowseButton"] := myGui.Add("Button", "x267 y16 w30 h23", "📂")
 
 	guiItems["FleetListBox"] := myGui.Add("ListBox", "x16 y50 w100 h82 +0x100 Choose1")
 	guiItems["FleetListBox"].Enabled := 0
 	myGui.Add("Text", "x123 y54", "Name:Port")
-	guiItems["InstanceNameBox"] := myGui.Add("Edit", "x176 y48 w80 h23")
-	guiItems["InstancePortBox"] := myGui.Add("Edit", "x256 y48 w40 h23 +ReadOnly", "")
+	guiItems["InstanceNameBox"] := myGui.Add("Edit", "x176 y51 w80 h21")
+	guiItems["InstancePortBox"] := myGui.Add("Edit", "x256 y51 w40 h21")
 
-	myGui.Add("Text", "x123 y82", "Audio :")
-	
 	presetAudioDevices := ["Unset"]
 	for i in savedSettings["Fleet"]
 		if !presetAudioDevices.Has(i.AudioDevice)
 			presetAudioDevices.Push(i.AudioDevice)
-	guiItems["InstanceAudioSelector"] := myGui.Add("DropDownList", "x176 y79 w120 Choose1", presetAudioDevices)
+	myGui.Add("Text", "x123 y83", "Audio :")
+	guiItems["InstanceAudioSelector"] := myGui.Add("DropDownList", "x176 y80 w120 Choose1", presetAudioDevices)
 
-	myGui.Add("Text", "x123 y110 ", "Link:")
+	myGui.Add("Text", "x123 y108 ", "Link:")
 	myLink := "https://localhost:00000"
-	guiItems["FleetLinkBox"] := myGui.Add("Link", "x176 y110", '<a href="' . myLink . '">' . myLink . '</a>')
+	guiItems["FleetLinkBox"] := myGui.Add("Link", "x176 y108", '<a href="' . myLink . '">' . myLink . '</a>')
 
-	myGui.Add("Text", "x123 y137 ", "Enabled:")
-	guiItems["InstanceEnableCheckbox"] := myGui.Add("CheckBox", "x176 y137", "Status will appear here")
+	myGui.Add("Text", "x123 y135 ", "Enabled:")
+	guiItems["InstanceEnableCheckbox"] := myGui.Add("CheckBox", "x176 y135", "Status will appear here")
 
-	guiItems["FleetButtonAdd"] := myGui.Add("Button", "x43 y134 w75 h23", "Add")
-	guiItems["FleetButtonDelete"] := myGui.Add("Button", "x14 y134 w27 h23", "✖")
+	guiItems["FleetButtonAdd"] := myGui.Add("Button", "x43 y134 w75 h21", "Add")
+	guiItems["FleetButtonDelete"] := myGui.Add("Button", "x14 y134 w27 h21", "✖")
 	; TODO actually functional status area, 
 	guiItems["StatusApollo"] := myGui.Add("Text", "x16 y172 w70", "❎ Apollo ")
 	guiItems["StatusGnirehtet"] := myGui.Add("Text", "x76 y172 w70", "❎ Gnirehtet")
