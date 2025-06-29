@@ -318,8 +318,8 @@ InitmyGui() {
 	myLink := "https://localhost:00000"
 	guiItems["FleetLinkBox"] := myGui.Add("Link", "x176 y110", '<a href="' . myLink . '">' . myLink . '</a>')
 
-	myGui.Add("Text", "x123 y137 ", "Enable:")
-	guiItems["InstanceEnableCheckbox"] := myGui.Add("CheckBox", "x176 y137", "Enabled")
+	myGui.Add("Text", "x123 y137 ", "Enabled:")
+	guiItems["InstanceEnableCheckbox"] := myGui.Add("CheckBox", "x176 y137")
 
 	guiItems["FleetButtonAdd"] := myGui.Add("Button", "x43 y134 w75 h23", "Add")
 	guiItems["FleetButtonDelete"] := myGui.Add("Button", "x14 y134 w27 h23", "✖")
@@ -601,7 +601,6 @@ HandleListChange(*) {
 	RefreshAudioSelector()
 	guiItems["InstanceAudioSelector"].Text := ArrayHas(audioDevicesList, i.AudioDevice) ? i.AudioDevice : "Unset"
 	guiItems["InstanceEnableCheckbox"].Value := i.Enabled
-	guiItems["InstanceEnableCheckbox"].Text := userSettings["Fleet"][currentlySelectedIndex].Enabled ? "Enabled" : "Disabled"
 	UpdateButtonsLabels()
 }
 UpdateWindowPosition(){
@@ -782,6 +781,9 @@ UpdateButtonsLabels(){
 	guiItems["ButtonLockSettings"].Text := (UserSettingsWaiting() && !settingsLocked) ? "Apply" : settingsLocked ? "🔒" : "🔓" 
 	guiItems["ButtonReload"].Text := settingsLocked ?  "Reload" : "Cancel"
 	; TODO here we could also show the running/not running status of each selected instance 
+	i := userSettings["Fleet"][currentlySelectedIndex]
+	guiItems["InstanceEnableCheckbox"].Text := i.Enabled ? ProcessExist(i.apolloPID)  ? "Running: " i.apolloPID "" : "Stopped" :  ProcessExist(i.apolloPID) ? "To be Disabled" : "Disabled"
+
 }
 ApplyLockState() {
 	global settingsLocked, guiItems, userSettings, currentlySelectedIndex
@@ -1319,6 +1321,7 @@ ProcessRunning(pid){
 
 UpdateStatusArea() {
 	global savedSettings, guiItems, msgTimeout
+
 	f := savedSettings["Fleet"]
 	a := savedSettings["Android"]
 	if  msgTimeout {
@@ -1345,6 +1348,9 @@ UpdateStatusArea() {
 
 		for item, status in statusItems 
 			guiItems[item].Value := (%status%? "✅" : "❎") . SubStr(guiItems[item].Value, 2)
+	}
+	for i in f {
+
 	}
 }
 
