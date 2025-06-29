@@ -319,7 +319,7 @@ InitmyGui() {
 	guiItems["FleetLinkBox"] := myGui.Add("Link", "x176 y110", '<a href="' . myLink . '">' . myLink . '</a>')
 
 	myGui.Add("Text", "x123 y137 ", "Enabled:")
-	guiItems["InstanceEnableCheckbox"] := myGui.Add("CheckBox", "x176 y137")
+	guiItems["InstanceEnableCheckbox"] := myGui.Add("CheckBox", "x176 y137", "Status will appear here")
 
 	guiItems["FleetButtonAdd"] := myGui.Add("Button", "x43 y134 w75 h23", "Add")
 	guiItems["FleetButtonDelete"] := myGui.Add("Button", "x14 y134 w27 h23", "✖")
@@ -833,7 +833,7 @@ ApplyLockState() {
 	isReadOnly(cond := true) => cond ? "+ReadOnly" : "-ReadOnly"
 
 	textBoxes := ["PathsApolloBox"]
-	checkBoxes := ["InstanceEnableCheckbox", "FleetAutoStartCheckBox", "AndroidReverseTetheringCheckbox", "AndroidMicCheckbox", "AndroidCamCheckbox"]
+	checkBoxes := ["InstanceEnableCheckbox", "FleetAutoStartCheckBox", "AndroidReverseTetheringCheckbox", "AndroidMicCheckbox", "AndroidCamCheckbox", "FleetSyncVolCheckBox", "FleetRemoveDisconnectCheckbox"]
 	buttons := ["FleetButtonDelete", "FleetButtonAdd", "PathsApolloBrowseButton"]
 	androidSelectors := Map(
 		"AndroidMicSelector", "AndroidMicCheckbox",
