@@ -191,10 +191,7 @@ AddDarkCheckBox(gui, Options, Text)
     SetWindowPos(chbox.hwnd, HWND_TOP, 0, 0, 0, 0, 0x43)
     SetWindowPos(lbl.hwnd, HWND_TOP, 0, 0, 0, 0, 0x43)
 
-    ; Optional: click label to toggle
-    lbl.OnEvent("Click", (*) => chbox.Value := !chbox.Value)
-
-    ; Define .Text prop
+	; Define .Text prop
     chbox.DeleteProp("Text")
     chbox.DefineProp("Text", {
         Get: this => lbl.Text,
