@@ -494,10 +494,6 @@ HandleCheckBoxes(*) {
 	global userSettings, guiItems, currentlySelectedIndex
 	userSettings["Android"].ReverseTethering := guiItems["AndroidReverseTetheringCheckbox"].Value
 	userSettings["Manager"].AutoLaunch := guiItems["FleetAutoLaunchCheckBox"].Value
-	launchChildren := ["FleetSyncVolCheckBox", "FleetRemoveDisconnectCheckbox"]
-	launchChildrenLock := userSettings["Manager"].AutoLaunch = 0
-	for item in launchChildren
-		guiItems[item].Enabled := launchChildrenLock ? 0 : 1
 	userSettings["Manager"].SyncVolume := guiItems["FleetSyncVolCheckBox"].Value
 	userSettings["Manager"].RemoveDisconnected := guiItems["FleetRemoveDisconnectCheckbox"].Value ? "true" : "false"
 	valid := currentlySelectedIndex > 0 && currentlySelectedIndex <= userSettings["Fleet"].Length 
@@ -802,12 +798,6 @@ ApplyLockState() {
 	)
 	inputBoxes := ["InstanceNameBox", "InstancePortBox"]
 	inputSelectors := ["InstanceAudioSelector"]
-	launchChildren := ["FleetSyncVolCheckBox", "FleetRemoveDisconnectCheckbox"]
-
-	launchChildrenLock := userSettings["Manager"].AutoLaunch = 0
-
-	for item in launchChildren
-		guiItems[item].Enabled := isEnabled(!settingsLocked && !launchChildrenLock)
 
 	for checkbox in checkBoxes
 		guiItems[checkbox].Enabled := isEnabled(!settingsLocked)
