@@ -1119,7 +1119,7 @@ RunAndGetPIDs(exePath, args := "", workingDir := "", flags := "Hide") {
     consolePID := 0
     apolloPID := 0
     pids := []
-
+    
     Run(
         '"' psexec '" -d -i "' exePath '"' . (args ? " " . args : ""),
         workingDir := workingDir ? workingDir : SubStr(exePath, 1, InStr(exePath, "\",, -1) - 1),
@@ -1132,10 +1132,71 @@ RunAndGetPIDs(exePath, args := "", workingDir := "", flags := "Hide") {
             apolloPID := process.ProcessId
             break
         }
-
+    }
+    
+    ; If we didn't find it by command line, try a different approach
+    if (!apolloPID) {
+        ; Look for processes with matching executable name that were started recently
+        for process in ComObject("WbemScripting.SWbemLocator").ConnectServer().ExecQuery("Select * from Win32_Process where Name='" . exeName . "'") {
+            apolloPID := process.ProcessId
+            break  ; Take the first match - you might want to refine this logic
+        }
+    }
+    
     return [consolePID, apolloPID]
 }
 
+; Alternative version with different PsExec options
+RunAndGetPIDsAlternative(exePath, args := "", workingDir := "", flags := "Hide") {
+    consolePID := 0
+    apolloPID := 0
+    pids := []
+    
+    scriptDir := A_ScriptDir
+    psExecPath := scriptDir . "\bin\PsTools\PsExec64.exe"
+    
+    if !FileExist(psExecPath) {
+        throw Error("PsExec64.exe not found at: " . psExecPath)
+    }
+    
+    targetWorkingDir := workingDir ? workingDir : SubStr(exePath, 1, InStr(exePath, "\",, -1) - 1)
+    
+    ; Alternative approach: run with high privileges but not as SYSTEM
+    ; -h = run with elevated privileges
+    ; -d = don't wait for process to terminate
+    ; -w = set working directory
+    ; -accepteula = automatically accept the license agreement
+    psExecArgs := '-h -d -accepteula -w "' . targetWorkingDir . '" "' . exePath . '"'
+    if (args)
+        psExecArgs .= " " . args
+    
+    Run(
+        '"' . psExecPath . '" ' . psExecArgs,
+        scriptDir,
+        flags,
+        &consolePID
+    )
+    
+    Sleep(500)
+    
+    exeName := SubStr(exePath, InStr(exePath, "\",, -1) + 1)
+    
+    for process in ComObject("WbemScripting.SWbemLocator").ConnectServer().ExecQuery("Select * from Win32_Process where Name='" . exeName . "'") {
+        if (InStr(process.CommandLine, exePath) || InStr(process.CommandLine, exeName)) {
+            apolloPID := process.ProcessId
+            break
+        }
+    }
+    
+    if (!apolloPID) {
+        for process in ComObject("WbemScripting.SWbemLocator").ConnectServer().ExecQuery("Select * from Win32_Process where Name='" . exeName . "'") {
+            apolloPID := process.ProcessId
+            break
+        }
+    }
+    
+    return [consolePID, apolloPID]
+}
 
 ArrayHas(arr, val) {
     for _, v in arr
@@ -1199,7 +1260,8 @@ ADBWatchDog(*){
 SetupFleetTask() {
     taskName := "Apollo Fleet Launcher"
     exePath := A_ScriptFullPath
-    AutoStart := savedSettings["Manager"].AutoStart    
+    AutoStart := savedSettings["Manager"].AutoStart
+    
 	if RunWait("cmd /c sc query ApolloService >nul 2>&1", , "Hide") == 0 {
 		if AutoStart {
 			RunWait('sc stop ApolloService', , "Hide")
@@ -1273,18 +1335,34 @@ KillProcessesExcept(pName, keep := [0], wait := 1000){
 	
 	if Type(keep) != "Array"
 		keep := [keep]  ; Ensure keep is an array
-
+	
 	pids := PIDsListFromExeName(pName)
 	targetKill := []
-	for pid in pids
-		if !ArrayHas(keep, pid){
+
+	; Check keep[] validity
+	newKeep := []
+	for pid in keep
+		if ProcessExist(pid) 
+			if GetProcessName(pid) = pName
+				newKeep.Push(pid)
+			else
+				targetKill.Push(pid)
+		
+	keep := newKeep
+
+	pids := PIDsListFromExeName(pName)
+
+	; Kill remaining
+	for pid in pids {
+		if !ArrayHas(keep, pid) {
 			KillWithoutBlocking(pid, true, 0)
 			targetKill.Push(pid)
-		}
+	}
 
 	lastSent := A_TickCount
-	while AnyProcessAlive(targetKill) && (wait + lastSent) > A_TickCount 
+	while AnyProcessAlive(targetKill) && (wait + lastSent) > A_TickCount
 		sleep 10
+
 	for pid in targetKill
 		if ProcessExist(pid) && !ArrayHas(keep, pid) {
 			ShowMessage("Failed to kill " . pName . " PID: " . pid, 3)
@@ -1292,6 +1370,7 @@ KillProcessesExcept(pName, keep := [0], wait := 1000){
 		}
 	return true
 }
+
 AnyProcessAlive(pids){
 	for pid in pids
 		if ProcessExist(pid)
@@ -1301,6 +1380,21 @@ AnyProcessAlive(pids){
 KillWithoutBlocking(pid, force:=false, wait:=1000) {
 	SetTimer(()=>SendSigInt(pid, force, wait), -1)
 }
+GetProcessName(pid) {
+	try {
+		hProc := DllCall("OpenProcess", "uint", 0x1000, "int", false, "uint", pid)
+		if !hProc
+			return ""
+		buf := Buffer(260 << 1, 0)
+		DllCall("psapi\GetModuleBaseNameW", "ptr", hProc, "ptr", 0, "ptr", buf, "uint", 260)
+		DllCall("CloseHandle", "ptr", hProc)
+		return StrGet(buf)
+	}
+	catch
+		return ""
+}
+
+
 MaintainGnirehtetProcess(){
 	global savedSettings
 	static firstRun := true
