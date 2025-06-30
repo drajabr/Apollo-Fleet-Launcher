@@ -1115,24 +1115,27 @@ SendSigInt(pid, force:=false, wait := 1000) {
 }
 
 RunAndGetPIDs(exePath, args := "", workingDir := "", flags := "Hide") {
+    psexec := A_ScriptDir "\bin\PsTools\PsExec64.exe"
     consolePID := 0
-	apolloPID := 0
-	pids := []
+    apolloPID := 0
+    pids := []
+
     Run(
-        A_ComSpec " /c " '"' exePath '"' . (args ? " " . args : ""),
+        '"' psexec '" -d -i "' exePath '"' . (args ? " " . args : ""),
         workingDir := workingDir ? workingDir : SubStr(exePath, 1, InStr(exePath, "\",, -1) - 1),
         flags,
         &consolePID
     )
-	Sleep(10)
-	for process in ComObject("WbemScripting.SWbemLocator").ConnectServer().ExecQuery("Select * from Win32_Process where ParentProcessId=" consolePID)
-		if InStr(process.CommandLine, exePath) {
-			apolloPID := process.ProcessId
-			break
-		}
-		
-	return [consolePID, apolloPID]
+    Sleep(10)
+    for process in ComObject("WbemScripting.SWbemLocator").ConnectServer().ExecQuery("Select * from Win32_Process where ParentProcessId=" consolePID)
+        if InStr(process.CommandLine, exePath) {
+            apolloPID := process.ProcessId
+            break
+        }
+
+    return [consolePID, apolloPID]
 }
+
 
 ArrayHas(arr, val) {
     for _, v in arr
@@ -1196,20 +1199,18 @@ ADBWatchDog(*){
 SetupFleetTask() {
     taskName := "Apollo Fleet Launcher"
     exePath := A_ScriptFullPath
-    AutoStart := savedSettings["Manager"].AutoStart
-    stockService := savedSettings["Manager"].StockServiceEnabled
-    if stockService {
-        if RunWait("cmd /c sc query ApolloService >nul 2>&1", , "Hide") == 0 {
-            if AutoStart {
-                RunWait('sc stop ApolloService', , "Hide")
-                RunWait('sc config ApolloService start=disabled', , "Hide")
-            } else {
-				; TODO if this is the first run lets keep the stock service disabled if we disable AutoStart 
-                RunWait('sc config ApolloService start=auto', , "Hide")
-                RunWait('sc start ApolloService', , "Hide")
-            }
-        }
-    }
+    AutoStart := savedSettings["Manager"].AutoStart    
+	if RunWait("cmd /c sc query ApolloService >nul 2>&1", , "Hide") == 0 {
+		if AutoStart {
+			RunWait('sc stop ApolloService', , "Hide")
+			RunWait('sc config ApolloService start=disabled', , "Hide")
+		} else {
+			; TODO if this is the first run lets keep the stock service disabled if we disable AutoStart 
+			RunWait('sc config ApolloService start=auto', , "Hide")
+			RunWait('sc start ApolloService', , "Hide")
+		}
+	}
+    
 	try {
 		ts := ComObject("Schedule.Service")
 		ts.Connect()
