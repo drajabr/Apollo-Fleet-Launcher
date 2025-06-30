@@ -96,7 +96,7 @@ ReadSettingsGroup(File, group, Settings) {
             m.SyncVolume := IniRead(File, "Manager", "SyncVolume", 1) = "1" ? 1 : 0
             m.RemoveDisconnected := IniRead(File, "Manager", "RemoveDisconnected", "true")
             m.SyncSettings := IniRead(File, "Manager", "SyncSettings", 1) = "1" ? 1 : 0
-			m.StockServiceEnabled := 1
+			m.DarkTheme := IniRead(File, "Manager", "ShowErrors", IsSystemDarkMode())	; TODO now it defaults to system mode at first launch.maybe we can add small button with icon or somewhat
 			m.ShowErrors := IniRead(File, "Manager", "ShowErrors", 1)
         case "Window":
 			w := Settings["Window"]
@@ -213,6 +213,7 @@ WriteSettingsGroup(Settings, File, group) {
 			WriteIfChanged(File, "Manager", "AutoStart", m.AutoStart)
 			WriteIfChanged(File, "Manager", "SyncVolume", m.SyncVolume)
 			WriteIfChanged(File, "Manager", "RemoveDisconnected", m.RemoveDisconnected)
+			WriteIfChanged(File, "Manager", "DarkTheme", m.DarkTheme)
 			WriteIfChanged(File, "Manager", "ShowErrors", m.ShowErrors)
         case "Window":
 			w := Settings["Window"]
@@ -333,7 +334,7 @@ InitmyGui() {
 	guiItems["LogTextBox"] := myGui.Add("Edit", "x8 y199 w562 h393 -VScroll +ReadOnly")
 	myGui.Title := "Apollo Fleet Manager"
 
-	if IsSystemDarkMode() {
+	if savedSettings["Manager"].DarkTheme {
 		EnableDarkMode(myGui, guiItems)
 		SetWindowAttribute(myGui, true)
 		SetWindowTheme(myGui, true)
@@ -1013,12 +1014,20 @@ FleetConfigInit(*) {
 			if MirrorMapItemsIntoAnother(i.baseConfig, i.currentConfig)
 				i.configChange := true
 		}
-		if i.configChange {
+		if i.configChange
 			ConfWrite(i.configFile, i.currentConfig)
-			if FileExist(i.appsFile)
-				FileDelete(i.appsFile)	; delete old file if exists
+
+
+		if !FileExist(i.appsFile){
 			FileAppend(appsJsonText, i.appsFile)
+		} else{
+			thistApps := jsongo.Parse(FileRead(i.appsFile))
+			; TODO here if its not changed terminate-on-pause we don't need to delete apps file.....
 		}
+		;if FileExist(i.appsFile)
+		;	FileDelete(i.appsFile)	; delete old file if exists
+		;FileAppend(appsJsonText, i.appsFile)
+		
 	}
 }
 MirrorMapItemsIntoAnother(inputMap, outputMap){
