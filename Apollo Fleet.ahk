@@ -1114,89 +1114,58 @@ SendSigInt(pid, force:=false, wait := 1000) {
 	return !ProcessExist(pid)
 }
 
+
 RunAndGetPIDs(exePath, args := "", workingDir := "", flags := "Hide") {
-    psexec := A_ScriptDir "\bin\PsTools\PsExec64.exe"
     consolePID := 0
-    apolloPID := 0
-    pids := []
-    
+	apolloPID := 0
+	pids := []
     Run(
-        '"' psexec '" -d -i "' exePath '"' . (args ? " " . args : ""),
+        A_ComSpec " /c " '"' exePath '"' . (args ? " " . args : ""),
         workingDir := workingDir ? workingDir : SubStr(exePath, 1, InStr(exePath, "\",, -1) - 1),
         flags,
         &consolePID
     )
-    Sleep(10)
-    for process in ComObject("WbemScripting.SWbemLocator").ConnectServer().ExecQuery("Select * from Win32_Process where ParentProcessId=" consolePID)
-        if InStr(process.CommandLine, exePath) {
-            apolloPID := process.ProcessId
+	Sleep(10)
+	for process in ComObject("WbemScripting.SWbemLocator").ConnectServer().ExecQuery("Select * from Win32_Process where ParentProcessId=" consolePID)
+		if InStr(process.CommandLine, exePath) {
+			apolloPID := process.ProcessId
+			break
+		}
+	
+	return [consolePID, apolloPID]
+}
+
+RunPsExecGetPIDs(exePath, args, workingDir := "", psexecPath := "") {
+    if !psexecPath
+        psexecPath := A_ScriptDir "\bin\PsTools\PsExec64.exe"
+    if !workingDir
+        workingDir := SubStr(exePath, 1, InStr(exePath, "\",, -1) - 1)
+
+    sessionId := DllCall("Kernel32.dll\WTSGetActiveConsoleSessionId")
+
+    ; Carefully quote everything
+    exePathEsc := StrReplace(exePath, '"', '""')
+    argsEsc := StrReplace(args, '"', '""')
+    startCmd := Format('start "" /D "{1}" "{2}" {3}', workingDir, exePathEsc, argsEsc)
+
+    fullCmd := Format('"{1}" -accepteula -i {2} -s cmd.exe /c {3}', psexecPath, sessionId, startCmd)
+
+    consolePID := 0
+    Run(fullCmd, workingDir, "Hide", &consolePID)
+    Sleep(300)
+
+    apolloPID := 0
+    for proc in ComObject("WbemScripting.SWbemLocator").ConnectServer().ExecQuery("SELECT * FROM Win32_Process WHERE ParentProcessId=" consolePID)
+        if InStr(proc.CommandLine, exePath) && InStr(proc.CommandLine, args) {
+            apolloPID := proc.ProcessId
             break
         }
-    }
-    
-    ; If we didn't find it by command line, try a different approach
-    if (!apolloPID) {
-        ; Look for processes with matching executable name that were started recently
-        for process in ComObject("WbemScripting.SWbemLocator").ConnectServer().ExecQuery("Select * from Win32_Process where Name='" . exeName . "'") {
-            apolloPID := process.ProcessId
-            break  ; Take the first match - you might want to refine this logic
-        }
-    }
-    
+		
     return [consolePID, apolloPID]
 }
 
-; Alternative version with different PsExec options
-RunAndGetPIDsAlternative(exePath, args := "", workingDir := "", flags := "Hide") {
-    consolePID := 0
-    apolloPID := 0
-    pids := []
-    
-    scriptDir := A_ScriptDir
-    psExecPath := scriptDir . "\bin\PsTools\PsExec64.exe"
-    
-    if !FileExist(psExecPath) {
-        throw Error("PsExec64.exe not found at: " . psExecPath)
-    }
-    
-    targetWorkingDir := workingDir ? workingDir : SubStr(exePath, 1, InStr(exePath, "\",, -1) - 1)
-    
-    ; Alternative approach: run with high privileges but not as SYSTEM
-    ; -h = run with elevated privileges
-    ; -d = don't wait for process to terminate
-    ; -w = set working directory
-    ; -accepteula = automatically accept the license agreement
-    psExecArgs := '-h -d -accepteula -w "' . targetWorkingDir . '" "' . exePath . '"'
-    if (args)
-        psExecArgs .= " " . args
-    
-    Run(
-        '"' . psExecPath . '" ' . psExecArgs,
-        scriptDir,
-        flags,
-        &consolePID
-    )
-    
-    Sleep(500)
-    
-    exeName := SubStr(exePath, InStr(exePath, "\",, -1) + 1)
-    
-    for process in ComObject("WbemScripting.SWbemLocator").ConnectServer().ExecQuery("Select * from Win32_Process where Name='" . exeName . "'") {
-        if (InStr(process.CommandLine, exePath) || InStr(process.CommandLine, exeName)) {
-            apolloPID := process.ProcessId
-            break
-        }
-    }
-    
-    if (!apolloPID) {
-        for process in ComObject("WbemScripting.SWbemLocator").ConnectServer().ExecQuery("Select * from Win32_Process where Name='" . exeName . "'") {
-            apolloPID := process.ProcessId
-            break
-        }
-    }
-    
-    return [consolePID, apolloPID]
-}
+
+
 
 ArrayHas(arr, val) {
     for _, v in arr
@@ -1233,7 +1202,7 @@ FleetLaunchFleet(){
 	newPID := false
 	for i in f
 		if i.Enabled && (i.configChange || !ProcessExist(i.apolloPID)) {	; TODO add test for the instance if it responds or not, also, may check if display is connected deattach it/force exit? 
-			pids := RunAndGetPIDs(exe, i.configFile)
+			pids := RunPsExecGetPIDs(exe, i.configFile)
 			i.consolePID := pids[1]
 			i.apolloPID := pids[2]
 			newPID := true
@@ -1331,12 +1300,10 @@ ResetFlags(){
 	SaveUserSettings()
 	initDone := true
 }
-KillProcessesExcept(pName, keep := [0], wait := 1000){
-	
+KillProcessesExcept(pName, keep := [0], wait := 1000) {
 	if Type(keep) != "Array"
-		keep := [keep]  ; Ensure keep is an array
+		keep := [keep]
 	
-	pids := PIDsListFromExeName(pName)
 	targetKill := []
 
 	; Check keep[] validity
@@ -1357,6 +1324,7 @@ KillProcessesExcept(pName, keep := [0], wait := 1000){
 		if !ArrayHas(keep, pid) {
 			KillWithoutBlocking(pid, true, 0)
 			targetKill.Push(pid)
+		}
 	}
 
 	lastSent := A_TickCount
