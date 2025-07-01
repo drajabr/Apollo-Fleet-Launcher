@@ -114,10 +114,12 @@ ReadSettingsGroup(File, group, Settings) {
             p.Apollo := IniRead(File, "Paths", "Apollo", "C:\Program Files\Apollo")
             p.Config := IniRead(File, "Paths", "Config", base "\config")
             p.ADBTools := IniRead(File, "Paths", "ADB", base "\bin\platform-tools")
+			p.PsTools := IniRead(File, "Paths", "PsTools", base "\bin\PsTools")
 			p.apolloExe := p.Apollo "\sunshine.exe"
 			p.gnirehtetExe := p.ADBTools "\gnirehtet.exe"
 			p.scrcpyExe := p.ADBTools "\scrcpy.exe"
 			p.adbExe := p.ADBTools "\adb.exe"
+			p.psExecExe := p.PsTools "\PsExec64.exe"
 			; TODO: fix save settings from webui, use default conf dir
 			; OR wait when apollo support working outside its own dir
         case "Android":
@@ -1135,35 +1137,40 @@ RunAndGetPIDs(exePath, args := "", workingDir := "", flags := "Hide") {
 	return [consolePID, apolloPID]
 }
 
-RunPsExecGetPIDs(exePath, args, workingDir := "", psexecPath := "") {
-    if !psexecPath
-        psexecPath := A_ScriptDir "\bin\PsTools\PsExec64.exe"
-    if !workingDir
-        workingDir := SubStr(exePath, 1, InStr(exePath, "\",, -1) - 1)
-
+RunPsExecAndGetPIDs(exePath, args := "", workingDir := "") {
+    workingDir := workingDir != "" ? workingDir : SubStr(exePath, 1, InStr(exePath, "\",, -1) - 1)
+    PsExec := savedSettings["Paths"].psExecExe
     sessionId := DllCall("Kernel32.dll\WTSGetActiveConsoleSessionId")
 
-    ; Carefully quote everything
-    exePathEsc := StrReplace(exePath, '"', '""')
-    argsEsc := StrReplace(args, '"', '""')
-    startCmd := Format('start "" /D "{1}" "{2}" {3}', workingDir, exePathEsc, argsEsc)
+    ; Escape properly using Format()
+	psCommand := PsExec
+		. " -accepteula -i " . sessionId
+		. " -s powershell -WindowStyle Hidden -Command "
+		. "`"Start-Process -FilePath '"
+		. exePath
+		. "' -ArgumentList '"
+		. args
+		. "' -WorkingDirectory '"
+		. workingDir
+		. "' -WindowStyle Hidden`""
 
-    fullCmd := Format('"{1}" -accepteula -i {2} -s cmd.exe /c {3}', psexecPath, sessionId, startCmd)
+
+    MsgBox("Debug - Full command:`n" . psCommand)
 
     consolePID := 0
-    Run(fullCmd, workingDir, "Hide", &consolePID)
-    Sleep(300)
+    Run(psCommand, workingDir, "Hide", &consolePID)
 
     apolloPID := 0
-    for proc in ComObject("WbemScripting.SWbemLocator").ConnectServer().ExecQuery("SELECT * FROM Win32_Process WHERE ParentProcessId=" consolePID)
-        if InStr(proc.CommandLine, exePath) && InStr(proc.CommandLine, args) {
-            apolloPID := proc.ProcessId
+    Sleep(100)
+
+    for process in ComObject("WbemScripting.SWbemLocator").ConnectServer().ExecQuery("Select * from Win32_Process where ParentProcessId=" consolePID)
+        if InStr(process.CommandLine, exePath) {
+            apolloPID := process.ProcessId
             break
         }
-		
+
     return [consolePID, apolloPID]
 }
-
 
 
 
@@ -1202,7 +1209,7 @@ FleetLaunchFleet(){
 	newPID := false
 	for i in f
 		if i.Enabled && (i.configChange || !ProcessExist(i.apolloPID)) {	; TODO add test for the instance if it responds or not, also, may check if display is connected deattach it/force exit? 
-			pids := RunPsExecGetPIDs(exe, i.configFile)
+			pids := RunPsExecAndGetPIDs(exe, i.configFile)
 			i.consolePID := pids[1]
 			i.apolloPID := pids[2]
 			newPID := true
