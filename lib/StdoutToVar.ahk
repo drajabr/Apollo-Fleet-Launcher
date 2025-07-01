@@ -4,7 +4,7 @@
 ; Function .....: StdoutToVar
 ; Description ..: Runs a command line program and returns its output.
 ; Parameters ...: sCmd - Commandline to be executed.
-; ..............: sDir - Working directory.
+; ..............: sDir - Working directory.StdOutToVar
 ; ..............: sEnc - Encoding used by the target process. Look at StrGet() for possible values.
 ; Return .......: Command output as a string on success, empty string on error.
 ; AHK Version ..: AHK v2 x32/64 Unicode

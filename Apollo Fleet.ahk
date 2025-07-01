@@ -453,7 +453,7 @@ InitGuiItemsEvents(){
 CheckAdbRefresh(){
 	userRequire := userSettings["Android"].MicEnable || userSettings["Android"].CamEnable
 	if userRequire && !adbReady
-	RefreshAdbDevices()
+		bootstrapAndroid()
 }
 HandleMicCheckBox(*) {
 	global userSettings, guiItems
@@ -1137,41 +1137,34 @@ RunAndGetPIDs(exePath, args := "", workingDir := "", flags := "Hide") {
 	return [consolePID, apolloPID]
 }
 
-RunPsExecAndGetPIDs(exePath, args := "", workingDir := "") {
+#Include ./lib/StdOutToVar.ahk
+
+#Include ./lib/StdOutToVar.ahk
+
+RunPsExecAndGetPIDs(exePath, args := "", workingDir := "", psexecPath := "") {
+    ; Set defaults
     workingDir := workingDir != "" ? workingDir : SubStr(exePath, 1, InStr(exePath, "\",, -1) - 1)
-    PsExec := savedSettings["Paths"].psExecExe
+    if !psexecPath
+        psexecPath := A_ScriptDir "\bin\PsTools\PsExec64.exe"
+    
     sessionId := DllCall("Kernel32.dll\WTSGetActiveConsoleSessionId")
 
-    ; Escape properly using Format()
-	psCommand := PsExec
-		. " -accepteula -i " . sessionId
-		. " -s powershell -WindowStyle Hidden -Command "
-		. "`"Start-Process -FilePath '"
-		. exePath
-		. "' -ArgumentList '"
-		. args
-		. "' -WorkingDirectory '"
-		. workingDir
-		. "' -WindowStyle Hidden`""
+    ; Build PsExec command (with -d to get PID in output)
+    fullCmd := Format('"{1}" -accepteula -i {2} -d -w "{3}" -s "{4}" "{5}"', 
+        psexecPath, sessionId, workingDir, exePath, args)
 
-
-    MsgBox("Debug - Full command:`n" . psCommand)
-
-    consolePID := 0
-    Run(psCommand, workingDir, "Hide", &consolePID)
-
+	MsgBox(fullCmd)
+    ; Capture PsExec's output properly
+    cmdOutput := StdOutToVar(fullCmd)
+    output := cmdOutput.Output  ; Extract the stdout string from the object
+    
+    ; Extract PID from output (PsExec prints "with process ID 1234")
     apolloPID := 0
-    Sleep(100)
+    if RegExMatch(output, "with process ID (\d+)", &match)
+        apolloPID := Integer(match[1])
 
-    for process in ComObject("WbemScripting.SWbemLocator").ConnectServer().ExecQuery("Select * from Win32_Process where ParentProcessId=" consolePID)
-        if InStr(process.CommandLine, exePath) {
-            apolloPID := process.ProcessId
-            break
-        }
-
-    return [consolePID, apolloPID]
+    return [0, apolloPID]
 }
-
 
 
 ArrayHas(arr, val) {
@@ -1743,7 +1736,7 @@ bootstrapGnirehtet(){
 		ShowMessage("Starting Gnirehtet...")
 		SetTimer(MaintainGnirehtetProcess, 1000)
 	} else {
-		SetTimer(() => KillProcessesExcept("gnirehtet.exe", , 3000), -1)
+		SetTimer(() => KillProcessesExcept("gnirehtet.exe", , 1000), -1)
 	}
 	gnirehtetBootsraped := true
 	FinishBootStrap()
@@ -1754,22 +1747,22 @@ bootstrapAndroid() {
 	savedRequire := savedSettings["Android"].MicEnable || savedSettings["Android"].CamEnable
 	userRequire := userSettings["Android"].MicEnable || userSettings["Android"].CamEnable
 	if savedRequire || userRequire {
-		KillProcessesExcept("adb.exe", , 5000)
+		KillProcessesExcept("adb.exe", , 1000)
 		SetTimer(RefreshAdbDevices , 1000)
 		keep := []
 		if savedSettings["Android"].MicEnable
 			keep.Push(savedSettings["Android"].scrcpyMicPID)
 		if savedSettings["Android"].CamEnable
 			keep.Push(savedSettings["Android"].scrcpyCamPID)
-		KillProcessesExcept("scrcpy.exe", keep, 5000)
+		KillProcessesExcept("scrcpy.exe", keep, 1000)
 		
 		if savedSettings["Android"].MicEnable
 			SetTimer(MaintainScrcpyMicProcess, 500)
 		if savedSettings["Android"].CamEnable
 			SetTimer(MaintainScrcpyCamProcess, 500)
 	} else {
-		SetTimer(() => KillProcessesExcept("adb.exe", , 5000), -1) ; TODO maybe use adb-kill server here
-		SetTimer(() => KillProcessesExcept("scrcpy.exe", , 5000), -1) ; TODO maybe use adb-kill server here
+		SetTimer(() => KillProcessesExcept("adb.exe", , 1000), -1) ; TODO maybe use adb-kill server here
+		SetTimer(() => KillProcessesExcept("scrcpy.exe", , 1000), -1) ; TODO maybe use adb-kill server here
 	}
 	androidBootsraped := true
 	FinishBootStrap()
