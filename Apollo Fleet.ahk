@@ -670,9 +670,10 @@ DeleteAllTimers(){
 	SetTimer(MaintainApolloProcesses, 0)
 	SetTimer(MaintainGnirehtetProcess, 0)
 	SetTimer(RefreshAdbDevices , 0)
-	SetTimer(MaintainScrcpyMicProcess, 0)
-	SetTimer(MaintainScrcpyCamProcess, 0)
-
+	r := savedSettings["Runtime"]
+	a := savedSettings["Android"]
+	SetTimer(() => MaintainScrcpyProcess(r.scrcpyMicPID, a.MicDeviceID, " --no-video --no-window --audio-source=mic"), 0)
+	SetTimer(() => MaintainScrcpyProcess(r.scrcpyCamPID, a.CamDeviceID, " --video-source=camera --no-audio"), 0)
 }
 HandleReloadButton(*) {
 	global settingsLocked, userSettings, savedSettings, currentlySelectedIndex
@@ -1595,10 +1596,10 @@ RefreshAdbSelectors(item:="") {
 RefreshAdbDevices(){
 	global androidDevicesMap, guiItems, savedSettings, adbReady
 	p := savedSettings["Paths"]
-	a := savedSettings["Android"]
+	r := savedSettings["Android"]
 
-	micID := a.MicDeviceID
-	camID := a.CamDeviceID
+	micID := r.MicDeviceID
+	camID := r.CamDeviceID
 
 	tempMap := Map()
 	tempMap := DeepClone(androidDevicesMap) ; keep old map to compare later
@@ -1620,15 +1621,16 @@ RefreshAdbDevices(){
 	}
 	if DeepCompare(tempMap, androidDevicesMap) {
 		androidDevicesMap := DeepClone(tempMap) ; update the global map only if it changed
+		RefreshAdbSelectors()
+		UpdateButtonsLabels()
 	}
 	if !adbReady
 		adbReady := true
 }
 
-MaintainScrcpyMicProcess() {
+MaintainScrcpyProcess(pid, dev, cmd) {
     global savedSettings, guiItems, androidDevicesMap, adbReady
 
-    r := savedSettings["Runtime"]
     p := savedSettings["Paths"]
 
     static newPID := -1
@@ -1636,56 +1638,26 @@ MaintainScrcpyMicProcess() {
 	if !adbReady
 		return
 
-    deviceConnected := androidDevicesMap.Has(r.MicDeviceID) && androidDevicesMap[r.MicDeviceID] = "Connected"
-    Running := r.scrcpyMicPID ? ProcessExist(r.scrcpyMicPID) : 0
+    deviceConnected := androidDevicesMap.Has(dev) && androidDevicesMap[dev] = "Connected"
+    Running := pid ? ProcessExist(pid) : 0
 
 	if (deviceConnected && !Running) {        
-		if ProcessExist(r.scrcpyMicPID)
-			SendSigInt(r.scrcpyMicPID, true)
+		if ProcessExist(pid)
+			SendSigInt(pid, true)
 
-        RunWait(p.adbExe ' -s ' r.MicDeviceID ' shell input keyevent KEYCODE_WAKEUP', , 'Hide')
-        newPID := RunAndGetPID(p.scrcpyExe, " -s " . r.MicDeviceID . " --no-video --no-window --audio-source=mic")
+        RunWait(p.adbExe ' -s ' dev ' shell input keyevent KEYCODE_WAKEUP', , 'Hide')
+        newPID := RunAndGetPID(p.scrcpyExe, " -s " . pid . cmd)
     } else if (!deviceConnected && Running) {
-        if SendSigInt(r.scrcpyMicPID, true)
+        if SendSigInt(dev, true)
             newPID := 0
     }
     
-    if (newPID > -1 && newPID != r.scrcpyMicPID) {
-        r.scrcpyMicPID := newPID
+    if (newPID > -1 && newPID != pid) {
+        pid := newPID
         UrgentSettingWrite(savedSettings, "Runtime")
     }
 }
-MaintainScrcpyCamProcess() {
-    global savedSettings, guiItems, androidDevicesMap, adbReady
 
-    r := savedSettings["Runtime"]
-    p := savedSettings["Paths"]
-
-    newPID := -1
-
-	if !adbReady
-		return
-
-    deviceConnected := androidDevicesMap.Has(r.CamDeviceID) && androidDevicesMap[r.CamDeviceID] = "Connected"
-    Running := r.scrcpyCamPID ? ProcessExist(r.scrcpyCamPID) : 0
-
-    if (deviceConnected && !Running) {
-		if ProcessExist(r.scrcpyCamPID) 
-			SendSigInt(r.scrcpyCamPID, true)
-
-        RunWait(p.adbExe ' -s ' r.CamDeviceID ' shell input keyevent KEYCODE_WAKEUP', , 'Hide')
-        newPID := RunAndGetPID(p.scrcpyExe, " -s " . r.CamDeviceID . " --video-source=camera --no-audio")
-
-    } else if (!deviceConnected && Running) {
-        if SendSigInt(r.scrcpyCamPID, true)
-            newPID := 0
-    }
-    
-    if (newPID > -1 && newPID != r.scrcpyCamPID) {
-        r.scrcpyCamPID := newPID
-        UrgentSettingWrite(savedSettings, "Runtime")
-    }
-}
 CleanScrcpyMicProcess(){
 	global savedSettings, guiItems
 	r := savedSettings["Runtime"]
@@ -1724,15 +1696,18 @@ bootstrapGnirehtet(){
 
 bootstrapAndroid() {
 	global savedSettings, guiItems, androidDevicesMap, adbReady, androidBootsraped
-	savedRequire := savedSettings["Android"].MicEnable || savedSettings["Android"].CamEnable
-	userRequire := userSettings["Android"].MicEnable || userSettings["Android"].CamEnable
+	r := savedSettings["Runtime"]
+	a := savedSettings["Android"]
+	uA := userSettings["Android"]
+	savedRequire := a.MicEnable || a.CamEnable
+	userRequire := uA.MicEnable || uA.CamEnable
 	if savedRequire || userRequire {
 		KillProcessesExcept("adb.exe", , 3000)
-		SetTimer(RefreshAdbDevices , 3000)
-		if savedSettings["Android"].MicEnable
-			SetTimer(MaintainScrcpyMicProcess, 500)
-		if savedSettings["Android"].CamEnable
-			SetTimer(MaintainScrcpyCamProcess, 500)
+		SetTimer(RefreshAdbDevices , 1000)
+		if a.MicEnable && a.MicDeviceID != "Unset"
+			SetTimer(() => MaintainScrcpyProcess(r.scrcpyMicPID, a.MicDeviceID, " --no-video --no-window --audio-source=mic"), 500)
+		if a.CamEnable && a.CamDeviceID != "Unset"
+			SetTimer(() => MaintainScrcpyProcess(r.scrcpyCamPID, a.CamDeviceID, " --video-source=camera --no-audio"), 500)
 	} else {
 		SetTimer(() => KillProcessesExcept("adb.exe", , 3000), -1) ; TODO maybe use adb-kill server here
 		SetTimer(() => KillProcessesExcept("scrcpy.exe", , 3000), -1) ; TODO maybe use adb-kill server here
