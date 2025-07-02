@@ -97,7 +97,7 @@ ReadSettingsGroup(File, group, Settings) {
 			r.ManagerPID := Integer(IniRead(File, "Runtime", "ManagerPID", 0))
 			r.GnirehtetPID := Integer(IniRead(File, "Runtime", "GnirehtetPID", 0))
 			r.scrcpyMicPID := Integer(IniRead(File, "Runtime", "scrcpyMicPID", 0))
-			r.CamDeviceID := Integer(IniRead(File, "Runtime", "CamDeviceID", 0))
+			r.scrcpyCamPID := Integer(IniRead(File, "Runtime", "scrcpyCamPID", 0))
         case "Manager":
 			m := Settings["Manager"]
 			m.AutoStart := IniRead(File, "Manager", "AutoStart", 1) = "1" ? 1 : 0
@@ -219,7 +219,7 @@ WriteSettingsGroup(Settings, File, group) {
 			WriteIfChanged(File, "Runtime", "ManagerPID", r.ManagerPID)
 			WriteIfChanged(File, "Runtime", "GnirehtetPID", r.GnirehtetPID)
 			WriteIfChanged(File, "Runtime", "scrcpyMicPID", r.scrcpyMicPID)
-			WriteIfChanged(File, "Runtime", "CamDeviceID", r.CamDeviceID)
+			WriteIfChanged(File, "Runtime", "scrcpyCamPID", r.scrcpyCamPID)
         case "Window":
 			w := Settings["Window"]
 			WriteIfChanged(File, "Window", "restorePosition", w.restorePosition)
@@ -1138,7 +1138,7 @@ RunAndGetPID(exePath, args := "", workingDir := "") {
 	return pid
 }
 
-RunPsExecAndGetPIDs(exePath, args := "", workingDir := "") {
+RunPsExecAndGetPID(exePath, args := "", workingDir := "") {
     ; Set defaults
     workingDir := workingDir != "" ? workingDir : SubStr(exePath, 1, InStr(exePath, "\",, -1) - 1)
 
@@ -1159,7 +1159,7 @@ RunPsExecAndGetPIDs(exePath, args := "", workingDir := "") {
     if RegExMatch(output, "with process ID (\d+)", &match)
         apolloPID := Integer(match[1])
 
-    return [0, apolloPID]
+    return apolloPID
 }
 
 
@@ -1199,7 +1199,7 @@ FleetLaunchFleet(){
 	newPID := false
 	for i in f
 		if i.Enabled && (i.configChange || !ProcessExist(i.apolloPID)) {	; TODO add test for the instance if it responds or not, also, may check if display is connected deattach it/force exit? 
-			i.apolloPID := RunPsExecAndGetPIDs(exe, i.configFile)
+			i.apolloPID := RunPsExecAndGetPID(exe, i.configFile)
 			newPID := true
 		}
 	if newPID
@@ -1344,23 +1344,16 @@ KillWithoutBlocking(pid, force:=false, wait:=100) {
 	SetTimer(()=>SendSigInt(pid, force, wait), -1)
 }
 GetProcessName(pid) {
-	try {
-		hProc := DllCall("OpenProcess", "uint", 0x1000, "int", false, "uint", pid)
-		if !hProc
-			return ""
-		buf := Buffer(260 << 1, 0)
-		DllCall("psapi\GetModuleBaseNameW", "ptr", hProc, "ptr", 0, "ptr", buf, "uint", 260)
-		DllCall("CloseHandle", "ptr", hProc)
-		return StrGet(buf)
-	}
-	catch
-		return ""
+    try {
+        for p in ComObject("WbemScripting.SWbemLocator").ConnectServer().ExecQuery(
+            "SELECT Name FROM Win32_Process WHERE ProcessId=" . pid)
+        return p.Name
+    } catch
+        return ""
 }
-
 
 MaintainGnirehtetProcess(){
 	global savedSettings
-	static firstRun := true
 
 	r := savedSettings["Runtime"]
 	p := savedSettings["Paths"]
@@ -1368,8 +1361,7 @@ MaintainGnirehtetProcess(){
 	KillProcessesExcept("gnirehtet.exe", r.gnirehtetPID, 3000)
 
 	if !ProcessExist(r.gnirehtetPID) {
-		exe := p.gnirehtetExe
-		r.gnirehtetPID := RunAndGetPID(exe, "autorun")
+		r.gnirehtetPID := RunAndGetPID(p.gnirehtetExe, "autorun")
 		UrgentSettingWrite(savedSettings, "Runtime")
 	}
 	; TODO detect fault or output connections log or more nice features...
@@ -1647,15 +1639,15 @@ MaintainScrcpyMicProcess() {
 		return
 
     deviceConnected := androidDevicesMap.Has(r.MicDeviceID) && androidDevicesMap[r.MicDeviceID] = "Connected"
-    processRunning := r.scrcpyMicPID ? ProcessExist(r.scrcpyMicPID) : 0
+    Running := r.scrcpyMicPID ? ProcessExist(r.scrcpyMicPID) : 0
 
-	if (deviceConnected && !processRunning) {        
+	if (deviceConnected && !Running) {        
 		if ProcessExist(r.scrcpyMicPID)
 			SendSigInt(r.scrcpyMicPID, true)
 
         RunWait(p.adbExe ' -s ' r.MicDeviceID ' shell input keyevent KEYCODE_WAKEUP', , 'Hide')
         newPID := RunAndGetPID(p.scrcpyExe, " -s " . r.MicDeviceID . " --no-video --no-window --audio-source=mic")
-    } else if (!deviceConnected && processRunning) {
+    } else if (!deviceConnected && Running) {
         if SendSigInt(r.scrcpyMicPID, true)
             newPID := 0
     }
@@ -1677,16 +1669,16 @@ MaintainScrcpyCamProcess() {
 		return
 
     deviceConnected := androidDevicesMap.Has(r.CamDeviceID) && androidDevicesMap[r.CamDeviceID] = "Connected"
-    processRunning := r.scrcpyCamPID ? ProcessExist(r.scrcpyCamPID) : 0
+    Running := r.scrcpyCamPID ? ProcessExist(r.scrcpyCamPID) : 0
 
-    if (deviceConnected && !processRunning) {
+    if (deviceConnected && !Running) {
 		if ProcessExist(r.scrcpyCamPID) 
 			SendSigInt(r.scrcpyCamPID, true)
 
         RunWait(p.adbExe ' -s ' r.CamDeviceID ' shell input keyevent KEYCODE_WAKEUP', , 'Hide')
         newPID := RunAndGetPID(p.scrcpyExe, " -s " . r.CamDeviceID . " --video-source=camera --no-audio")
 
-    } else if (!deviceConnected && processRunning) {
+    } else if (!deviceConnected && Running) {
         if SendSigInt(r.scrcpyCamPID, true)
             newPID := 0
     }
@@ -1739,13 +1731,6 @@ bootstrapAndroid() {
 	if savedRequire || userRequire {
 		KillProcessesExcept("adb.exe", , 3000)
 		SetTimer(RefreshAdbDevices , 3000)
-		keep := []
-		if savedSettings["Android"].MicEnable
-			keep.Push(savedSettings["Android"].scrcpyMicPID)
-		if savedSettings["Android"].CamEnable
-			keep.Push(savedSettings["Android"].scrcpyCamPID)
-		KillProcessesExcept("scrcpy.exe", keep, 1000)
-		
 		if savedSettings["Android"].MicEnable
 			SetTimer(MaintainScrcpyMicProcess, 500)
 		if savedSettings["Android"].CamEnable
