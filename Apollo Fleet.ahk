@@ -67,7 +67,7 @@ ConfWrite(configFile, configMap) {
 
 ReadSettingsFile(Settings := Map(), File := "settings.ini", groups := "all" ) {
     ; Create default Maps
-    for k in ["Manager", "Window", "Paths", "Fleet", "Android"]
+    for k in ["Runtime", "Manager", "Window", "Paths", "Fleet", "Android"]
         if !Settings.Has(k)
             Settings[k] := {}
     if !Settings.Has("Fleet")
@@ -86,10 +86,18 @@ ReadSettingsFile(Settings := Map(), File := "settings.ini", groups := "all" ) {
         ReadSettingsGroup(File, "Android", Settings)
     if (groups = "all" || InStr(groups, "Fleet"))
         ReadSettingsGroup(File, "Fleet", Settings)
+	if (groups = "all" || InStr(groups, "Runtime"))
+        ReadSettingsGroup(File, "Runtime", Settings)
 }
 
 ReadSettingsGroup(File, group, Settings) {
     switch group {
+		case "Runtime":
+			r := Settings["Runtime"]
+			r.ManagerPID := Integer(IniRead(File, "Runtime", "ManagerPID", 0))
+			r.GnirehtetPID := Integer(IniRead(File, "Runtime", "GnirehtetPID", 0))
+			r.scrcpyMicPID := Integer(IniRead(File, "Runtime", "scrcpyMicPID", 0))
+			r.CamDeviceID := Integer(IniRead(File, "Runtime", "CamDeviceID", 0))
         case "Manager":
 			m := Settings["Manager"]
 			m.AutoStart := IniRead(File, "Manager", "AutoStart", 1) = "1" ? 1 : 0
@@ -114,24 +122,20 @@ ReadSettingsGroup(File, group, Settings) {
             p.Apollo := IniRead(File, "Paths", "Apollo", "C:\Program Files\Apollo")
             p.Config := IniRead(File, "Paths", "Config", base "\config")
             p.ADBTools := IniRead(File, "Paths", "ADB", base "\bin\platform-tools")
-			p.PsTools := IniRead(File, "Paths", "PsTools", base "\bin\PsTools")
 			p.apolloExe := p.Apollo "\sunshine.exe"
 			p.gnirehtetExe := p.ADBTools "\gnirehtet.exe"
 			p.scrcpyExe := p.ADBTools "\scrcpy.exe"
 			p.adbExe := p.ADBTools "\adb.exe"
-			p.psExecExe := p.PsTools "\PsExec64.exe"
+			p.paexecExe := IniRead(File, "Paths", "paexecExe", base "\bin\PAExec\paexec.exe")
 			; TODO: fix save settings from webui, use default conf dir
 			; OR wait when apollo support working outside its own dir
         case "Android":
             a := Settings["Android"]
             a.ReverseTethering := IniRead(File, "Android", "ReverseTethering", 1) = "1" ? 1 : 0
-            a.gnirehtetPID := Integer(IniRead(File, "Android", "gnirehtetPID", 0))
             a.MicDeviceID := IniRead(File, "Android", "MicDeviceID", "Unset")
 			a.MicEnable := IniRead(File, "Android", "MicEnable", a.MicDeviceID = "Unset" ? 0 : 1) = "1" ? 1 : 0
-            a.scrcpyMicPID := Integer(IniRead(File, "Android", "scrcpyMicPID", 0))
             a.CamDeviceID := IniRead(File, "Android", "CamDeviceID", "Unset")
 			a.CamEnable := IniRead(File, "Android", "CamEnable", a.CamDeviceID = "Unset" ? 0 : 1) = "1" ? 1 : 0
-            a.scrcpyCamPID := Integer(IniRead(File, "Android", "scrcpyCamPID", 0))
         case "Fleet":
 			Settings["Fleet"] := []
 			f := Settings["Fleet"]
@@ -146,12 +150,11 @@ ReadSettingsGroup(File, group, Settings) {
 					i.Name := IniRead(File, section, "Name", "i" . A_Index)
 					i.Port := IniRead(File, section, "Port", 11000 + A_Index * 1000)
 					i.Enabled := IniRead(File, section, "Enabled", 1) = "1" ? 1 : 0
+					i.apolloPID := Integer(IniRead(File, section, "apolloPID", 0))
 					i.configFile := configp "\fleet-" i.id ".conf"
 					i.logFile := configp "\fleet-" i.id ".log"
 					i.appsFile := configp "\apps-" i.id ".json"
 					i.stateFile := configp "\state-" i.id ".json"
-					i.consolePID := Integer(IniRead(File, section, "consolePID", 0))
-					i.apolloPID := Integer(IniRead(File, section, "apolloPID", 0))
 					i.AudioDevice := IniRead(File, section, "AudioDevice", "Unset")
 					i.AutoCaptureSink := i.AudioDevice = "Unset" ? "enabled" : "disabled"
 					f.Push(i)
@@ -162,6 +165,7 @@ ReadSettingsGroup(File, group, Settings) {
 				i.Port := 11000
 				i.Name := "Instance " . i.id
 				i.Enabled := 1
+				i.apolloPID := 0
 				i.AudioDevice := "Unset"
 				i.AutoCaptureSink := i.AudioDevice = "Unset" ? "enabled" : "disabled"
 				i.configFile := configp "\fleet-" i.id ".conf"
@@ -169,8 +173,6 @@ ReadSettingsGroup(File, group, Settings) {
 				i.stateFile :=  configp "\state-" i.id ".json"
 				i.appsFile := configp "\apps-" i.id ".json"
 				i.stateFile := configp "\state-" i.id ".json"	
-				i.consolePID := 0
-				i.apolloPID := 0	
 				f.Push(i)
 			}
     }
@@ -189,6 +191,8 @@ WriteSettingsFile(Settings := Map(), File := "settings.ini", groups := "all") {
 			changed += WriteSettingsGroup(Settings, File, "Android")
 		if (groups = "all" || InStr(groups, "Fleet"))
 			changed += WriteSettingsGroup(Settings, File, "Fleet")
+		if (groups = "all" || InStr(groups, "Runtime"))
+			changed += WriteSettingsGroup(Settings, File, "Runtime")
 		if changed
 			FileOpen(File, "a").Close()
 	} else {
@@ -210,13 +214,12 @@ WriteSettingsGroup(Settings, File, group) {
 		}
 	}
     switch group {
-        case "Manager":
-			m := Settings["Manager"]
-			WriteIfChanged(File, "Manager", "AutoStart", m.AutoStart)
-			WriteIfChanged(File, "Manager", "SyncVolume", m.SyncVolume)
-			WriteIfChanged(File, "Manager", "RemoveDisconnected", m.RemoveDisconnected)
-			WriteIfChanged(File, "Manager", "DarkTheme", m.DarkTheme)
-			WriteIfChanged(File, "Manager", "ShowErrors", m.ShowErrors)
+		case "Runtime":
+			r := Settings["Runtime"]
+			WriteIfChanged(File, "Runtime", "ManagerPID", r.ManagerPID)
+			WriteIfChanged(File, "Runtime", "GnirehtetPID", r.GnirehtetPID)
+			WriteIfChanged(File, "Runtime", "scrcpyMicPID", r.scrcpyMicPID)
+			WriteIfChanged(File, "Runtime", "CamDeviceID", r.CamDeviceID)
         case "Window":
 			w := Settings["Window"]
 			WriteIfChanged(File, "Window", "restorePosition", w.restorePosition)
@@ -227,7 +230,13 @@ WriteSettingsGroup(Settings, File, group) {
 			WriteIfChanged(File, "Window", "cmdReload", w.cmdReload)
 			WriteIfChanged(File, "Window", "cmdExit", w.cmdExit)
 			WriteIfChanged(File, "Window", "cmdApply", w.cmdApply)
-
+        case "Manager":
+			m := Settings["Manager"]
+			WriteIfChanged(File, "Manager", "AutoStart", m.AutoStart)
+			WriteIfChanged(File, "Manager", "SyncVolume", m.SyncVolume)
+			WriteIfChanged(File, "Manager", "RemoveDisconnected", m.RemoveDisconnected)
+			WriteIfChanged(File, "Manager", "DarkTheme", m.DarkTheme)
+			WriteIfChanged(File, "Manager", "ShowErrors", m.ShowErrors)
         case "Paths":
 			p := Settings["Paths"]
 			WriteIfChanged(File, "Paths", "Apollo", p.Apollo)
@@ -237,13 +246,9 @@ WriteSettingsGroup(Settings, File, group) {
         case "Android":
 			a := Settings["Android"]
 			WriteIfChanged(File, "Android", "ReverseTethering", a.ReverseTethering)
-			WriteIfChanged(File, "Android", "gnirehtetPID", a.gnirehtetPID)
 			WriteIfChanged(File, "Android", "MicDeviceID", a.MicDeviceID)
 			WriteIfChanged(File, "Android", "MicEnable", a.MicEnable)
-			WriteIfChanged(File, "Android", "scrcpyMicPID", a.scrcpyMicPID)
 			WriteIfChanged(File, "Android", "CamEnable", a.CamEnable)
-			WriteIfChanged(File, "Android", "CamDeviceID", a.CamDeviceID)
-			WriteIfChanged(File, "Android", "scrcpyCamPID", a.scrcpyCamPID)
 		
         case "Fleet":
 			f := Settings["Fleet"]
@@ -256,7 +261,6 @@ WriteSettingsGroup(Settings, File, group) {
 				IniWrite(i.Name, File, section, "Name")
 				IniWrite(i.Port, File, section, "Port")
 				IniWrite(i.Enabled, File, section, "Enabled")
-				IniWrite(i.consolePID, File, section, "consolePID")
 				IniWrite(i.apolloPID, File, section, "apolloPID")
 				IniWrite(i.AudioDevice, File, section, "AudioDevice")
 				; IniWrite(i.Audio, File, section, "Audio") ; TODO
@@ -605,7 +609,6 @@ HandleInstanceAddButton(*){
 	i.stateFile :=  configp "\state-" i.id ".json"
 	i.appsFile := configp "\apps-" i.id ".json"
 	i.stateFile := configp "\state-" i.id ".json"	
-	i.consolePID := 0
 	i.apolloPID := 0
 	userSettings["Fleet"].Push(i)
 	currentlySelectedIndex := userSettings["Fleet"].Length
@@ -681,11 +684,11 @@ HandleReloadButton(*) {
 		if false {
 			; TODO maybe add seperate button to restart sertvices apart from apolo (possibly restart button)
 			if savedSettings["Android"].ReverseTethering 
-				SendSigInt(savedSettings["Android"].gnirehtetPID, true)
+				SendSigInt(savedSettings["Runtime"].gnirehtetPID, true)
 			if savedSettings["Android"].MicEnable 
-				SendSigInt(savedSettings["Android"].scrcpyMicPID, true)
+				SendSigInt(savedSettings["Runtime"].scrcpyMicPID, true)
 			if savedSettings["Android"].CamEnable
-				SendSigInt(savedSettings["Android"].scrcpyCamPID, true)
+				SendSigInt(savedSettings["Runtime"].scrcpyCamPID, true)
 			for i in savedSettings["Fleet"] {
 				if i.Enabled = 1
 					SendSigInt(i.apolloPID, true)
@@ -809,11 +812,10 @@ DeepCompare(a, b, path := "") {
 ; Returns 1 if savedSettings vs. userSettings differ anywhere (skips "Window"), else 0  
 UserSettingsWaiting() {
     global savedSettings, userSettings
-	w := userSettings["Window"]
 	if !initDone
 		return false
-	for category in userSettings
-		if category != "Window" && DeepCompare(savedSettings[category], userSettings[category], category){
+	for category in ["Manager", "Paths", "Fleet", "Android"]
+		if DeepCompare(savedSettings[category], userSettings[category], category){
 			return true
 		}
 	return false
@@ -1069,7 +1071,7 @@ CreateConfigMap(instance){
 	return configMap
 }
 bootstrapSettings() {
-	global savedSettings := Map(), userSettings := Map(), runtimeSettings := Map()
+	global savedSettings := Map(), userSettings := Map()
 
 	ReadSettingsFile(savedSettings)
 	userSettings := DeepClone(savedSettings)
@@ -1117,43 +1119,37 @@ SendSigInt(pid, force:=false, wait := 1000) {
 }
 
 
-RunAndGetPIDs(exePath, args := "", workingDir := "", flags := "Hide") {
+RunAndGetPID(exePath, args := "", workingDir := "") {
     consolePID := 0
-	apolloPID := 0
-	pids := []
+	pid := 0
     Run(
         A_ComSpec " /c " '"' exePath '"' . (args ? " " . args : ""),
         workingDir := workingDir ? workingDir : SubStr(exePath, 1, InStr(exePath, "\",, -1) - 1),
-        flags,
+        "Hide",
         &consolePID
     )
 	Sleep(10)
 	for process in ComObject("WbemScripting.SWbemLocator").ConnectServer().ExecQuery("Select * from Win32_Process where ParentProcessId=" consolePID)
 		if InStr(process.CommandLine, exePath) {
-			apolloPID := process.ProcessId
+			pid := process.ProcessId
 			break
 		}
 	
-	return [consolePID, apolloPID]
+	return pid
 }
 
-#Include ./lib/StdOutToVar.ahk
-
-#Include ./lib/StdOutToVar.ahk
-
-RunPsExecAndGetPIDs(exePath, args := "", workingDir := "", psexecPath := "") {
+RunPsExecAndGetPIDs(exePath, args := "", workingDir := "") {
     ; Set defaults
     workingDir := workingDir != "" ? workingDir : SubStr(exePath, 1, InStr(exePath, "\",, -1) - 1)
-    if !psexecPath
-        psexecPath := A_ScriptDir "\bin\PsTools\PsExec64.exe"
-    
+
+    psexecPath := savedSettings["Paths"].paexecExe
+
     sessionId := DllCall("Kernel32.dll\WTSGetActiveConsoleSessionId")
 
     ; Build PsExec command (with -d to get PID in output)
     fullCmd := Format('"{1}" -accepteula -i {2} -d -w "{3}" -s "{4}" "{5}"', 
         psexecPath, sessionId, workingDir, exePath, args)
 
-	MsgBox(fullCmd)
     ; Capture PsExec's output properly
     cmdOutput := StdOutToVar(fullCmd)
     output := cmdOutput.Output  ; Extract the stdout string from the object
@@ -1165,6 +1161,7 @@ RunPsExecAndGetPIDs(exePath, args := "", workingDir := "", psexecPath := "") {
 
     return [0, apolloPID]
 }
+
 
 
 ArrayHas(arr, val) {
@@ -1202,9 +1199,7 @@ FleetLaunchFleet(){
 	newPID := false
 	for i in f
 		if i.Enabled && (i.configChange || !ProcessExist(i.apolloPID)) {	; TODO add test for the instance if it responds or not, also, may check if display is connected deattach it/force exit? 
-			pids := RunPsExecAndGetPIDs(exe, i.configFile)
-			i.consolePID := pids[1]
-			i.apolloPID := pids[2]
+			i.apolloPID := RunPsExecAndGetPIDs(exe, i.configFile)
 			newPID := true
 		}
 	if newPID
@@ -1322,7 +1317,7 @@ KillProcessesExcept(pName, keep := [0], wait := 1000) {
 	; Kill remaining
 	for pid in pids {
 		if !ArrayHas(keep, pid) {
-			KillWithoutBlocking(pid, true, 0)
+			KillWithoutBlocking(pid, true, 100)
 			targetKill.Push(pid)
 		}
 	}
@@ -1345,7 +1340,7 @@ AnyProcessAlive(pids){
 			return true
 	return false
 }
-KillWithoutBlocking(pid, force:=false, wait:=1000) {
+KillWithoutBlocking(pid, force:=false, wait:=100) {
 	SetTimer(()=>SendSigInt(pid, force, wait), -1)
 }
 GetProcessName(pid) {
@@ -1367,18 +1362,15 @@ MaintainGnirehtetProcess(){
 	global savedSettings
 	static firstRun := true
 
-	a := savedSettings["Android"]
+	r := savedSettings["Runtime"]
 	p := savedSettings["Paths"]
 
-	if firstRun 
-		if KillProcessesExcept("gnirehtet.exe", a.gnirehtetPID)
-			firstRun := false
+	KillProcessesExcept("gnirehtet.exe", r.gnirehtetPID, 3000)
 
-	if !ProcessExist(a.gnirehtetPID) || a.gnirehtetPID = 0 {
+	if !ProcessExist(r.gnirehtetPID) {
 		exe := p.gnirehtetExe
-		pids := RunAndGetPIDs(exe, "autorun")
-		a.gnirehtetPID := pids[2]
-		UrgentSettingWrite(savedSettings, "Android")
+		r.gnirehtetPID := RunAndGetPID(exe, "autorun")
+		UrgentSettingWrite(savedSettings, "Runtime")
 	}
 	; TODO detect fault or output connections log or more nice features...
 }
@@ -1391,7 +1383,7 @@ UpdateStatusArea() {
 	global savedSettings, guiItems, msgTimeout
 
 	f := savedSettings["Fleet"]
-	a := savedSettings["Android"]
+	r := savedSettings["Runtime"]
 	if  msgTimeout {
 		valid := f.Length > 0
 		apolloRunning := valid ? 1 : 0
@@ -1403,9 +1395,9 @@ UpdateStatusArea() {
 				break
 			}
 		}
-		gnirehtetRunning := ProcessRunning(a.gnirehtetPID)
-		androidMicRunning := ProcessRunning(a.scrcpyMicPID)
-		androidCamRunning := ProcessRunning(a.scrcpyCamPID)
+		gnirehtetRunning := ProcessRunning(r.gnirehtetPID)
+		androidMicRunning := ProcessRunning(r.scrcpyMicPID)
+		androidCamRunning := ProcessRunning(r.scrcpyCamPID)
 
 		statusItems := Map(
 			"StatusApollo", "apolloRunning",
@@ -1646,7 +1638,7 @@ RefreshAdbDevices(){
 MaintainScrcpyMicProcess() {
     global savedSettings, guiItems, androidDevicesMap, adbReady
 
-    a := savedSettings["Android"]
+    r := savedSettings["Runtime"]
     p := savedSettings["Paths"]
 
     static newPID := -1
@@ -1654,30 +1646,29 @@ MaintainScrcpyMicProcess() {
 	if !adbReady
 		return
 
-    deviceConnected := androidDevicesMap.Has(a.MicDeviceID) && androidDevicesMap[a.MicDeviceID] = "Connected"
-    processRunning := a.scrcpyMicPID ? ProcessExist(a.scrcpyMicPID) : 0
+    deviceConnected := androidDevicesMap.Has(r.MicDeviceID) && androidDevicesMap[r.MicDeviceID] = "Connected"
+    processRunning := r.scrcpyMicPID ? ProcessExist(r.scrcpyMicPID) : 0
 
 	if (deviceConnected && !processRunning) {        
-		if ProcessExist(a.scrcpyMicPID)
-			SendSigInt(a.scrcpyMicPID, true)
+		if ProcessExist(r.scrcpyMicPID)
+			SendSigInt(r.scrcpyMicPID, true)
 
-        RunWait(p.adbExe ' -s ' a.MicDeviceID ' shell input keyevent KEYCODE_WAKEUP', , 'Hide')
-        pids := RunAndGetPIDs(p.scrcpyExe, " -s " . a.MicDeviceID . " --no-video --no-window --audio-source=mic")
-        newPID := pids[2]
+        RunWait(p.adbExe ' -s ' r.MicDeviceID ' shell input keyevent KEYCODE_WAKEUP', , 'Hide')
+        newPID := RunAndGetPID(p.scrcpyExe, " -s " . r.MicDeviceID . " --no-video --no-window --audio-source=mic")
     } else if (!deviceConnected && processRunning) {
-        if SendSigInt(a.scrcpyMicPID, true)
+        if SendSigInt(r.scrcpyMicPID, true)
             newPID := 0
     }
     
-    if (newPID > -1 && newPID != a.scrcpyMicPID) {
-        a.scrcpyMicPID := newPID
-        UrgentSettingWrite(savedSettings, "Android")
+    if (newPID > -1 && newPID != r.scrcpyMicPID) {
+        r.scrcpyMicPID := newPID
+        UrgentSettingWrite(savedSettings, "Runtime")
     }
 }
 MaintainScrcpyCamProcess() {
     global savedSettings, guiItems, androidDevicesMap, adbReady
 
-    a := savedSettings["Android"]
+    r := savedSettings["Runtime"]
     p := savedSettings["Paths"]
 
     newPID := -1
@@ -1685,33 +1676,32 @@ MaintainScrcpyCamProcess() {
 	if !adbReady
 		return
 
-    deviceConnected := androidDevicesMap.Has(a.CamDeviceID) && androidDevicesMap[a.CamDeviceID] = "Connected"
-    processRunning := a.scrcpyCamPID ? ProcessExist(a.scrcpyCamPID) : 0
+    deviceConnected := androidDevicesMap.Has(r.CamDeviceID) && androidDevicesMap[r.CamDeviceID] = "Connected"
+    processRunning := r.scrcpyCamPID ? ProcessExist(r.scrcpyCamPID) : 0
 
     if (deviceConnected && !processRunning) {
-		if ProcessExist(a.scrcpyCamPID) 
-			SendSigInt(a.scrcpyCamPID, true)
+		if ProcessExist(r.scrcpyCamPID) 
+			SendSigInt(r.scrcpyCamPID, true)
 
-        RunWait(p.adbExe ' -s ' a.CamDeviceID ' shell input keyevent KEYCODE_WAKEUP', , 'Hide')
-        pids := RunAndGetPIDs(p.scrcpyExe, " -s " . a.CamDeviceID . " --video-source=camera --no-audio")
-        newPID := pids[2]
+        RunWait(p.adbExe ' -s ' r.CamDeviceID ' shell input keyevent KEYCODE_WAKEUP', , 'Hide')
+        newPID := RunAndGetPID(p.scrcpyExe, " -s " . r.CamDeviceID . " --video-source=camera --no-audio")
 
     } else if (!deviceConnected && processRunning) {
-        if SendSigInt(a.scrcpyCamPID, true)
+        if SendSigInt(r.scrcpyCamPID, true)
             newPID := 0
     }
     
-    if (newPID > -1 && newPID != a.scrcpyCamPID) {
-        a.scrcpyCamPID := newPID
-        UrgentSettingWrite(savedSettings, "Android")
+    if (newPID > -1 && newPID != r.scrcpyCamPID) {
+        r.scrcpyCamPID := newPID
+        UrgentSettingWrite(savedSettings, "Runtime")
     }
 }
 CleanScrcpyMicProcess(){
 	global savedSettings, guiItems
-	a := savedSettings["Android"]
-	if SendSigInt(a.scrcpyMicPID, true){
-		a.scrcpyMicPID := 0
-		UrgentSettingWrite(savedSettings, "Android")
+	r := savedSettings["Runtime"]
+	if SendSigInt(r.scrcpyMicPID, true){
+		r.scrcpyMicPID := 0
+		UrgentSettingWrite(savedSettings, "Runtime")
 	}
 }
 
@@ -1734,9 +1724,9 @@ bootstrapGnirehtet(){
 	global savedSettings, guiItems, gnirehtetBootsraped
 	if savedSettings["Android"].ReverseTethering {
 		ShowMessage("Starting Gnirehtet...")
-		SetTimer(MaintainGnirehtetProcess, 1000)
+		SetTimer(MaintainGnirehtetProcess, 3000)
 	} else {
-		SetTimer(() => KillProcessesExcept("gnirehtet.exe", , 1000), -1)
+		SetTimer(() => KillProcessesExcept("gnirehtet.exe", , 3000), -1)
 	}
 	gnirehtetBootsraped := true
 	FinishBootStrap()
@@ -1747,8 +1737,8 @@ bootstrapAndroid() {
 	savedRequire := savedSettings["Android"].MicEnable || savedSettings["Android"].CamEnable
 	userRequire := userSettings["Android"].MicEnable || userSettings["Android"].CamEnable
 	if savedRequire || userRequire {
-		KillProcessesExcept("adb.exe", , 1000)
-		SetTimer(RefreshAdbDevices , 1000)
+		KillProcessesExcept("adb.exe", , 3000)
+		SetTimer(RefreshAdbDevices , 3000)
 		keep := []
 		if savedSettings["Android"].MicEnable
 			keep.Push(savedSettings["Android"].scrcpyMicPID)
@@ -1761,8 +1751,8 @@ bootstrapAndroid() {
 		if savedSettings["Android"].CamEnable
 			SetTimer(MaintainScrcpyCamProcess, 500)
 	} else {
-		SetTimer(() => KillProcessesExcept("adb.exe", , 1000), -1) ; TODO maybe use adb-kill server here
-		SetTimer(() => KillProcessesExcept("scrcpy.exe", , 1000), -1) ; TODO maybe use adb-kill server here
+		SetTimer(() => KillProcessesExcept("adb.exe", , 3000), -1) ; TODO maybe use adb-kill server here
+		SetTimer(() => KillProcessesExcept("scrcpy.exe", , 3000), -1) ; TODO maybe use adb-kill server here
 	}
 	androidBootsraped := true
 	FinishBootStrap()
@@ -1776,7 +1766,7 @@ bootstrapAndroid() {
 
 
 
-global myGui, guiItems, userSettings, savedSettings, runtimeSettings, initDone := false
+global myGui, guiItems, userSettings, savedSettings, initDone := false
 bootstrapSettings()
 bootstrapGUI()
 
