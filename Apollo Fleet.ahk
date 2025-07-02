@@ -1036,12 +1036,11 @@ FleetConfigInit(*) {
 }
 MirrorMapItemsIntoAnother(inputMap, outputMap){
 	modified := false
-		for option, value in inputMap {
-			if MapSetIfChanged(outputMap, option, value)
-				modified := true
-			if value = "Unset"
-				MapDeleteItemIfExist(outputMap, option)
-		}
+	for option, value in inputMap 
+		if value := "Unset" && MapDeleteItemIfExist(outputMap, option)
+			modified := true
+		else if MapSetIfChanged(outputMap, option, value)
+			modified := true
 	return modified
 }
 CreateConfigMap(instance){
@@ -1061,9 +1060,8 @@ CreateConfigMap(instance){
 	)
 
 	configMap := Map()
-	for option, value in optionsMap	;TODO depricate this keep_sink_default unset thing
-		configMap.Set(option, option = "keep_sink_default" ? "Unset" : instance.%value%)
-	
+	for option, value in optionsMap
+		configMap.Set(option, instance.%value%)
 	
 	for option, value in staticOptions
 		configMap.Set(option, value)
@@ -1139,27 +1137,27 @@ RunAndGetPID(exePath, args := "", workingDir := "") {
 }
 
 RunPsExecAndGetPID(exePath, args := "", workingDir := "") {
-    ; Set defaults
     workingDir := workingDir != "" ? workingDir : SubStr(exePath, 1, InStr(exePath, "\",, -1) - 1)
-
     psexecPath := savedSettings["Paths"].paexecExe
-
     sessionId := DllCall("Kernel32.dll\WTSGetActiveConsoleSessionId")
-
-    ; Build PsExec command (with -d to get PID in output)
-    fullCmd := Format('"{1}" -accepteula -i {2} -d -w "{3}" -s "{4}" "{5}"', 
-        psexecPath, sessionId, workingDir, exePath, args)
-
-    ; Capture PsExec's output properly
-    cmdOutput := StdOutToVar(fullCmd)
-    output := cmdOutput.Output  ; Extract the stdout string from the object
+    tmpFile := A_Temp "\apollo-last-pid.txt"
     
-    ; Extract PID from output (PsExec prints "with process ID 1234")
-    apolloPID := 0
-    if RegExMatch(output, "with process ID (\d+)", &match)
-        apolloPID := Integer(match[1])
+    ; Delete any existing file first
+    if FileExist(tmpFile)
+        FileDelete tmpFile
 
-    return apolloPID
+    psCmd := "$p=Start-Process -WindowStyle Hidden -FilePath '" . exePath . "' -ArgumentList '" . args . "' -PassThru;$p.Id>'" . tmpFile . "'"
+
+	cmd := Format('"{1}" -accepteula -i {2} -w "{3}" -s powershell -Command "{4}"', psexecPath, sessionId, workingDir, psCmd)
+
+    RunWait(cmd, , "Hide")
+
+    Loop 50 {
+        Sleep 10
+        if FileExist(tmpFile)
+            return Trim(FileRead(tmpFile))
+    }
+    return 0
 }
 
 
