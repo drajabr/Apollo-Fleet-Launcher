@@ -55,14 +55,19 @@ ConfRead(FilePath, Param := "", Default := "") {
 }
 
 ConfWrite(configFile, configMap) {
+	oldConf := FileExist(configFile) ? FileRead(configFile) : ""
 	lines := ""
 	for Key, Value in configMap
 			lines.=(Key . " = " . Value . "`n")
 	; Write back all lines
-	if FileExist(configFile)
-		FileDelete configFile  ; Remove old file
-	FileAppend lines, configFile
-	FileOpen(configFile, "a").Close()
+	if oldConf != lines {
+		if FileExist(configFile)
+			FileDelete configFile  ; Remove old file
+		FileAppend lines, configFile
+		FileOpen(configFile, "a").Close()
+		return true
+	}
+	return false
 }
 
 ReadSettingsFile(Settings := Map(), File := "settings.ini", groups := "all" ) {
@@ -127,8 +132,6 @@ ReadSettingsGroup(File, group, Settings) {
 			p.scrcpyExe := p.ADBTools "\scrcpy.exe"
 			p.adbExe := p.ADBTools "\adb.exe"
 			p.paexecExe := IniRead(File, "Paths", "paexecExe", base "\bin\PAExec\paexec.exe")
-			; TODO: fix save settings from webui, use default conf dir
-			; OR wait when apollo support working outside its own dir
         case "Android":
             a := Settings["Android"]
             a.ReverseTethering := IniRead(File, "Android", "ReverseTethering", 1) = "1" ? 1 : 0
@@ -199,7 +202,7 @@ WriteSettingsFile(Settings := Map(), File := "settings.ini", groups := "all") {
 		FileAppend("", File)
 		WriteSettingsFile(Settings, File, groups) ; Retry writing settings if file was just created
 	}
-	while changed && (FileRead(File) = lastContents) { ; TODO Check do we really need this? 
+	while changed && (FileRead(File) = lastContents) {
 		Sleep 10 ; Wait for file to be written
 	}
 }
@@ -263,7 +266,6 @@ WriteSettingsGroup(Settings, File, group) {
 				IniWrite(i.Enabled, File, section, "Enabled")
 				IniWrite(i.apolloPID, File, section, "apolloPID")
 				IniWrite(i.AudioDevice, File, section, "AudioDevice")
-				; IniWrite(i.Audio, File, section, "Audio") ; TODO
 			}
 	}
 	return changed
@@ -271,7 +273,6 @@ WriteSettingsGroup(Settings, File, group) {
 InitmyGui() {
 	global savedSettings
 
-	;TODO implement dark theme and follow system theme if possible 
 	global myGui, guiItems := Map()
 	if !A_IsCompiled {
 		TraySetIcon("./icons/9.ico")
@@ -329,7 +330,7 @@ InitmyGui() {
 
 	guiItems["FleetButtonAdd"] := myGui.Add("Button", "x43 y134 w75 h21", "Add")
 	guiItems["FleetButtonDelete"] := myGui.Add("Button", "x14 y134 w27 h21", "✖")
-	; TODO actually functional status area, 
+
 	guiItems["StatusApollo"] := myGui.Add("Text", "x16 y172 w70", "❎ Apollo ")
 	guiItems["StatusGnirehtet"] := myGui.Add("Text", "x76 y172 w70", "❎ Gnirehtet")
 	guiItems["StatusAndroidMic"] := myGui.Add("Text", "x146 y172 w75", "❎ AndroidMic")
@@ -412,7 +413,7 @@ ReflectSettings(Settings){
 	guiItems["InstanceNameBox"].Value := valid ? Settings["Fleet"][currentlySelectedIndex].Name : ""
 	guiItems["InstancePortBox"].Value := valid ? Settings["Fleet"][currentlySelectedIndex].Port : ""
 	guiItems["InstanceEnableCheckbox"].Value := valid ? f[currentlySelectedIndex].Enabled : 0
-	;RefreshAudioSelector() TODO Revist if we still need this here
+
 	guiItems["InstanceAudioSelector"].Text := valid ? f[currentlySelectedIndex].AudioDevice : "Unset"
 	UpdateButtonsLabels()
 }
@@ -502,7 +503,7 @@ HandleAudioSelector(*){
 	valid := currentlySelectedIndex > 0 && currentlySelectedIndex <= userSettings["Fleet"].Length 
 	currentlySelectedIndex := valid ? currentlySelectedIndex : 1
 	i := userSettings["Fleet"][currentlySelectedIndex]
-	i.AudioDevice := guiItems["InstanceAudioSelector"].Text	; TODO devices list array and index instead of text, or maybe its just fine to use text? 
+	i.AudioDevice := guiItems["InstanceAudioSelector"].Text
 	UpdateButtonsLabels()
 }
 RefreshAudioSelector(*){
@@ -618,8 +619,8 @@ HandleInstanceAddButton(*){
 }
 HandleInstanceDeleteButton(*){ 
 	global userSettings, guiItems, currentlySelectedIndex
-	if (userSettings["Fleet"].Length > 1){ ; TODO Remake this?
-		userSettings["Fleet"].RemoveAt(currentlySelectedIndex) ; MUST USE REMOVEAT INSTEAD OF DELETE TO REMOVE THE ITEM COMPLETELY NOT JUST ITS VALUE
+	if (userSettings["Fleet"].Length > 1){
+		userSettings["Fleet"].RemoveAt(currentlySelectedIndex)
 		currentlySelectedIndex := currentlySelectedIndex <= userSettings["Fleet"].Length ? currentlySelectedIndex : currentlySelectedIndex - 1
 		RefreshFleetList()
 		HandleListChange()
@@ -826,7 +827,7 @@ UpdateButtonsLabels(){
 	global guiItems, settingsLocked
 	guiItems["ButtonLockSettings"].Text := (UserSettingsWaiting() && !settingsLocked) ? "Apply" : settingsLocked ? "🔒" : "🔓" 
 	guiItems["ButtonReload"].Text := settingsLocked ?  "Reload" : "Cancel"
-	; TODO here we could also show the running/not running status of each selected instance 
+
 	i := userSettings["Fleet"][currentlySelectedIndex]
 	guiItems["InstanceEnableCheckbox"].Text := i.Enabled ? ProcessExist(i.apolloPID)  ? "Running: " i.apolloPID "" : "Stopped" :  ProcessExist(i.apolloPID) ? "To be Disabled" : "Disabled"
 
@@ -868,7 +869,7 @@ ApplyLockState() {
 
 SaveUserSettings(){
 	global userSettings, savedSettings
-	; TODO verify settings before save? 
+
 	savedSettings := DeepClone(userSettings)
 	WriteSettingsFile(savedSettings)
 }
@@ -984,11 +985,7 @@ FleetConfigInit(*) {
 	{
 		"apps": [
 			{
-				"cmd": "",
-				"exit-timeout": 0,
-				"image-path": "desktop.png",
 				"name": "Desktop",
-				"state-cmd": [],
 				"terminate-on-pause": "true"
 			}
 		],
@@ -1005,29 +1002,20 @@ FleetConfigInit(*) {
 	appsJsonText := RegExReplace(appsJsonText, ':\s*"true"', ': true')
 	appsJsonText := RegExReplace(appsJsonText, ':\s*"false"', ': false')
 
-	; TODO: Simple text find and replace instead of JXON maybe enough?
-
 	for i in f {
 		i.configChange := false
 		i.baseConfig := CreateConfigMap(i)
-		if !FileExist(i.configFile) {
-			i.currentConfig := DeepClone(i.baseConfig)
-			if MirrorMapItemsIntoAnother(i.baseConfig, i.currentConfig)
+		i.currentConfig := FileExist(i.configFile)? ConfRead(i.configFile) : DeepClone(i.baseConfig)
+		if MirrorMapItemsIntoAnother(i.baseConfig, i.currentConfig)
+			if ConfWrite(i.configFile, i.currentConfig)
 				i.configChange := true
-		} else {
-			i.currentConfig := ConfRead(i.configFile)
-			if MirrorMapItemsIntoAnother(i.baseConfig, i.currentConfig)
-				i.configChange := true
-		}
-		if i.configChange
-			ConfWrite(i.configFile, i.currentConfig)
-
 
 		if !FileExist(i.appsFile){
 			FileAppend(appsJsonText, i.appsFile)
 		} else{
-			thistApps := jsongo.Parse(FileRead(i.appsFile))
-			; TODO here if its not changed terminate-on-pause we don't need to delete apps file.....
+			currentApps := jsongo.Parse(FileRead(i.appsFile))
+			if MirrorMapItemsIntoAnother(baseApps, currentApps)
+				i.configChange := true
 		}
 		;if FileExist(i.appsFile)
 		;	FileDelete(i.appsFile)	; delete old file if exists
@@ -1037,11 +1025,14 @@ FleetConfigInit(*) {
 }
 MirrorMapItemsIntoAnother(inputMap, outputMap){
 	modified := false
-	for option, value in inputMap 
-		if value := "Unset" && MapDeleteItemIfExist(outputMap, option)
+	for option in inputMap {
+		value := inputMap[option]
+		if value = "Unset" && MapDeleteItemIfExist(outputMap, option)
 			modified := true
 		else if MapSetIfChanged(outputMap, option, value)
 			modified := true
+		;MsgBox("Option: " option " value: " value " Exists: " outputMap.Has(option) " modified: " modified)
+	}
 	return modified
 }
 CreateConfigMap(instance){
@@ -1230,7 +1221,6 @@ SetupFleetTask() {
 			RunWait('sc stop ApolloService', , "Hide")
 			RunWait('sc config ApolloService start=disabled', , "Hide")
 		} else {
-			; TODO if this is the first run lets keep the stock service disabled if we disable AutoStart 
 			RunWait('sc config ApolloService start=auto', , "Hide")
 			RunWait('sc start ApolloService', , "Hide")
 		}
@@ -1710,7 +1700,7 @@ bootstrapAndroid() {
 			SetTimer(() => MaintainScrcpyProcess(r.scrcpyCamPID, a.CamDeviceID, " --video-source=camera --no-audio"), 500)
 	} else {
 		SetTimer(() => KillProcessesExcept("adb.exe", , 3000), -1) ; TODO maybe use adb-kill server here
-		SetTimer(() => KillProcessesExcept("scrcpy.exe", , 3000), -1) ; TODO maybe use adb-kill server here
+		SetTimer(() => KillProcessesExcept("scrcpy.exe", , 3000), -1)
 	}
 	androidBootsraped := true
 	FinishBootStrap()
