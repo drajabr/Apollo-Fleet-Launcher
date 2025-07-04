@@ -12,15 +12,13 @@
 #Include ./lib/StdOutToVar.ahk
 #Include ./lib/DarkGuiHelpers.ahk
 
-ConfRead(FilePath, Param := "", Default := "") {
+ConfRead(FilePath, Param := "") {
     ; Check if file exists
     if !FileExist(FilePath)
         throw Error("Config file not found: " . FilePath)
 
-    ; Initialize the map
     confMap := Map()
     
-    ; Read the file line by line
     Loop Read, FilePath
     {
         line := Trim(A_LoopReadLine)
@@ -42,32 +40,21 @@ ConfRead(FilePath, Param := "", Default := "") {
         }
     }
     
-    ; If a specific parameter is requested
-    if (Param != "")
-    {
-        return confMap.Has(Param) ? confMap[Param] : Default
-    }
-    else
-    {
-        ; No parameter requested: return the whole map
-        return confMap
-    }
+    return confMap
 }
 
 ConfWrite(configFile, configMap) {
-	oldConf := FileExist(configFile) ? FileRead(configFile) : ""
 	lines := ""
+
 	for Key, Value in configMap
 			lines.=(Key . " = " . Value . "`n")
-	; Write back all lines
-	if oldConf != lines {
-		if FileExist(configFile)
-			FileDelete configFile  ; Remove old file
-		FileAppend lines, configFile
-		FileOpen(configFile, "a").Close()
-		return true
-	}
-	return false
+
+	if FileExist(configFile)
+		FileDelete(configFile)
+	FileAppend(lines, configFile)
+
+	return true
+
 }
 
 ReadSettingsFile(Settings := Map(), File := "settings.ini", groups := "all" ) {
@@ -100,7 +87,7 @@ ReadSettingsGroup(File, group, Settings) {
 		case "Runtime":
 			r := Settings["Runtime"]
 			r.ManagerPID := Integer(IniRead(File, "Runtime", "ManagerPID", 0))
-			r.GnirehtetPID := Integer(IniRead(File, "Runtime", "GnirehtetPID", 0))
+			r.gnirehtetPID := Integer(IniRead(File, "Runtime", "gnirehtetPID", 0))
 			r.scrcpyMicPID := Integer(IniRead(File, "Runtime", "scrcpyMicPID", 0))
 			r.scrcpyCamPID := Integer(IniRead(File, "Runtime", "scrcpyCamPID", 0))
         case "Manager":
@@ -946,9 +933,9 @@ MapSetIfChanged(map, option, newValue) {
     }
     return false
 }
-MapDeleteItemIfExist(map, option){
-	if map.Has(option){
-		map.Delete(option)
+MapDeleteItemIfExist(map, key){
+	if map.Has(key){
+		map.Delete(key)
 		return true
 	} else
 		return false
@@ -1025,13 +1012,12 @@ FleetConfigInit(*) {
 }
 MirrorMapItemsIntoAnother(inputMap, outputMap){
 	modified := false
-	for option in inputMap {
-		value := inputMap[option]
-		if value = "Unset" && MapDeleteItemIfExist(outputMap, option)
+	for option, value in inputMap {
+		if value = "Unset" {
+			if MapDeleteItemIfExist(outputMap, option)
+				modified := true
+		} else if MapSetIfChanged(outputMap, option, value)
 			modified := true
-		else if MapSetIfChanged(outputMap, option, value)
-			modified := true
-		;MsgBox("Option: " option " value: " value " Exists: " outputMap.Has(option) " modified: " modified)
 	}
 	return modified
 }
@@ -1619,24 +1605,21 @@ RefreshAdbDevices(){
 }
 
 MaintainScrcpyProcess(pid, dev, cmd) {
-    global savedSettings, guiItems, androidDevicesMap, adbReady
+    global savedSettings, guiItems, androidDevicesMap
 
     p := savedSettings["Paths"]
 
-    static newPID := -1
-
-	if !adbReady
-		return
+    static newPID := pid
 
     deviceConnected := androidDevicesMap.Has(dev) && androidDevicesMap[dev] = "Connected"
-    Running := pid ? ProcessExist(pid) : 0
+    Running := newPID ? ProcessExist(newPID) : 0
 
 	if (deviceConnected && !Running) {        
 		if ProcessExist(pid)
 			SendSigInt(pid, true)
 
         RunWait(p.adbExe ' -s ' dev ' shell input keyevent KEYCODE_WAKEUP', , 'Hide')
-        newPID := RunAndGetPID(p.scrcpyExe, " -s " . pid . cmd)
+        newPID := RunAndGetPID(p.scrcpyExe, " -s "  dev " " cmd)
     } else if (!deviceConnected && Running) {
         if SendSigInt(dev, true)
             newPID := 0
@@ -1694,10 +1677,14 @@ bootstrapAndroid() {
 	if savedRequire || userRequire {
 		KillProcessesExcept("adb.exe", , 3000)
 		SetTimer(RefreshAdbDevices , 1000)
+		scMic := r.scrcpyMicPID
+		scCam := r.scrcpyCamPID
+		while !adbReady
+			sleep 100
 		if a.MicEnable && a.MicDeviceID != "Unset"
-			SetTimer(() => MaintainScrcpyProcess(r.scrcpyMicPID, a.MicDeviceID, " --no-video --no-window --audio-source=mic"), 500)
+			SetTimer(() => MaintainScrcpyProcess(scMic, a.MicDeviceID, "--no-video --no-window --audio-source=mic"), 500)
 		if a.CamEnable && a.CamDeviceID != "Unset"
-			SetTimer(() => MaintainScrcpyProcess(r.scrcpyCamPID, a.CamDeviceID, " --video-source=camera --no-audio"), 500)
+			SetTimer(() => MaintainScrcpyProcess(scCam, a.CamDeviceID, "--video-source=camera --no-audio"), 500)
 	} else {
 		SetTimer(() => KillProcessesExcept("adb.exe", , 3000), -1) ; TODO maybe use adb-kill server here
 		SetTimer(() => KillProcessesExcept("scrcpy.exe", , 3000), -1)
