@@ -334,8 +334,17 @@ InitmyGui() {
 		EnableDarkMode(myGui, guiItems)
 		SetWindowAttribute(myGui, true)
 		SetWindowTheme(myGui, true)
+		SetSysLinkColor(guiItems["FleetLinkBox"])
 	}
 }
+SetSysLinkColor(linkObj) {
+	static LM_SETITEM := 0x702, mask := (LIF_ITEMINDEX := 0x1) | (LIF_STATE := 0x2), LIS_DEFAULTCOLORS := 0x10
+	LITEM := Buffer(16, 0)
+	NumPut('Int64', mask, 'Int64', LIS_DEFAULTCOLORS|(LIS_DEFAULTCOLORS << 32), LITEM)
+	while SendMessage(LM_SETITEM,, LITEM, linkObj)
+		NumPut('Int', A_Index, LITEM, 4)
+}
+
 EnableDarkMode(gui, guiItems) {
     ; Replace CheckBoxes with dark ones
     for k, ctrl in guiItems {
@@ -402,6 +411,10 @@ ReflectSettings(Settings){
 	guiItems["InstanceNameBox"].Value := valid ? Settings["Fleet"][currentlySelectedIndex].Name : ""
 	guiItems["InstancePortBox"].Value := valid ? Settings["Fleet"][currentlySelectedIndex].Port : ""
 	guiItems["InstanceEnableCheckbox"].Value := valid ? f[currentlySelectedIndex].Enabled : 0
+	port := valid ?  userSettings["Fleet"][currentlySelectedIndex].Port+1 : 00000
+	myLink := "https://localhost:" . port
+	guiItems["FleetLinkBox"].Text :=  '<a href="' . myLink . '">' . myLink . '</a>'
+	SetSysLinkColor(guiItems["FleetLinkBox"])
 
 	guiItems["InstanceAudioSelector"].Text := valid ? f[currentlySelectedIndex].AudioDevice : "Unset"
 	UpdateButtonsLabels()
@@ -567,6 +580,8 @@ HandlePortChange(*){
 		i.Port := newPort
 		myLink := "https://localhost:" . i.Port + 1
 		guiItems["FleetLinkBox"].Text :=  '<a href="' . myLink . '">' . myLink . '</a>'	
+		SetSysLinkColor(guiItems["FleetLinkBox"])
+
 	} else {
 		guiItems["InstancePortBox"].Value := userSettings["Fleet"][currentlySelectedIndex].Port
 	}
@@ -633,6 +648,7 @@ HandleListChange(*) {
 	guiItems["InstancePortBox"].Value := i.Port
 	myLink := "https://localhost:" . userSettings["Fleet"][currentlySelectedIndex].Port+1
 	guiItems["FleetLinkBox"].Text :=  '<a href="' . myLink . '">' . myLink . '</a>'
+	SetSysLinkColor(guiItems["FleetLinkBox"])
 
 	RefreshAudioSelector()
 	guiItems["InstanceAudioSelector"].Text := ArrayHas(audioDevicesList, i.AudioDevice) ? i.AudioDevice : "Unset"
