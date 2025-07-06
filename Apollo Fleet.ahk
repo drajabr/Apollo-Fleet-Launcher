@@ -8,7 +8,7 @@
 #Requires Autohotkey v2
 
 #Include ./lib/exAudio.ahk
-#Include ./lib/jsongo.v2.ahk
+#Include ./lib/JSON.ahk
 #Include ./lib/StdOutToVar.ahk
 #Include ./lib/DarkGuiHelpers.ahk
 
@@ -147,6 +147,7 @@ ReadSettingsGroup(File, group, Settings) {
 					i.stateFile := configp "\state-" i.id ".json"
 					i.AudioDevice := IniRead(File, section, "AudioDevice", "Unset")
 					i.AutoCaptureSink := i.AudioDevice = "Unset" ? "enabled" : "disabled"
+					i.configChange := 0
 					f.Push(i)
                 }
 			if f.Length = 0 {
@@ -162,7 +163,8 @@ ReadSettingsGroup(File, group, Settings) {
 				i.logFile := configp "\fleet-" i.id ".log"
 				i.stateFile :=  configp "\state-" i.id ".json"
 				i.appsFile := configp "\apps-" i.id ".json"
-				i.stateFile := configp "\state-" i.id ".json"	
+				i.stateFile := configp "\state-" i.id ".json"
+				i.configChange := 0
 				f.Push(i)
 			}
     }
@@ -655,7 +657,13 @@ HandleLogsButton(*) {
 	RestoremyGui()
 }
 DeleteAllTimers(){
-	SetTimer(MaintainApolloProcesses, 0)
+	SetTimer(UpdateAndSavePIDs, 0)
+	for i in savedSettings["Fleet"] {
+		if i.Enabled = 1 {
+			DeleteLogWatchTimer(i.id)
+			DeleteApolloMaintainTimer(i.id)
+		}
+	}
 	SetTimer(MaintainGnirehtetProcess, 0)
 	SetTimer(RefreshAdbDevices , 0)
 	r := savedSettings["Runtime"]
@@ -966,48 +974,61 @@ FleetConfigInit(*) {
 	f := savedSettings["Fleet"]
 	if !DirExist(p.Config)	
 		DirCreate(p.Config)
-
-	defaultAppsTemplate :="
-	(
-	{
-		"apps": [
-			{
-				"name": "Desktop",
-				"terminate-on-pause": "true"
-			}
-		],
-		"env": {},
-		"version": 2
-	}
-	)"
-	baseApps := jsongo.Parse(defaultAppsTemplate)
-	app := baseApps["apps"][1]
-	if app["terminate-on-pause"] != m.RemoveDisconnected 
-		app["terminate-on-pause"] := m.RemoveDisconnected ? "true" : "false"
-
-	appsJsonText := jsongo.Stringify(baseApps, , '    ')
-	appsJsonText := RegExReplace(appsJsonText, ':\s*"true"', ': true')
-	appsJsonText := RegExReplace(appsJsonText, ':\s*"false"', ': false')
+	baseAppsJson := Map(
+		"apps", [],
+		"env",  {},
+		"version", 2,
+	)
+	baseDesktopApp := Map(
+		"image-path", "desktop.png",
+		"name", "Desktop",
+		"state-cmd", [],
+		"terminate-on-pause", m.RemoveDisconnected ? JSON.true : JSON.false,
+	)
+	baseAppsJson["apps"].Push(baseDesktopApp)
 
 	for i in f {
-		i.configChange := false
-		i.baseConfig := CreateConfigMap(i)
-		i.currentConfig := FileExist(i.configFile)? ConfRead(i.configFile) : DeepClone(i.baseConfig)
-		if MirrorMapItemsIntoAnother(i.baseConfig, i.currentConfig)
-			if ConfWrite(i.configFile, i.currentConfig)
-				i.configChange := true
+		baseConfig := CreateConfigMap(i)
+		thisConfig := FileExist(i.configFile)? ConfRead(i.configFile) : DeepClone(baseConfig)
+		if MirrorMapItemsIntoAnother(baseConfig, thisConfig)
+			if ConfWrite(i.configFile, thisConfig)
+				i.configChange := 1
 
 		if !FileExist(i.appsFile){
-			FileAppend(appsJsonText, i.appsFile)
-		} else{
-			currentApps := jsongo.Parse(FileRead(i.appsFile))
-			if MirrorMapItemsIntoAnother(baseApps, currentApps)
+			FileAppend(JSON.stringify(baseAppsJson), i.appsFile)
+			i.configChange := true
+		} else {
+			try 
+				currentJson := JSON.Parse(FileRead(i.appsFile))
+			catch 
+				currentJson := Map()
+			
+			hasApps := currentJson.Has("apps")
+			if hasApps {
+				hasDesktopApp := false
+				for app in currentJson["apps"] {
+					if app.Has("name") && app["name"] = "Desktop" {
+						if !app.Has("terminate-on-pause") || (app["terminate-on-pause"] = JSON.true ? !m.RemoveDisconnected : m.RemoveDisconnected) {
+							app["terminate-on-pause"] := m.RemoveDisconnected ? JSON.true : JSON.false
+							i.configChange := true
+						}
+						hasDesktopApp := true
+					}
+				}
+				if !hasDesktopApp {
+					currentJson["apps"].Push(baseDesktopApp)
+					i.configChange := true
+				}
+				if i.configChange {
+					FileDelete(i.appsFile)
+					FileAppend(JSON.stringify(currentJson), i.appsFile)
+				}
+			} else {
+				FileDelete(i.appsFile)
+				FileAppend(JSON.stringify(baseAppsJson), i.appsFile)
 				i.configChange := true
+			}
 		}
-		;if FileExist(i.appsFile)
-		;	FileDelete(i.appsFile)	; delete old file if exists
-		;FileAppend(appsJsonText, i.appsFile)
-		
 	}
 }
 MirrorMapItemsIntoAnother(inputMap, outputMap){
@@ -1114,11 +1135,11 @@ RunAndGetPID(exePath, args := "", workingDir := "") {
 	return pid
 }
 
-RunPsExecAndGetPID(exePath, args := "", workingDir := "") {
-    workingDir := workingDir != "" ? workingDir : SubStr(exePath, 1, InStr(exePath, "\",, -1) - 1)
+RunPsExecAndGetPID(exePath, args := "", id := 0) {
+    workingDir :=  SubStr(exePath, 1, InStr(exePath, "\",, -1) - 1)
     psexecPath := savedSettings["Paths"].paexecExe
     sessionId := DllCall("Kernel32.dll\WTSGetActiveConsoleSessionId")
-    tmpFile := A_Temp "\apollo-last-pid.txt"
+    tmpFile := A_Temp "\apollo-fleet-" id ".txt"
     
     ; Delete any existing file first
     if FileExist(tmpFile)
@@ -1133,7 +1154,7 @@ RunPsExecAndGetPID(exePath, args := "", workingDir := "") {
     Loop 50 {
         Sleep 10
         if FileExist(tmpFile)
-            return Trim(FileRead(tmpFile))
+            return Number(RegExReplace(FileRead(tmpFile), "[^\d]"))
     }
     return 0
 }
@@ -1148,6 +1169,22 @@ ArrayHas(arr, val) {
 }
 
 FleetLaunchFleet(){
+	global savedSettings, lastRun := Map(), lastPID := Map()
+	f := savedSettings["Fleet"]
+	p := savedSettings["Paths"]
+
+	CleanConfigAndKillPIDs()
+
+	for i in f 
+		if i.Enabled{
+			lastPID[i.id] := i.apolloPID
+			lastRun[i.id] := 0
+			MaintainInstanceStatus(i.id)
+		}
+
+	SetTimer(UpdateAndSavePIDs, 1000)
+}
+CleanConfigAndKillPIDs() {
 	global savedSettings
 	f := savedSettings["Fleet"]
 	p := savedSettings["Paths"]
@@ -1156,31 +1193,54 @@ FleetLaunchFleet(){
 
 	keepPIDs := []
 	keepFiles := []
-	for i in f{
-		if (i.Enabled && !i.configChange)
+	for i in f {
+		if i.Enabled && !i.configChange
 			keepPIDs.Push(i.apolloPID)
 		for file in fileTypes
-				if FileExist(i.%file%) && file != "logFile"
+				if FileExist(i.%file%)
 					keepFiles.Push(i.%file%)
 	}
-
 	KillProcessesExcept("sunshine.exe", keepPIDs, 5000)
-
 	Loop Files p.Config . '\*.*' 
 		if !ArrayHas(keepFiles, A_LoopFileFullPath)
 			try
 				FileDelete(A_LoopFileFullPath)
-		
-	exe := savedSettings["Paths"].apolloExe
+}
+MaintainInstanceStatus(id){
+	SetTimer(() => LaunchApolloInstance(id), 5000)
+}
+DeleteApolloMaintainTimer(id){
+	SetTimer(() => LaunchApolloInstance(id), 0)
+}
+LaunchApolloInstance(id) {
+	global savedSettings, lastRun, lastPID
+
+	i := savedSettings["Fleet"][id]
+	if !i.Enabled || !FileExist(i.configFile) || !FileExist(i.appsFile)
+		return
+	else if lastPID[id] = 0 || !ProcessExist(lastPID[id]) 
+		lastPID[id] := RunPsExecAndGetPID(savedSettings["Paths"].apolloExe, i.configFile, i.id)
+	lastRun[id] := A_TickCount
+}
+UpdateAndSavePIDs(){
+	global savedSettings, lastPID, lastRun
+	f := savedSettings["Fleet"]
+	p := savedSettings["Paths"]
+
+	for id in lastRun
+		if A_TickCount - lastRun[id] > 4000 
+			return
+	
 	newPID := false
 	for i in f
-		if i.Enabled && (i.configChange || !ProcessExist(i.apolloPID)) {	; TODO add test for the instance if it responds or not, also, may check if display is connected deattach it/force exit? 
-			i.apolloPID := RunPsExecAndGetPID(exe, i.configFile)
+		if lastPID[i.id] != i.apolloPID {
+			i.apolloPID := lastPID[i.id]
 			newPID := true
 		}
-	if newPID
+	if newPID{
 		UrgentSettingWrite(savedSettings, "Fleet")
-	;MsgBox(savedSettings["Fleet"][1].consolePID . ":" . savedSettings["Fleet"][1].apolloPID)
+		CleanConfigAndKillPIDs()
+	}
 }
 UrgentSettingWrite(srcSettings, group){
 	global savedSettings, userSettings
@@ -1428,10 +1488,13 @@ FleetInitApolloLogWatch() {
 
     for i in savedSettings["Fleet"]
         if i.Enabled 
-			CreateTimerForInstance(A_Index)
+			CreateTimerForInstance(i.id)
 }
 CreateTimerForInstance(id) {
     SetTimer(() => ProcessApolloLog(id), 500)
+}
+DeleteLogWatchTimer(id){
+	SetTimer(() => ProcessApolloLog(id), 0)
 }
 ProcessApolloLog(id) {
 	global savedSettings
@@ -1469,18 +1532,6 @@ ProcessApolloLog(id) {
     LastReadLogLine := totalLines
 
     return 0
-}
-
-MaintainApolloProcesses(){
-	global savedSettings, userSettings, currentlySelectedIndex
-	static firstRun := true
-
-	f := savedSettings["Fleet"]
-	p := savedSettings["Paths"]
-	m := savedSettings["Manager"]
-
-	; TODO WATCH APOLLO PIDS AND IN CASE ONE DIES RESTART IT AND RECORD NEW PIDS
-
 }
 
 SyncApolloVolume(){
@@ -1643,14 +1694,11 @@ CleanScrcpyMicProcess(){
 bootstrapApollo(){
 	global savedSettings, guiItems, currentlySelectedIndex, apolloBootsraped
 	SetupFleetTask()
-	if true {	;savedSettings["Manager"].AutoStart to be used for startup task at log on
-		FleetConfigInit()
-		FleetLaunchFleet()
-		SetTimer(MaintainApolloProcesses, 1000)
-		FleetInitApolloLogWatch()
-		if savedSettings["Manager"].SyncVolume
-			SetTimer(SyncApolloVolume, 100)
-	} 
+	FleetConfigInit()
+	FleetLaunchFleet()
+	FleetInitApolloLogWatch()
+	if savedSettings["Manager"].SyncVolume
+		SetTimer(SyncApolloVolume, 100)
 	apolloBootsraped := true
 	FinishBootStrap()
 }
