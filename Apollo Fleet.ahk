@@ -45,220 +45,258 @@ ConfRead(FilePath, Param := "") {
 
 ConfWrite(configFile, configMap) {
 	lines := ""
-
 	for Key, Value in configMap
-			lines.=(Key . " = " . Value . "`n")
+		lines .= Key " = " Value "`n"
 
-	if FileExist(configFile)
+	if FileExist(configFile) {
+		if FileRead(configFile) = lines
+			return false
 		FileDelete(configFile)
+	}
+
 	FileAppend(lines, configFile)
-
 	return true
-
 }
-
-ReadSettingsFile(Settings := Map(), File := "settings.ini", groups := "all" ) {
-    ; Create default Maps
-    for k in ["Runtime", "Manager", "Window", "Paths", "Fleet", "Android"]
+ReadSettingsFile(Settings := Map(), File := "settings.ini", groups := "all") {
+    for k in ["Transient", "Manager", "Window", "Paths", "Fleet", "Android"]
         if !Settings.Has(k)
-            Settings[k] := {}
-    if !Settings.Has("Fleet")
-        Settings["Fleet"] := []
+            Settings[k] := (k = "Fleet" ? [] : {})
 
     if !FileExist(File)
         FileAppend("", File)
 
-    if (groups = "all" || InStr(groups, "Manager"))
-        ReadSettingsGroup(File, "Manager", Settings)
-    if (groups = "all" || InStr(groups, "Window"))
-        ReadSettingsGroup(File, "Window", Settings)
-    if (groups = "all" || InStr(groups, "Paths"))
-        ReadSettingsGroup(File, "Paths", Settings)
-    if (groups = "all" || InStr(groups, "Android"))
-        ReadSettingsGroup(File, "Android", Settings)
-    if (groups = "all" || InStr(groups, "Fleet"))
-        ReadSettingsGroup(File, "Fleet", Settings)
-	if (groups = "all" || InStr(groups, "Runtime"))
-        ReadSettingsGroup(File, "Runtime", Settings)
-}
+    ReadGroup(group) {
+        switch group {
+            case "Manager":
+                m := Settings["Manager"]
+                m.AutoStart := IniRead(File, "Manager", "AutoStart", 1) = "1"
+                m.SyncVolume := IniRead(File, "Manager", "SyncVolume", 1) = "1"
+                m.RemoveDisconnected := IniRead(File, "Manager", "RemoveDisconnected", 1)
+                m.SyncSettings := IniRead(File, "Manager", "SyncSettings", 1) = "1"
+                m.DarkTheme := IniRead(File, "Manager", "DarkMode", IsSystemDarkMode())
+                m.ShowErrors := IniRead(File, "Manager", "ShowErrors", 1)
 
-ReadSettingsGroup(File, group, Settings) {
-    switch group {
-		case "Runtime":
-			r := Settings["Runtime"]
-			r.ManagerPID := Integer(IniRead(File, "Runtime", "ManagerPID", 0))
-			r.gnirehtetPID := Integer(IniRead(File, "Runtime", "gnirehtetPID", 0))
-			r.scrcpyMicPID := Integer(IniRead(File, "Runtime", "scrcpyMicPID", 0))
-			r.scrcpyCamPID := Integer(IniRead(File, "Runtime", "scrcpyCamPID", 0))
-        case "Manager":
-			m := Settings["Manager"]
-			m.AutoStart := IniRead(File, "Manager", "AutoStart", 1) = "1" ? 1 : 0
-            m.SyncVolume := IniRead(File, "Manager", "SyncVolume", 1) = "1" ? 1 : 0
-            m.RemoveDisconnected := IniRead(File, "Manager", "RemoveDisconnected", "true")
-            m.SyncSettings := IniRead(File, "Manager", "SyncSettings", 1) = "1" ? 1 : 0
-			m.DarkTheme := IniRead(File, "Manager", "DarkMode", IsSystemDarkMode())	; TODO now it defaults to system mode at first launch.maybe we can add small button with icon or somewhat
-			m.ShowErrors := IniRead(File, "Manager", "ShowErrors", 1)
-        case "Window":
-			w := Settings["Window"]
-            w.restorePosition := IniRead(File, "Window", "restorePosition", 1)
-            w.xPos := IniRead(File, "Window", "xPos", (A_ScreenWidth - 580) / 2)
-            w.yPos := IniRead(File, "Window", "yPos", (A_ScreenHeight - 198) / 2)
-            w.lastState := IniRead(File, "Window", "lastState", 1)
-            w.logShow := IniRead(File, "Window", "logShow", 0)
-			w.cmdReload := IniRead(File, "Window", "cmdReload", 0)
-			w.cmdExit := IniRead(File, "Window", "cmdExit", 0)
-			w.cmdApply := IniRead(File, "Window", "cmdApply", 0)
-        case "Paths":
-            base := A_ScriptDir
-			p := Settings["Paths"]
-            p.Apollo := IniRead(File, "Paths", "Apollo", "C:\Program Files\Apollo")
-            p.Config := IniRead(File, "Paths", "Config", base "\config")
-            p.ADBTools := IniRead(File, "Paths", "ADB", base "\bin\platform-tools")
-			p.apolloExe := p.Apollo "\sunshine.exe"
-			p.gnirehtetExe := p.ADBTools "\gnirehtet.exe"
-			p.scrcpyExe := p.ADBTools "\scrcpy.exe"
-			p.adbExe := p.ADBTools "\adb.exe"
-			p.paexecExe := IniRead(File, "Paths", "paexecExe", base "\bin\PaExec\paexec.exe")
-        case "Android":
-            a := Settings["Android"]
-            a.ReverseTethering := IniRead(File, "Android", "ReverseTethering", 1) = "1" ? 1 : 0
-            a.MicDeviceID := IniRead(File, "Android", "MicDeviceID", "Unset")
-			a.MicEnable := IniRead(File, "Android", "MicEnable", a.MicDeviceID = "Unset" ? 0 : 1) = "1" ? 1 : 0
-            a.CamDeviceID := IniRead(File, "Android", "CamDeviceID", "Unset")
-			a.CamEnable := IniRead(File, "Android", "CamEnable", a.CamDeviceID = "Unset" ? 0 : 1) = "1" ? 1 : 0
-        case "Fleet":
-			Settings["Fleet"] := []
-			f := Settings["Fleet"]
-            configp := Settings["Paths"].Config
-            sections := StrSplit(IniRead(File), "`n")
-			instanceNumber := 1
-            for section in sections 
-                if (SubStr(section, 1, 8) = "Instance") {
-                    i := {}
-					i.id := instanceNumber
-					instanceNumber += 1
-					i.Name := IniRead(File, section, "Name", "i" . A_Index)
-					i.Port := IniRead(File, section, "Port", 11000 + A_Index * 1000)
-					i.Enabled := IniRead(File, section, "Enabled", 1) = "1" ? 1 : 0
-					i.apolloPID := Integer(IniRead(File, section, "apolloPID", 0))
-					i.configFile := configp "\fleet-" i.id ".conf"
-					i.logFile := configp "\fleet-" i.id ".log"
-					i.appsFile := configp "\apps-" i.id ".json"
-					i.stateFile := configp "\state-" i.id ".json"
-					i.AudioDevice := IniRead(File, section, "AudioDevice", "Unset")
-					i.AutoCaptureSink := i.AudioDevice = "Unset" ? "enabled" : "disabled"
-					i.configChange := 0
-					f.Push(i)
+            case "Window":
+                w := Settings["Window"]
+                w.restorePosition := IniRead(File, "Window", "restorePosition", 1)
+                w.xPos := IniRead(File, "Window", "xPos", (A_ScreenWidth - 580) / 2)
+                w.yPos := IniRead(File, "Window", "yPos", (A_ScreenHeight - 198) / 2)
+                w.lastState := IniRead(File, "Window", "lastState", 1)
+                w.logShow := IniRead(File, "Window", "logShow", 0)
+                w.cmdReload := IniRead(File, "Window", "cmdReload", 0)
+                w.cmdExit := IniRead(File, "Window", "cmdExit", 0)
+                w.cmdApply := IniRead(File, "Window", "cmdApply", 0)
+
+            case "Paths":
+                p := Settings["Paths"]
+                p.Apollo := IniRead(File, "Paths", "Apollo", "C:\Program Files\Apollo")
+                p.Config := IniRead(File, "Paths", "Config", A_ScriptDir "\config")
+                p.ADBTools := IniRead(File, "Paths", "ADB", A_ScriptDir "\bin\platform-tools")
+                p.apolloExe := p.Apollo "\sunshine.exe"
+                p.gnirehtetExe := p.ADBTools "\gnirehtet.exe"
+                p.scrcpyExe := p.ADBTools "\scrcpy.exe"
+                p.adbExe := p.ADBTools "\adb.exe"
+                p.paexecExe := IniRead(File, "Paths", "paexecExe", A_ScriptDir "\bin\PaExec\paexec.exe")
+
+            case "Android":
+                a := Settings["Android"]
+                a.ReverseTethering := IniRead(File, "Android", "ReverseTethering", 1) = "1"
+                a.MicDeviceID := IniRead(File, "Android", "MicDeviceID", "Unset")
+                a.MicEnable := IniRead(File, "Android", "MicEnable", a.MicDeviceID = "Unset" ? 0 : 1) = "1"
+                a.CamDeviceID := IniRead(File, "Android", "CamDeviceID", "Unset")
+                a.CamEnable := IniRead(File, "Android", "CamEnable", a.CamDeviceID = "Unset" ? 0 : 1) = "1"
+
+            case "Fleet":
+                Settings["Fleet"] := []
+                f := Settings["Fleet"]
+                configp := IniRead(File, "Paths", "Config", A_ScriptDir "\config")
+                instanceNumber := 1
+                for section in StrSplit(IniRead(File), "`n")
+                    if (SubStr(section, 1, 8) = "Instance") {
+                        i := {}
+                        i.id := instanceNumber++
+                        i.Name := IniRead(File, section, "Name", "i" . A_Index)
+                        i.Port := IniRead(File, section, "Port", 11000 + A_Index * 1000)
+                        i.Enabled := IniRead(File, section, "Enabled", 1) = "1"
+                        i.configFile := configp "\fleet-" i.id ".conf"
+                        i.logFile := configp "\fleet-" i.id ".log"
+                        i.appsFile := configp "\apps-" i.id ".json"
+                        i.stateFile := configp "\state-" i.id ".json"
+                        i.AudioDevice := IniRead(File, section, "AudioDevice", "Unset")
+                        i.AutoCaptureSink := i.AudioDevice = "Unset" ? "enabled" : "disabled"
+                        i.configChange := 0
+                        f.Push(i)
+                    }
+                if f.Length = 0 {
+                    i := { id: 1, Port: 11000, Name: "Instance 1", Enabled: 1, AudioDevice: "Unset" }
+                    i.AutoCaptureSink := "enabled"
+                    i.configFile := configp "\fleet-1.conf"
+                    i.logFile := configp "\fleet-1.log"
+                    i.appsFile := configp "\apps-1.json"
+                    i.stateFile := configp "\state-1.json"
+                    i.configChange := 0
+                    f.Push(i)
                 }
-			if f.Length = 0 {
-				i := {} ; Create a new object for each i
-				i.id := 1
-				i.Port := 11000
-				i.Name := "Instance " . i.id
-				i.Enabled := 1
-				i.apolloPID := 0
-				i.AudioDevice := "Unset"
-				i.AutoCaptureSink := i.AudioDevice = "Unset" ? "enabled" : "disabled"
-				i.configFile := configp "\fleet-" i.id ".conf"
-				i.logFile := configp "\fleet-" i.id ".log"
-				i.stateFile :=  configp "\state-" i.id ".json"
-				i.appsFile := configp "\apps-" i.id ".json"
-				i.stateFile := configp "\state-" i.id ".json"
-				i.configChange := 0
-				f.Push(i)
-			}
+
+            case "Transient":
+                ; reserved for other use
+        }
     }
+
+    for g in ["Manager", "Window", "Paths", "Android", "Fleet", "Transient"]
+        if (groups = "all" || InStr(groups, g))
+            ReadGroup(g)
+}
+WriteIfChanged(file, section, key, value) {
+	old := IniRead(file, section, key, "__MISSING__")
+	if (old != value) {
+		IniWrite(value, file, section, key)
+		return 1
+	}
+	return 0
 }
 WriteSettingsFile(Settings := Map(), File := "settings.ini", groups := "all") {
-    if FileExist(File) {
-		lastContents := FileRead(File)
-		changed := 0
-		if (groups = "all" || InStr(groups, "Manager"))
-			changed += WriteSettingsGroup(Settings, File, "Manager")
-		if (groups = "all" || InStr(groups, "Window"))
-			changed += WriteSettingsGroup(Settings, File, "Window")
-		if (groups = "all" || InStr(groups, "Paths"))
-			changed += WriteSettingsGroup(Settings, File, "Paths")
-		if (groups = "all" || InStr(groups, "Android"))
-			changed += WriteSettingsGroup(Settings, File, "Android")
-		if (groups = "all" || InStr(groups, "Fleet"))
-			changed += WriteSettingsGroup(Settings, File, "Fleet")
-		if (groups = "all" || InStr(groups, "Runtime"))
-			changed += WriteSettingsGroup(Settings, File, "Runtime")
-		if changed
-			FileOpen(File, "a").Close()
-	} else {
-		FileAppend("", File)
-		WriteSettingsFile(Settings, File, groups) ; Retry writing settings if file was just created
-	}
-	while changed && (FileRead(File) = lastContents) {
-		Sleep 10 ; Wait for file to be written
-	}
-}
-
-WriteSettingsGroup(Settings, File, group) {
 	changed := 0
-	WriteIfChanged(file, section, key, value) {
-		old := IniRead(file, section, key, "__MISSING__")
-		if (old != value) {
-			IniWrite(value, file, section, key)
-			changed := 1
-		}
-	}
-    switch group {
-		case "Runtime":
-			r := Settings["Runtime"]
-			WriteIfChanged(File, "Runtime", "ManagerPID", r.ManagerPID)
-			WriteIfChanged(File, "Runtime", "GnirehtetPID", r.GnirehtetPID)
-			WriteIfChanged(File, "Runtime", "scrcpyMicPID", r.scrcpyMicPID)
-			WriteIfChanged(File, "Runtime", "scrcpyCamPID", r.scrcpyCamPID)
-        case "Window":
-			w := Settings["Window"]
-			WriteIfChanged(File, "Window", "restorePosition", w.restorePosition)
-			WriteIfChanged(File, "Window", "xPos", w.xPos)
-			WriteIfChanged(File, "Window", "yPos", w.yPos)
-			WriteIfChanged(File, "Window", "lastState", w.lastState)
-			WriteIfChanged(File, "Window", "logShow", w.logShow)
-			WriteIfChanged(File, "Window", "cmdReload", w.cmdReload)
-			WriteIfChanged(File, "Window", "cmdExit", w.cmdExit)
-			WriteIfChanged(File, "Window", "cmdApply", w.cmdApply)
-        case "Manager":
+	if FileExist(File) {
+		lastContents := FileRead(File)
+
+		if (groups = "all" || InStr(groups, "Manager")) {
 			m := Settings["Manager"]
-			WriteIfChanged(File, "Manager", "AutoStart", m.AutoStart)
-			WriteIfChanged(File, "Manager", "SyncVolume", m.SyncVolume)
-			WriteIfChanged(File, "Manager", "RemoveDisconnected", m.RemoveDisconnected)
-			WriteIfChanged(File, "Manager", "DarkTheme", m.DarkTheme)
-			WriteIfChanged(File, "Manager", "ShowErrors", m.ShowErrors)
-        case "Paths":
+			changed += WriteIfChanged(File, "Manager", "AutoStart", m.AutoStart)
+			changed += WriteIfChanged(File, "Manager", "SyncVolume", m.SyncVolume)
+			changed += WriteIfChanged(File, "Manager", "RemoveDisconnected", m.RemoveDisconnected)
+			changed += WriteIfChanged(File, "Manager", "DarkTheme", m.DarkTheme)
+			changed += WriteIfChanged(File, "Manager", "ShowErrors", m.ShowErrors)
+		}
+
+		if (groups = "all" || InStr(groups, "Window")) {
+			w := Settings["Window"]
+			changed += WriteIfChanged(File, "Window", "restorePosition", w.restorePosition)
+			changed += WriteIfChanged(File, "Window", "cmdReload", w.cmdReload)
+			changed += WriteIfChanged(File, "Window", "cmdExit", w.cmdExit)
+			changed += WriteIfChanged(File, "Window", "cmdApply", w.cmdApply)
+		}
+
+		if (groups = "all" || InStr(groups, "Paths")) {
 			p := Settings["Paths"]
-			WriteIfChanged(File, "Paths", "Apollo", p.Apollo)
-			WriteIfChanged(File, "Paths", "Config", p.Config)
-			WriteIfChanged(File, "Paths", "ADB", p.ADBTools)
-		
-        case "Android":
+			changed += WriteIfChanged(File, "Paths", "Apollo", p.Apollo)
+			changed += WriteIfChanged(File, "Paths", "Config", p.Config)
+			changed += WriteIfChanged(File, "Paths", "ADB", p.ADBTools)
+		}
+
+		if (groups = "all" || InStr(groups, "Android")) {
 			a := Settings["Android"]
-			WriteIfChanged(File, "Android", "ReverseTethering", a.ReverseTethering)
-			WriteIfChanged(File, "Android", "MicDeviceID", a.MicDeviceID)
-			WriteIfChanged(File, "Android", "MicEnable", a.MicEnable)
-			WriteIfChanged(File, "Android", "CamEnable", a.CamEnable)
-		
-        case "Fleet":
-			f := Settings["Fleet"]
-			sections := StrSplit(IniRead(File), "`n")
-            for section in sections 
-                if (SubStr(section, 1, 8) = "Instance")
+			changed += WriteIfChanged(File, "Android", "ReverseTethering", a.ReverseTethering)
+			changed += WriteIfChanged(File, "Android", "MicDeviceID", a.MicDeviceID)
+			changed += WriteIfChanged(File, "Android", "CamDeviceID", a.CamDeviceID)
+			changed += WriteIfChanged(File, "Android", "MicEnable", a.MicEnable)
+			changed += WriteIfChanged(File, "Android", "CamEnable", a.CamEnable)
+		}
+
+		if (groups = "all" || InStr(groups, "Fleet")) {
+			; Clear previous Instance sections
+			for section in StrSplit(IniRead(File), "`n")
+				if RegExMatch(section, "^\[Instance\d+\]$")
 					IniDelete(File, section)
+
 			for i in Settings["Fleet"] {
 				section := "Instance" i.id
 				IniWrite(i.Name, File, section, "Name")
 				IniWrite(i.Port, File, section, "Port")
 				IniWrite(i.Enabled, File, section, "Enabled")
-				IniWrite(i.apolloPID, File, section, "apolloPID")
 				IniWrite(i.AudioDevice, File, section, "AudioDevice")
 			}
+			changed += 1
+		}
+
+		if changed
+			FileOpen(File, "a").Close()
+
+	} else {
+		FileAppend("", File)
+		WriteSettingsFile(Settings, File, groups) ; Retry after file created
 	}
-	return changed
+
+	;while changed && (FileRead(File) = lastContents)
+	;	Sleep 10
 }
+
+ReadTransientFile(transient := Map(), File := "transient.ini", groups := "all") {
+	; Init default maps
+	for k in ["Android", "Fleet", "Window"]
+		if !transient.Has(k)
+			transient[k] := (k = "Fleet" ? Map() : {})
+
+	if !FileExist(File)
+		FileAppend("", File)
+
+	if (groups = "all" || InStr(groups, "Android")) {
+		a := transient["Android"]
+		a.gnirehtetPID := Integer(IniRead(File, "Transient", "gnirehtetPID", 0))
+		a.scrcpyMicPID := Integer(IniRead(File, "Transient", "scrcpyMicPID", 0))
+		a.scrcpyCamPID := Integer(IniRead(File, "Transient", "scrcpyCamPID", 0))
+	}
+
+	if (groups = "all" || InStr(groups, "Fleet")) {
+		f := transient["Fleet"]
+		for line in StrSplit(IniRead(File, "Fleet",, ""), "`n")
+			if RegExMatch(line, "Instance-(\d+)\s*=\s*(\d+)", &m){
+				f[m[1]] := m[2]
+				;MsgBox("Read Fleet Instance-" m[1] " with PID: " m[2])
+			}
+	}
+
+	if (groups = "all" || InStr(groups, "Window")) {
+		w := transient["Window"]
+		w.xPos := IniRead(File, "Window", "xPos", (A_ScreenWidth - 580) / 2)
+		w.yPos := IniRead(File, "Window", "yPos", (A_ScreenHeight - 198) / 2)
+		w.lastState := IniRead(File, "Window", "lastState", 1)
+		w.logShow := IniRead(File, "Window", "logShow", 0)
+		w.cmdReload := IniRead(File, "Window", "cmdReload", 0)
+		w.cmdExit := IniRead(File, "Window", "cmdExit", 0)
+		w.cmdApply := IniRead(File, "Window", "cmdApply", 0)
+	}
+}
+
+WriteTransientFile(groups := "all") {
+	global transientSettings
+	File := "transient.ini"
+
+	if FileExist(File) {
+		if (groups = "all" || InStr(groups, "Android")) {
+			r := transientSettings["Android"]
+			IniWrite(r.GnirehtetPID, File, "Android", "GnirehtetPID")
+			IniWrite(r.scrcpyMicPID, File, "Android", "scrcpyMicPID")
+			IniWrite(r.scrcpyCamPID, File, "Android", "scrcpyCamPID")
+		}
+
+		if (groups = "all" || InStr(groups, "Fleet")) {
+			IniDelete(File, "Fleet")
+			f := transientSettings["Fleet"]
+			for id, pid in f {
+				;MsgBox("Writing Fleet Instance-" id " with PID: " pid)
+				IniWrite(pid, File, "Fleet", "Instance-" id)
+			}
+		}
+
+		if (groups = "all" || InStr(groups, "Window")) {
+			w := transientSettings["Window"]
+			IniWrite(w.xPos, File, "Window", "xPos")
+			IniWrite(w.yPos, File, "Window", "yPos")
+			IniWrite(w.lastState, File, "Window", "lastState")
+			IniWrite(w.logShow, File, "Window", "logShow")
+			IniWrite(w.cmdReload, File, "Window", "cmdReload")
+			IniWrite(w.cmdExit, File, "Window", "cmdExit")
+			IniWrite(w.cmdApply, File, "Window", "cmdApply")
+		}
+	} else {
+		FileAppend("", File)
+		WriteTransientFile(groups)
+	}
+}
+
+
+
 InitmyGui() {
 	global savedSettings
 
@@ -397,7 +435,7 @@ ReflectSettings(Settings){
 	f := Settings["Fleet"]
 	guiItems["FleetAutoStartCheckBox"].Value := m.AutoStart
 	guiItems["FleetSyncVolCheckBox"].Value := m.SyncVolume
-	guiItems["FleetRemoveDisconnectCheckbox"].Value := m.RemoveDisconnected = "true" ? 1 : 0
+	guiItems["FleetRemoveDisconnectCheckbox"].Value := m.RemoveDisconnected
 	guiItems["AndroidReverseTetheringCheckbox"].Value := a.ReverseTethering
 	guiItems["AndroidMicCheckbox"].Value := a.MicEnable
 	guiItems["AndroidMicSelector"].Text := a.MicDeviceID
@@ -430,6 +468,7 @@ EveryInstanceProp(Settings, prop:="Name"){
 InitGuiItemsEvents(){
 	global myGui, guiItems
 	myGui.OnEvent('Close', (*) => ExitMyApp())
+	OnMessage(0x0003, UpdateWindowPosition)
 	guiItems["ButtonMinimize"].OnEvent("Click", MinimizemyGui)
 	guiItems["ButtonLockSettings"].OnEvent("Click", HandleLockButton)
 	guiItems["ButtonReload"].OnEvent("Click", HandleReloadButton)
@@ -547,14 +586,14 @@ HandleCheckBoxes(*) {
 	userSettings["Android"].ReverseTethering := guiItems["AndroidReverseTetheringCheckbox"].Value
 	userSettings["Manager"].AutoStart := guiItems["FleetAutoStartCheckBox"].Value
 	userSettings["Manager"].SyncVolume := guiItems["FleetSyncVolCheckBox"].Value
-	userSettings["Manager"].RemoveDisconnected := guiItems["FleetRemoveDisconnectCheckbox"].Value ? "true" : "false"
+	userSettings["Manager"].RemoveDisconnected := guiItems["FleetRemoveDisconnectCheckbox"].Value
 	valid := currentlySelectedIndex > 0 && currentlySelectedIndex <= userSettings["Fleet"].Length 
 	currentlySelectedIndex := valid ? currentlySelectedIndex : 1
 	userSettings["Fleet"][currentlySelectedIndex].Enabled := guiItems["InstanceEnableCheckbox"].Value
 	UpdateButtonsLabels()
 }
 RefreshFleetList(){
-	global guiItems, userSettings, currentlySelectedIndex
+	global guiItems, userSettings, currentlySelectedIndex, transientSettings
 	valid := currentlySelectedIndex > 0 && currentlySelectedIndex <= userSettings["Fleet"].Length 
 	currentlySelectedIndex := valid ? currentlySelectedIndex : 1
 	guiItems["FleetListBox"].Delete()
@@ -562,6 +601,7 @@ RefreshFleetList(){
 	guiItems["FleetListBox"].Choose(currentlySelectedIndex)
 	Loop userSettings["Fleet"].Length {
 		userSettings["Fleet"][A_Index].id := A_Index
+	RefreshTransientSettings()
 	}
 	UpdateButtonsLabels()
 }
@@ -616,7 +656,6 @@ HandleInstanceAddButton(*){
 	i.stateFile :=  configp "\state-" i.id ".json"
 	i.appsFile := configp "\apps-" i.id ".json"
 	i.stateFile := configp "\state-" i.id ".json"	
-	i.apolloPID := 0
 	userSettings["Fleet"].Push(i)
 	currentlySelectedIndex := userSettings["Fleet"].Length
 	RefreshFleetList()
@@ -657,14 +696,13 @@ HandleListChange(*) {
 	guiItems["InstanceEnableCheckbox"].Value := i.Enabled
 	UpdateButtonsLabels()
 }
-UpdateWindowPosition(){
-	global savedSettings, myGui
+UpdateWindowPosition(*){
+	global transientSettings, userSettings, myGui
 	if (userSettings["Window"].restorePosition && DllCall("IsWindowVisible", "ptr", myGui.Hwnd) ){
 		WinGetPos(&x, &y, , , "ahk_id " myGui.Hwnd)
 		; Save position
-		savedSettings["Window"].xPos := x
-		savedSettings["Window"].yPos := y
-		WriteSettingsFile(savedSettings,,"Window")
+		transientSettings["Window"].xPos := x
+		transientSettings["Window"].yPos := y
 	}
 }
 HandleLogsButton(*) {
@@ -675,19 +713,17 @@ HandleLogsButton(*) {
 	RestoremyGui()
 }
 DeleteAllTimers(){
-	SetTimer(UpdateAndSavePIDs, 0)
+
 	for i in savedSettings["Fleet"] {
-		if i.Enabled = 1 {
+		if i.Enabled {
 			DeleteLogWatchTimer(i.id)
 			DeleteApolloMaintainTimer(i.id)
 		}
 	}
 	SetTimer(MaintainGnirehtetProcess, 0)
 	SetTimer(RefreshAdbDevices , 0)
-	r := savedSettings["Runtime"]
-	a := savedSettings["Android"]
-	SetTimer(() => MaintainScrcpyProcess(r.scrcpyMicPID, a.MicDeviceID, " --no-video --no-window --audio-source=mic"), 0)
-	SetTimer(() => MaintainScrcpyProcess(r.scrcpyCamPID, a.CamDeviceID, " --video-source=camera --no-audio"), 0)
+	SetTimer(() => MaintainScrcpyProcess("Mic"), 0)
+	SetTimer(() => MaintainScrcpyProcess("Cam"), 0)
 }
 HandleReloadButton(*) {
 	global settingsLocked, userSettings, savedSettings, currentlySelectedIndex
@@ -698,35 +734,14 @@ HandleReloadButton(*) {
 		DeleteAllTimers()
 		if false {
 			; TODO maybe add seperate button to restart sertvices apart from apolo (possibly restart button)
-			if savedSettings["Android"].ReverseTethering 
-				SendSigInt(savedSettings["Runtime"].gnirehtetPID, true)
-			if savedSettings["Android"].MicEnable 
-				SendSigInt(savedSettings["Runtime"].scrcpyMicPID, true)
-			if savedSettings["Android"].CamEnable
-				SendSigInt(savedSettings["Runtime"].scrcpyCamPID, true)
-			for i in savedSettings["Fleet"] {
-				if i.Enabled = 1
-					SendSigInt(i.apolloPID, true)
-				if i.Enabled = 1 && ProcessExist(i.consolePID)
-					SendSigInt(i.consolePID, true)
-				if i.Enabled = 1 && ProcessExist(i.apolloPID)
-					continue
-				if i.Enabled = 1 && FileExist(i.configFile)
-					FileDelete(i.configFile)
-				if i.Enabled = 1 && FileExist(i.logFile)
-					FileDelete(i.logFile)
-				if i.Enabled = 1 && FileExist(i.appsFile)
-					FileDelete(i.appsFile)
-
-				for process in PIDsListFromExeName("sunshine.exe")
-					SendSigInt(process, true)
-				for process in PIDsListFromExeName("adb.exe")
-					SendSigInt(process, true)
-				for process in PIDsListFromExeName("scrcpy.exe")
-					SendSigInt(process, true)
-				for process in PIDsListFromExeName("gnirehtet.exe")
-					SendSigInt(process, true)
-			}
+			for process in PIDsListFromExeName("sunshine.exe")
+				SendSigInt(process, true)
+			for process in PIDsListFromExeName("adb.exe")
+				SendSigInt(process, true)
+			for process in PIDsListFromExeName("scrcpy.exe")
+				SendSigInt(process, true)
+			for process in PIDsListFromExeName("gnirehtet.exe")
+				SendSigInt(process, true)
 		}
 		Reload
 	}
@@ -842,7 +857,8 @@ UpdateButtonsLabels(){
 	guiItems["ButtonReload"].Text := settingsLocked ?  "Reload" : "Cancel"
 
 	i := userSettings["Fleet"][currentlySelectedIndex]
-	guiItems["InstanceEnableCheckbox"].Text := i.Enabled ? ProcessExist(i.apolloPID)  ? "Running: " i.apolloPID "" : "Stopped" :  ProcessExist(i.apolloPID) ? "To be Disabled" : "Disabled"
+	pid := transientSettings["Fleet"].has(i.id) ? transientSettings["Fleet"][i.id] : 0
+	guiItems["InstanceEnableCheckbox"].Text := i.Enabled ? ProcessExist(pid)  ? "Running: " pid "" : "Stopped" :  ProcessExist(pid) ? "To be Disabled" : "Disabled"
 
 }
 ApplyLockState() {
@@ -897,7 +913,6 @@ HandleLockButton(*) {
 		RefreshAdbSelectors()
 	} else {
 		if UserSettingsWaiting(){
-			UpdateWindowPosition()
 			userSettings["Window"].cmdApply := 1
 			SaveUserSettings()
 			Reload
@@ -909,7 +924,6 @@ HandleLockButton(*) {
 }
 ExitMyApp() {
 	global myGui, savedSettings
-	UpdateWindowPosition()
 	userSettings["Window"].cmdExit := 1
 	SaveUserSettings()
 	myGui.Destroy()
@@ -929,11 +943,11 @@ MinimizemyGui(*) {
     myGui.Hide()
 }
 RestoremyGui() {
-	global myGui, savedSettings
+	global myGui, transientSettings, savedSettings
 
-	h := (userSettings["Window"].logShow = 0 ? 198 : 600)
-	x := savedSettings["Window"].xPos
-	y := savedSettings["Window"].yPos
+	h := (transientSettings["Window"].logShow = 0 ? 198 : 600)
+	x := transientSettings["Window"].xPos
+	y := transientSettings["Window"].yPos
 
 	xC := (A_ScreenWidth - 580)/2 
 	yC := (A_ScreenHeight - h)/2
@@ -997,11 +1011,13 @@ FleetConfigInit(*) {
 		"env",  {},
 		"version", 2,
 	)
+	intendedTerminate := m.RemoveDisconnected ? JSON.true : JSON.false
+
 	baseDesktopApp := Map(
 		"image-path", "desktop.png",
 		"name", "Desktop",
 		"state-cmd", [],
-		"terminate-on-pause", m.RemoveDisconnected ? JSON.true : JSON.false,
+		"terminate-on-pause", intendedTerminate
 	)
 	baseAppsJson["apps"].Push(baseDesktopApp)
 
@@ -1026,8 +1042,10 @@ FleetConfigInit(*) {
 				hasDesktopApp := false
 				for app in currentJson["apps"] {
 					if app.Has("name") && app["name"] = "Desktop" {
-						if !app.Has("terminate-on-pause") || (app["terminate-on-pause"] = JSON.true ? !m.RemoveDisconnected : m.RemoveDisconnected) {
-							app["terminate-on-pause"] := m.RemoveDisconnected ? JSON.true : JSON.false
+						;MsgBox(app["terminate-on-pause"] != intendedTerminate ? "Updating terminate-on-pause for Desktop app." : "Desktop app already has correct terminate-on-pause value.")
+
+						if !app.Has("terminate-on-pause") || (app["terminate-on-pause"] == JSON.true && intendedTerminate == JSON.false) || (app["terminate-on-pause"] == JSON.false && intendedTerminate == JSON.true) {
+							app["terminate-on-pause"] := intendedTerminate
 							i.configChange := true
 						}
 						hasDesktopApp := true
@@ -1092,7 +1110,47 @@ bootstrapSettings() {
 	userSettings := DeepClone(savedSettings)
 	userSettings["Window"] := savedSettings["Window"]
 	;MsgBox(userSettings["Fleet"][1].Name)
+
 }
+bootstrapTransientSettings() {
+
+	RefreshTransientSettings()
+	SetTimer(WriteTransientSettingsASAP ,100)
+}
+RefreshTransientSettings() {
+	global transientSettings := Map()
+	ReadTransientFile(transientSettings)
+	Changed := false
+
+	for id, pid in transientSettings["Fleet"] {
+		isValid := false
+		for i in savedSettings["Fleet"] 
+			if i.id = id {
+				isValid := true
+				break
+			}
+		if !isValid {
+			transientSettings["Fleet"].Delete(id)
+			Changed := true
+		}
+	}
+	for i in savedSettings["Fleet"] 
+		if !transientSettings["Fleet"].Has(i.id) { 
+			transientSettings["Fleet"][i.id] := 0 
+			Changed := true
+		}
+	if Changed 
+		WriteTransientFile()
+}
+WriteTransientSettingsASAP() {
+	global transientSettings
+	static lastSettiongs := Map()
+	if DeepCompare(transientSettings, lastSettiongs) {
+		lastSettiongs:= DeepClone(transientSettings) ; Update lastSettiongs to current state
+		WriteTransientFile()
+	}
+}
+
 bootstrapGUI(){
 	global savedSettings
 	InitmyGui()
@@ -1187,7 +1245,7 @@ ArrayHas(arr, val) {
 }
 
 FleetLaunchFleet(){
-	global savedSettings, launching := Map(), lastPID := Map(), settingsUpdating := false
+	global savedSettings, running := Map()
 	f := savedSettings["Fleet"]
 	p := savedSettings["Paths"]
 
@@ -1195,15 +1253,18 @@ FleetLaunchFleet(){
 
 	for i in f 
 		if i.Enabled{
-			lastPID[i.id] := i.apolloPID
-			launching[i.id] := true
-			MaintainInstanceStatus(i.id)
+			running[i.id] := true
+			MaintainInstanceTimer(i.id)
 		}
-
-	SetTimer(UpdateAndSavePIDs, 1000)
+	SetTimer(CleanConfigAndKillPIDs, 3000) ; Clean up config files every 10 seconds
 }
 CleanConfigAndKillPIDs() {
-	global savedSettings
+	global savedSettings, transientSettings, running
+	static firstRun := true
+	for id in running 
+		if running[id]
+			return
+	
 	f := savedSettings["Fleet"]
 	p := savedSettings["Paths"]
 
@@ -1212,8 +1273,9 @@ CleanConfigAndKillPIDs() {
 	keepPIDs := []
 	keepFiles := []
 	for i in f {
-		if i.Enabled && !i.configChange
-			keepPIDs.Push(i.apolloPID)
+		if i.Enabled && (!i.configChange || !firstRun){
+			keepPIDs.Push(transientSettings["Fleet"][i.id])
+		}
 		for file in fileTypes
 				if FileExist(i.%file%)
 					keepFiles.Push(i.%file%)
@@ -1223,64 +1285,29 @@ CleanConfigAndKillPIDs() {
 		if !ArrayHas(keepFiles, A_LoopFileFullPath)
 			try
 				FileDelete(A_LoopFileFullPath)
+	if firstRun
+		firstRun := false
 }
-MaintainInstanceStatus(id){
-	SetTimer(() => LaunchApolloInstance(id), 5000)
+MaintainInstanceTimer(id){
+	SetTimer(() => MaintainInstance(id), 5000)
 }
 DeleteApolloMaintainTimer(id){
-	SetTimer(() => LaunchApolloInstance(id), 0)
+	SetTimer(() => MaintainInstance(id), 0)
 }
-LaunchApolloInstance(id) {
-	global savedSettings, launching, lastPID, settingsUpdating
-	while settingsUpdating
-		sleep 100
-	launching[id] := true
+MaintainInstance(id) {
+	global savedSettings, running, transientSettings
+
+	running[id] := true
 	i := savedSettings["Fleet"][id]
-	if !i.Enabled || !FileExist(i.configFile) || !FileExist(i.appsFile)
+	if !(i.Enabled && FileExist(i.configFile) && FileExist(i.appsFile))
 		return
-	else if lastPID[id] = 0 || !ProcessExist(lastPID[id]) 
-		lastPID[id] := RunPsExecAndGetPID(savedSettings["Paths"].apolloExe, i.configFile, i.id)
-	Sleep 100
-	launching[id] := false
-}
-UpdateAndSavePIDs(){
-	global savedSettings, lastPID, launching
-	f := savedSettings["Fleet"]
-	p := savedSettings["Paths"]
-	settingsUpdating := true
-	for id in launching
-		if launching[id]
-			return
-	
-	newPID := false
-	for i in f
-		if lastPID[i.id] != i.apolloPID {
-			i.apolloPID := lastPID[i.id]
-			newPID := true
-		}
-	if newPID{
-		UrgentSettingWrite(savedSettings, "Fleet")
-		CleanConfigAndKillPIDs()
-	}
-	Sleep 100
-	settingsUpdating := false
+	else if !ProcessExist(transientSettings["Fleet"][id]) 
+		transientSettings["Fleet"][id] := RunPsExecAndGetPID(savedSettings["Paths"].apolloExe, i.configFile, id)
 
-}
-UrgentSettingWrite(srcSettings, group){
-	global savedSettings, userSettings
-	;transientMap := Map()
-	;transientMap := DeepClone(srcSettings)
-	;savedSettings[group] := DeepClone(transientMap[group])
-	;userSettings[group] := DeepClone(transientMap[group])
-	WriteSettingsFile(srcSettings, , group)
-	bootstrapSettings()
+	Sleep 10
+	running[id] := false
 }
 
-FleetRemoveDisconnected(*){
-}
-
-ADBWatchDog(*){
-}
 SetupFleetTask() {
     taskName := "Apollo Fleet Launcher"
     exePath := A_ScriptFullPath
@@ -1346,12 +1373,11 @@ SetupFleetTask() {
 }
 
 ResetFlags(){
-	global userSettings, guiItems, initDone
-	w := userSettings["Window"]
+	global transientSettings, initDone
+	w := transientSettings["Window"]
 	w.cmdReload := 0
 	w.cmdExit := 0
 	w.cmdApply := 0
-	SaveUserSettings()
 	initDone := true
 }
 KillProcessesExcept(pName, keep := [0], wait := 1000) {
@@ -1384,7 +1410,6 @@ KillProcessesExcept(pName, keep := [0], wait := 1000) {
 	lastSent := A_TickCount
 	while AnyProcessAlive(targetKill) && (wait + lastSent) > A_TickCount
 		sleep 10
-
 	for pid in targetKill
 		if ProcessExist(pid) && !ArrayHas(keep, pid) {
 			ShowMessage("Failed to kill " . pName . " PID: " . pid, 3)
@@ -1412,17 +1437,15 @@ GetProcessName(pid) {
 }
 
 MaintainGnirehtetProcess(){
-	global savedSettings
+	global savedSettings, transientSettings
 
-	r := savedSettings["Runtime"]
 	p := savedSettings["Paths"]
 
-	KillProcessesExcept("gnirehtet.exe", r.gnirehtetPID, 3000)
+	if !ProcessExist(transientSettings["Android"].gnirehtetPID) 
+		transientSettings["Android"].gnirehtetPID := RunAndGetPID(p.gnirehtetExe, "autorun")
 
-	if !ProcessExist(r.gnirehtetPID) {
-		r.gnirehtetPID := RunAndGetPID(p.gnirehtetExe, "autorun")
-		UrgentSettingWrite(savedSettings, "Runtime")
-	}
+	KillProcessesExcept("gnirehtet.exe", transientSettings["Android"].gnirehtetPID, 3000)
+
 	; TODO detect fault or output connections log or more nice features...
 }
 
@@ -1434,21 +1457,21 @@ UpdateStatusArea() {
 	global savedSettings, guiItems, msgTimeout
 
 	f := savedSettings["Fleet"]
-	r := savedSettings["Runtime"]
+
 	if  msgTimeout {
 		valid := f.Length > 0
 		apolloRunning := valid ? 1 : 0
 		for i in f {
 			if i.Enabled = 0
 				continue
-			else if !ProcessRunning(i.apolloPID) {
+			else if !ProcessRunning(transientSettings["Fleet"][i.id]) {
 				apolloRunning := 0
 				break
 			}
 		}
-		gnirehtetRunning := ProcessRunning(r.gnirehtetPID)
-		androidMicRunning := ProcessRunning(r.scrcpyMicPID)
-		androidCamRunning := ProcessRunning(r.scrcpyCamPID)
+		gnirehtetRunning := ProcessRunning(transientSettings["Android"].gnirehtetPID)
+		androidMicRunning := ProcessRunning(transientSettings["Android"].scrcpyMicPID)
+		androidCamRunning := ProcessRunning(transientSettings["Android"].scrcpyCamPID)
 
 		statusItems := Map(
 			"StatusApollo", "apolloRunning",
@@ -1469,7 +1492,7 @@ global msgTimeout := 0
 global currentMessageLevel := -1
 ShowMessage(msg, level:=0, timeout:=1000) {
 	global myGui, guiItems, msgTimeout, msgExpiry
-	static colors := ["Black", "Blue", "Orange", "Red"]
+	static colors := ["000000", "ff0000", "FFA500", "0000ff"]
 	static icons := ["🏃 ", "ℹ️ ", "⚠️ ", "❌ "]
 	global currentMessageLevel
 	if (level >= currentMessageLevel) || msgTimeout {
@@ -1528,11 +1551,11 @@ ProcessApolloLog(id) {
 	i := savedSettings["Fleet"][id]
 
     ; Fix case sensitivity - use consistent casing
-    if !FileExist(i.LogFile) {
+    if !FileExist(i.logFile) {
         return 0
     }
     
-    content := FileRead(i.LogFile)
+    content := FileRead(i.logFile)
     lines := StrSplit(content, "`n")
     totalLines := lines.Length
     if totalLines <= LastReadLogLine 
@@ -1559,7 +1582,7 @@ ProcessApolloLog(id) {
 }
 
 SyncApolloVolume(){
-	global savedSettings
+	global savedSettings, transientSettings
 
 	static lastSystemVolume := -1
     static lastSystemMute := -1
@@ -1571,15 +1594,16 @@ SyncApolloVolume(){
 	static appsVol := Map()
 
 	counter += 1
-	f := savedSettings["Fleet"]
 	if counter = 0 {
 		systemDevice := AudioDevice.GetDefault()
-		for i in savedSettings["Fleet"]
-			if i.Enabled && ProcessExist(i.apolloPID)
-				if i.AudioDevice = "Unset" && AppVolume(i.apolloPID).IsValid()
-					appsVol[i.apolloPID] := AppVolume(i.apolloPID)
-				else if i.AudioDevice != "Unset" && AppVolume(i.apolloPID, GetDeviceID(i.AudioDevice)).IsValid()
-					appsVol[i.apolloPID] := AppVolume(i.apolloPID, GetDeviceID(i.AudioDevice))
+		for i in savedSettings["Fleet"] {
+			pid := transientSettings["Fleet"][i.id]
+			if i.Enabled && ProcessExist(pid)
+				if i.AudioDevice = "Unset" && AppVolume(pid).IsValid()
+					appsVol[i.id] := AppVolume(pid)
+				else if i.AudioDevice != "Unset" && AppVolume(pid, GetDeviceID(i.AudioDevice)).IsValid()
+					appsVol[i.id] := AppVolume(pid, GetDeviceID(i.AudioDevice))
+		}
 		for pid, appVol in appsVol
 			if !appVol.IsValid()
 				appsVol.Delete(pid)
@@ -1679,41 +1703,36 @@ RefreshAdbDevices(){
 		adbReady := true
 }
 
-MaintainScrcpyProcess(pid, dev, cmd) {
-    global savedSettings, guiItems, androidDevicesMap
+MaintainScrcpyProcess(targetDevice := "Mic") {
+	global savedSettings, transientSettings, androidDevicesMap, adbReady
 
-    p := savedSettings["Paths"]
+	if !adbReady
+		return
 
-    static newPID := pid
+	p := savedSettings["Paths"]
+	dev := targetDevice = "Mic" ? savedSettings["Android"].MicDeviceID : savedSettings["Android"].CamDeviceID
+	cmd := targetDevice = "Mic" ? "--no-video --no-window --audio-source=mic" : "--video-source=camera --no-audio"
+	deviceConnected := androidDevicesMap.Has(dev) && androidDevicesMap[dev] = "Connected"
+	pid := targetDevice = "Mic" ? transientSettings["Android"].scrcpyMicPID : transientSettings["Android"].scrcpyCamPID
 
-    deviceConnected := androidDevicesMap.Has(dev) && androidDevicesMap[dev] = "Connected"
-    Running := newPID ? ProcessExist(newPID) : 0
-
-	if (deviceConnected && !Running) {        
-		if ProcessExist(pid)
-			SendSigInt(pid, true)
-
-        RunWait(p.adbExe ' -s ' dev ' shell input keyevent KEYCODE_WAKEUP', , 'Hide')
-        newPID := RunAndGetPID(p.scrcpyExe, " -s "  dev " " cmd)
-    } else if (!deviceConnected && Running) {
-        if SendSigInt(dev, true)
-            newPID := 0
-    }
-    
-    if (newPID > -1 && newPID != pid) {
-        pid := newPID
-        UrgentSettingWrite(savedSettings, "Runtime")
-    }
-}
-
-CleanScrcpyMicProcess(){
-	global savedSettings, guiItems
-	r := savedSettings["Runtime"]
-	if SendSigInt(r.scrcpyMicPID, true){
-		r.scrcpyMicPID := 0
-		UrgentSettingWrite(savedSettings, "Runtime")
+	if deviceConnected && !ProcessExist(pid) {
+		RunWait(p.adbExe ' -s ' dev ' shell input keyevent KEYCODE_WAKEUP', , 'Hide')
+		pid := RunAndGetPID(p.scrcpyExe, " -s " dev " " cmd)
+	} else if !deviceConnected && ProcessExist(pid) {
+		if SendSigInt(pid, true)
+			pid := 0
 	}
+
+	; update only the PID in transientSettings
+	if (targetDevice = "Mic")
+		transientSettings["Android"].scrcpyMicPID := pid
+	else
+		transientSettings["Android"].scrcpyCamPID := pid
+
+	Sleep(100)
 }
+
+
 
 bootstrapApollo(){
 	global savedSettings, guiItems, currentlySelectedIndex, apolloBootsraped
@@ -1741,7 +1760,7 @@ bootstrapGnirehtet(){
 
 bootstrapAndroid() {
 	global savedSettings, guiItems, androidDevicesMap, adbReady, androidBootsraped
-	r := savedSettings["Runtime"]
+	r := transientSettings["Android"]
 	a := savedSettings["Android"]
 	uA := userSettings["Android"]
 	savedRequire := a.MicEnable || a.CamEnable
@@ -1754,9 +1773,9 @@ bootstrapAndroid() {
 		while !adbReady
 			sleep 100
 		if a.MicEnable && a.MicDeviceID != "Unset"
-			SetTimer(() => MaintainScrcpyProcess(scMic, a.MicDeviceID, "--no-video --no-window --audio-source=mic"), 500)
+			SetTimer(() => MaintainScrcpyProcess("Mic"), 500)
 		if a.CamEnable && a.CamDeviceID != "Unset"
-			SetTimer(() => MaintainScrcpyProcess(scCam, a.CamDeviceID, "--video-source=camera --no-audio"), 500)
+			SetTimer(() => MaintainScrcpyProcess("Cam"), 500)
 	} else {
 		SetTimer(() => KillProcessesExcept("adb.exe", , 3000), -1) ; TODO maybe use adb-kill server here
 		SetTimer(() => KillProcessesExcept("scrcpy.exe", , 3000), -1)
@@ -1773,8 +1792,9 @@ bootstrapAndroid() {
 
 
 
-global myGui, guiItems, userSettings, savedSettings, initDone := false
+global myGui, guiItems, userSettings, savedSettings, transientSettings, initDone := false
 bootstrapSettings()
+bootstrapTransientSettings()
 bootstrapGUI()
 
 if !savedSettings["Manager"].ShowErrors{
