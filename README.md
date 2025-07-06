@@ -4,6 +4,9 @@ A simple tool to configure multiple instances of [@ClassicOldSong/Apollo](https:
 
 This is the same concept of my old [Multi-streaming-setup](https://github.com/drajabr/My-Sunshine-setup) scripts, with ease of GUI and Auto Configuration, bundled with necessary binaries for Android clients stuff.
 
+## Preview
+![image](https://github.com/user-attachments/assets/e6354d61-5b3e-4e35-b4aa-850e89c4de45)
+
 ## How to use
 https://github.com/user-attachments/assets/72a3909f-b1c7-4aa2-bd78-3a70d3acbc61
 
@@ -11,6 +14,11 @@ https://github.com/user-attachments/assets/72a3909f-b1c7-4aa2-bd78-3a70d3acbc61
 
 # Current Status
 [![Build](https://github.com/drajabr/Apollo-Fleet-Launcher/actions/workflows/build.yml/badge.svg)](https://github.com/drajabr/Apollo-Fleet-Launcher/actions/workflows/build.yml)
+
+> [!Note]
+> Please bear in mind I'm not a proffissional programmer, this tool could have many issues or some unimplemented features yet, but this is an essential tool for me I use everyday so expect I keep working on delivering fixes and featuers for it.
+>
+> If you find any issue please don't hesitate to open an issue in the repo, your feedback "and pull requests" are very welcomed.
 
 ## Changelog
 * v0.3.1 DARK Theme! & Apollo elevated run
