@@ -337,7 +337,9 @@ InitmyGui() {
 		SetSysLinkColor(guiItems["FleetLinkBox"])
 	}
 }
+
 SetSysLinkColor(linkObj) {
+	; Thanks for @teadrinker https://www.autohotkey.com/boards/viewtopic.php?t=114011
 	static LM_SETITEM := 0x702, mask := (LIF_ITEMINDEX := 0x1) | (LIF_STATE := 0x2), LIS_DEFAULTCOLORS := 0x10
 	LITEM := Buffer(16, 0)
 	NumPut('Int64', mask, 'Int64', LIS_DEFAULTCOLORS|(LIS_DEFAULTCOLORS << 32), LITEM)
