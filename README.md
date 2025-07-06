@@ -13,6 +13,12 @@ https://github.com/user-attachments/assets/72a3909f-b1c7-4aa2-bd78-3a70d3acbc61
 [![Build](https://github.com/drajabr/Apollo-Fleet-Launcher/actions/workflows/build.yml/badge.svg)](https://github.com/drajabr/Apollo-Fleet-Launcher/actions/workflows/build.yml)
 
 ## Changelog
+* v0.3.1 DARK Theme! & Apollo elevated run
+  * UI: Dark Theme: Follows system for now (could be changed from settings.ini too)
+  * FIX: Apollo runs with service permissions using PsExec (well paexec used here) [2](https://github.com/drajabr/Apollo-Fleet-Launcher/issues/2)
+  * FIX: Unset configs properly
+  * Manager: More non-blocking start and kill to increase responsivity
+  * FIX: Volume sync now works with audio device set other than default output
 * v0.2.9hotfix - Standalone operation hotfix
   * FIX: Launch process if its killed or not launched
   * FIX: Delay startup run 30 sec to allow systray init properly
@@ -73,8 +79,8 @@ https://github.com/user-attachments/assets/72a3909f-b1c7-4aa2-bd78-3a70d3acbc61
 - [x] Multi-instance: Configurable per-instance Audio Device
 - [x] Multi-instance: Sync device volume levels to all instances
 - [x] Multi-instance: Enable terminate-on-pause setting to Remove virtual display on client disconnect
-- [ ] Multi-instance: Maintain Apollo instances "in case one exit/crash" 
-- [ ] Multi-instance: Fix volume level sync 
+- [x] Multi-instance: Maintain Apollo instances "in case one exit/crash" 
+- [x] Multi-instance: Fix volume level sync 
 - [x] Android Clients: ADB Revrse tethering via Gnirehtet
 - [x] Android Clients: Maintain client Mic to PC using scrcpy
 - [x] Android Clients: Maintain client Cam to PC using scrcpy
@@ -92,10 +98,8 @@ https://github.com/user-attachments/assets/72a3909f-b1c7-4aa2-bd78-3a70d3acbc61
 
 [@alfvar](https://github.com/alfvar) [AHK v2 Actions template](https://github.com/alfvar/action-ahk2exe)
 
-[@thqby ](https://github.com/thqby) [Audio.ahk](https://github.com/thqby/ahk2_lib/blob/master/Audio.ahk)
+[@thqby ](https://github.com/thqby) [Audio.ahk](https://github.com/thqby/ahk2_lib/blob/master/Audio.ahk) and [JSON.ahk](https://github.com/thqby/ahk2_lib/blob/master/JSON.ahk)
 
 [@ntepa](https://www.autohotkey.com/boards/memberlist.php?mode=viewprofile&u=149849)  [Audio.ahk lib](https://www.autohotkey.com/boards/viewtopic.php?t=123256)
-
-[@GroggyOtter](https://github.com/GroggyOtter) [jsongo.v2.ahk](https://github.com/GroggyOtter/jsongo_AHKv2)
 
 [@cyruz](https://www.autohotkey.com/boards/memberlist.php?mode=viewprofile&u=98)  [StdoutToVar.ahk](https://www.autohotkey.com/boards/viewtopic.php?f=83&t=109148&hilit=StdoutToVar)

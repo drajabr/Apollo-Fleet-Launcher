@@ -96,7 +96,7 @@ ReadSettingsGroup(File, group, Settings) {
             m.SyncVolume := IniRead(File, "Manager", "SyncVolume", 1) = "1" ? 1 : 0
             m.RemoveDisconnected := IniRead(File, "Manager", "RemoveDisconnected", "true")
             m.SyncSettings := IniRead(File, "Manager", "SyncSettings", 1) = "1" ? 1 : 0
-			m.DarkTheme := IniRead(File, "Manager", "ShowErrors", IsSystemDarkMode())	; TODO now it defaults to system mode at first launch.maybe we can add small button with icon or somewhat
+			m.DarkTheme := IniRead(File, "Manager", "DarkMode", IsSystemDarkMode())	; TODO now it defaults to system mode at first launch.maybe we can add small button with icon or somewhat
 			m.ShowErrors := IniRead(File, "Manager", "ShowErrors", 1)
         case "Window":
 			w := Settings["Window"]
