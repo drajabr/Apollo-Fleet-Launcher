@@ -1169,7 +1169,7 @@ ArrayHas(arr, val) {
 }
 
 FleetLaunchFleet(){
-	global savedSettings, lastRun := Map(), lastPID := Map()
+	global savedSettings, launching := Map(), lastPID := Map(), settingsUpdating := false
 	f := savedSettings["Fleet"]
 	p := savedSettings["Paths"]
 
@@ -1178,7 +1178,7 @@ FleetLaunchFleet(){
 	for i in f 
 		if i.Enabled{
 			lastPID[i.id] := i.apolloPID
-			lastRun[i.id] := 0
+			launching[i.id] := true
 			MaintainInstanceStatus(i.id)
 		}
 
@@ -1213,22 +1213,25 @@ DeleteApolloMaintainTimer(id){
 	SetTimer(() => LaunchApolloInstance(id), 0)
 }
 LaunchApolloInstance(id) {
-	global savedSettings, lastRun, lastPID
-
+	global savedSettings, launching, lastPID, settingsUpdating
+	while settingsUpdating
+		sleep 100
+	launching[id] := true
 	i := savedSettings["Fleet"][id]
 	if !i.Enabled || !FileExist(i.configFile) || !FileExist(i.appsFile)
 		return
 	else if lastPID[id] = 0 || !ProcessExist(lastPID[id]) 
 		lastPID[id] := RunPsExecAndGetPID(savedSettings["Paths"].apolloExe, i.configFile, i.id)
-	lastRun[id] := A_TickCount
+	Sleep 100
+	launching[id] := false
 }
 UpdateAndSavePIDs(){
-	global savedSettings, lastPID, lastRun
+	global savedSettings, lastPID, launching
 	f := savedSettings["Fleet"]
 	p := savedSettings["Paths"]
-
-	for id in lastRun
-		if A_TickCount - lastRun[id] > 4000 
+	settingsUpdating := true
+	for id in launching
+		if launching[id]
 			return
 	
 	newPID := false
@@ -1241,6 +1244,9 @@ UpdateAndSavePIDs(){
 		UrgentSettingWrite(savedSettings, "Fleet")
 		CleanConfigAndKillPIDs()
 	}
+	Sleep 100
+	settingsUpdating := false
+
 }
 UrgentSettingWrite(srcSettings, group){
 	global savedSettings, userSettings
