@@ -118,7 +118,7 @@ ReadSettingsGroup(File, group, Settings) {
 			p.gnirehtetExe := p.ADBTools "\gnirehtet.exe"
 			p.scrcpyExe := p.ADBTools "\scrcpy.exe"
 			p.adbExe := p.ADBTools "\adb.exe"
-			p.paexecExe := IniRead(File, "Paths", "paexecExe", base "\bin\PAExec\paexec.exe")
+			p.paexecExe := IniRead(File, "Paths", "paexecExe", base "\bin\PaExec\paexec.exe")
         case "Android":
             a := Settings["Android"]
             a.ReverseTethering := IniRead(File, "Android", "ReverseTethering", 1) = "1" ? 1 : 0
