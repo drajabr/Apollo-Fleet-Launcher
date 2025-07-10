@@ -272,10 +272,9 @@ WriteTransientFile(groups := "all") {
 
 		if (groups = "all" || InStr(groups, "Fleet")) {
 			IniDelete(File, "Fleet")
-			f := transientSettings["Fleet"]
-			for id, pid in f {
+			for id in transientSettings["Fleet"] {
 				;MsgBox("Writing Fleet Instance-" id " with PID: " pid)
-				IniWrite(pid, File, "Fleet", "Instance-" id)
+				IniWrite(transientSettings["Fleet"][id], File, "Fleet", "Instance-" id)
 			}
 		}
 
@@ -1026,7 +1025,7 @@ FleetConfigInit(*) {
 		thisConfig := FileExist(i.configFile)? ConfRead(i.configFile) : DeepClone(baseConfig)
 		if MirrorMapItemsIntoAnother(baseConfig, thisConfig)
 			if ConfWrite(i.configFile, thisConfig)
-				i.configChange := 1
+				i.configChange := true
 
 		if !FileExist(i.appsFile){
 			FileAppend(JSON.stringify(baseAppsJson), i.appsFile)
@@ -1145,6 +1144,8 @@ RefreshTransientSettings() {
 WriteTransientSettingsASAP() {
 	global transientSettings
 	static lastSettiongs := Map()
+	WriteTransientFile()
+
 	if DeepCompare(transientSettings, lastSettiongs) {
 		lastSettiongs:= DeepClone(transientSettings) ; Update lastSettiongs to current state
 		WriteTransientFile()
@@ -1245,11 +1246,9 @@ ArrayHas(arr, val) {
 }
 
 FleetLaunchFleet(){
-	global savedSettings, running := Map()
+	global savedSettings, running := Map(), transientSettings
 	f := savedSettings["Fleet"]
 	p := savedSettings["Paths"]
-
-	CleanConfigAndKillPIDs()
 
 	for i in f 
 		if i.Enabled{
@@ -1275,6 +1274,7 @@ CleanConfigAndKillPIDs() {
 	for i in f {
 		if i.Enabled && (!i.configChange || !firstRun){
 			keepPIDs.Push(transientSettings["Fleet"][i.id])
+			;MsgBox("Keeping pid: " transientSettings["Fleet"][i.id])
 		}
 		for file in fileTypes
 				if FileExist(i.%file%)
