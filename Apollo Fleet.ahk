@@ -1090,7 +1090,8 @@ CreateConfigMap(instance){
 		"auto_capture_sink", "AutoCaptureSink",
 	)
 	staticOptions := Map(
-		"headless_mode", "enabled"
+		"headless_mode", "enabled",
+		"keep_sink_default", "disabled"
 	)
 
 	configMap := Map()
