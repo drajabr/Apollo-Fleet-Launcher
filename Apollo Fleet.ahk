@@ -100,11 +100,11 @@ ReadSettingsFile(Settings := Map(), File := "settings.ini", groups := "all") {
 
             case "Android":
                 a := Settings["Android"]
-                a.ReverseTethering := IniRead(File, "Android", "ReverseTethering", 1) = "1"
+                a.ReverseTethering := IniRead(File, "Android", "ReverseTethering", 0) = "1"
                 a.MicDeviceID := IniRead(File, "Android", "MicDeviceID", "Unset")
-                a.MicEnable := IniRead(File, "Android", "MicEnable", a.MicDeviceID = "Unset" ? 0 : 1) = "1"
+                a.MicEnable := (a.MicDeviceID = "Unset" ? 0 : 1) = "1"
                 a.CamDeviceID := IniRead(File, "Android", "CamDeviceID", "Unset")
-                a.CamEnable := IniRead(File, "Android", "CamEnable", a.CamDeviceID = "Unset" ? 0 : 1) = "1"
+                a.CamEnable := (a.CamDeviceID = "Unset" ? 0 : 1) = "1"
 
             case "Fleet":
                 Settings["Fleet"] := []
@@ -330,9 +330,11 @@ InitmyGui() {
 	guiItems["AndroidCamSelector"] := myGui.Add("DropDownList", "x382 y160 w122 Choose1", presetAndroidDevices)
 
 	myGui.Add("GroupBox", "x8 y0 w300 h192", "Fleet")
-	guiItems["PathsApolloBox"] := myGui.Add("Edit", "x53 y17 w212 h21")
-	myGui.Add("Text", "x16 y21", "Apollo:")
-	guiItems["PathsApolloBrowseButton"] := myGui.Add("Button", "x267 y16 w30 h23", "📂")
+	myGui.Add("Text", "x16 y21", "Apollo Folder:")
+	guiItems["PathsApolloBox"] := myGui.Add("Edit", "x85 y17 w190 h21")
+	myGui.SetFont("s14")
+	guiItems["PathsApolloIndicator"] := myGui.Add("Text", "x278 y15", "⚠️")
+	myGui.SetFont()
 
 	guiItems["FleetListBox"] := myGui.Add("ListBox", "x16 y50 w100 h82 +0x100 Choose1")
 	guiItems["FleetListBox"].Enabled := 0
@@ -492,11 +494,35 @@ InitGuiItemsEvents(){
 	guiItems["InstancePortBox"].OnEvent("Change", HandlePortChange)
 	guiItems["InstancePortBox"].OnEvent("Change", StrictPortLimits)
 	guiItems["InstanceAudioSelector"].OnEvent("Change", HandleAudioSelector)
+
+	guiItems["PathsApolloBox"].OnEvent("Change", HandlePathChange)
+
 	OnMessage(0x404, TrayIconHandler)
 	guiItems["FleetListBox"].Enabled := 1
 	guiItems["ButtonReload"].Enabled := 1
 	guiItems["ButtonLockSettings"].Enabled := 1
 }
+CheckApolloFound(){
+	global guiItems, userSettings
+	path := guiItems["PathsApolloBox"].Value
+	if !FileExist(path . "\sunshine.exe") {
+		guiItems["PathsApolloIndicator"].Text := "⚠️"
+		ShowMessage("Apollo not found in selected folder", 3)
+		return false
+	}
+	guiItems["PathsApolloIndicator"].Text := "✅"
+	userSettings["Paths"].Apollo := path
+	guiItems["PathsApolloBox"].Value := path
+	return true
+}
+HandlePathChange(*){
+	global guiItems, userSettings
+	path := guiItems["PathsApolloBox"].Value
+	if !CheckApolloFound()
+		return
+	userSettings["Paths"].Apollo := path
+	guiItems["PathsApolloBox"].Value := path
+}	
 CheckAdbRefresh(){
 	userRequire := userSettings["Android"].MicEnable || userSettings["Android"].CamEnable
 	if userRequire && !adbReady
@@ -858,7 +884,7 @@ UpdateButtonsLabels(){
 	i := userSettings["Fleet"][currentlySelectedIndex]
 	pid := transientSettings["Fleet"].has(i.id) ? transientSettings["Fleet"][i.id] : 0
 	guiItems["InstanceEnableCheckbox"].Text := i.Enabled ? ProcessExist(pid)  ? "Running: " pid "" : "Stopped" :  ProcessExist(pid) ? "To be Disabled" : "Disabled"
-
+	CheckApolloFound()
 }
 ApplyLockState() {
 	global settingsLocked, guiItems, userSettings, currentlySelectedIndex
@@ -868,7 +894,7 @@ ApplyLockState() {
 
 	textBoxes := ["PathsApolloBox"]
 	checkBoxes := ["InstanceEnableCheckbox", "FleetAutoStartCheckBox", "AndroidReverseTetheringCheckbox", "AndroidMicCheckbox", "AndroidCamCheckbox", "FleetSyncVolCheckBox", "FleetRemoveDisconnectCheckbox"]
-	buttons := ["FleetButtonDelete", "FleetButtonAdd", "PathsApolloBrowseButton"]
+	buttons := ["FleetButtonDelete", "FleetButtonAdd"]
 	androidSelectors := Map(
 		"AndroidMicSelector", "AndroidMicCheckbox",
 		"AndroidCamSelector", "AndroidCamCheckbox"
