@@ -1839,9 +1839,9 @@ if !savedSettings["Manager"].ShowErrors{
 	OnError(HandleError, -1)  ; -1 = override default behavior
 
 	HandleError(err, mode) {
-			HandleReloadButton()
-			return true
-			; TODO pipe the error message to the status area
+		;HandleReloadButton()
+		return true
+		; TODO pipe the error message to the status area
 	}
 }
 
