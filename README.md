@@ -21,6 +21,12 @@ https://github.com/user-attachments/assets/72a3909f-b1c7-4aa2-bd78-3a70d3acbc61
 > If you find any issue please don't hesitate to open an issue in the repo, your feedback "and pull requests" are very welcomed.
 
 ## Changelog
+* v0.3.2 Bug fixes and enhancements
+  * FIX: Proper JSON boolean handling
+  * FIX: Preserve pids properly, in seperate "transient" ini
+  * FIX: Allow alternative path for apollo
+  * UX: Add option to enable/disable headless mode per-instance
+  * Fix: Disable if "Unset" for android cam/mic features
 * v0.3.1 DARK Theme! & Apollo elevated run
   * UI: Dark Theme: Follows system for now (could be changed from settings.ini too)
   * FIX: Apollo runs with service permissions using PsExec (well paexec used here) [2](https://github.com/drajabr/Apollo-Fleet-Launcher/issues/2)
