@@ -124,12 +124,14 @@ ReadSettingsFile(Settings := Map(), File := "settings.ini", groups := "all") {
                         i.stateFile := configp "\state-" i.id ".json"
                         i.AudioDevice := IniRead(File, section, "AudioDevice", "Unset")
                         i.AutoCaptureSink := i.AudioDevice = "Unset" ? "enabled" : "disabled"
+						i.HeadlessModeSet := IniRead(File, section, "HeadlessModeSet", "enabled")
                         i.configChange := 0
                         f.Push(i)
                     }
                 if f.Length = 0 {
                     i := { id: 1, Port: 11000, Name: "Instance 1", Enabled: 1, AudioDevice: "Unset" }
                     i.AutoCaptureSink := "enabled"
+					i.HeadlessModeSet := "enabled"
                     i.configFile := configp "\fleet-1.conf"
                     i.logFile := configp "\fleet-1.log"
                     i.appsFile := configp "\apps-1.json"
@@ -205,6 +207,7 @@ WriteSettingsFile(Settings := Map(), File := "settings.ini", groups := "all") {
 				IniWrite(i.Port, File, section, "Port")
 				IniWrite(i.Enabled, File, section, "Enabled")
 				IniWrite(i.AudioDevice, File, section, "AudioDevice")
+				IniWrite(i.HeadlessModeSet, File, section, "HeadlessModeSet")
 			}
 			changed += 1
 		}
@@ -346,18 +349,21 @@ InitmyGui() {
 	for i in savedSettings["Fleet"]
 		if !presetAudioDevices.Has(i.AudioDevice)
 			presetAudioDevices.Push(i.AudioDevice)
-	myGui.Add("Text", "x123 y83", "Audio :")
-	guiItems["InstanceAudioSelector"] := myGui.Add("DropDownList", "x176 y80 w120 Choose1", presetAudioDevices)
+	myGui.Add("Text", "x123 y76", "Audio :")
+	guiItems["InstanceAudioSelector"] := myGui.Add("DropDownList", "x176 y74 w120 Choose1", presetAudioDevices)
 
-	myGui.Add("Text", "x123 y108 ", "Link:")
+	myGui.Add("Text", "x123 y100 ", "Enabled:")
+	guiItems["InstanceEnableCheckbox"] := myGui.Add("CheckBox", "x176 y100", "Status will appear here")
+	
+	myGui.Add("Text", "x123 y120 ", "Headless:")
+	guiItems["InstanceHeadlessCheckbox"] := myGui.Add("CheckBox", "x176 y120", "Force Headless Mode")
+
+	myGui.Add("Text", "x123 y144  ", "WebUI:")
 	myLink := "https://localhost:00000"
-	guiItems["FleetLinkBox"] := myGui.Add("Link", "x176 y108", '<a href="' . myLink . '">' . myLink . '</a>')
+	guiItems["FleetLinkBox"] := myGui.Add("Link", "x176 y144", '<a href="' . myLink . '">' . myLink . '</a>')
 
-	myGui.Add("Text", "x123 y135 ", "Enabled:")
-	guiItems["InstanceEnableCheckbox"] := myGui.Add("CheckBox", "x176 y135", "Status will appear here")
-
-	guiItems["FleetButtonAdd"] := myGui.Add("Button", "x43 y134 w75 h21", "Add")
-	guiItems["FleetButtonDelete"] := myGui.Add("Button", "x14 y134 w27 h21", "✖")
+	guiItems["FleetButtonAdd"] := myGui.Add("Button", "x43 y139 w74 h21", "Add")
+	guiItems["FleetButtonDelete"] := myGui.Add("Button", "x15 y139 w26 h21", "✖")
 
 	guiItems["StatusApollo"] := myGui.Add("Text", "x16 y172 w70", "❎ Apollo ")
 	guiItems["StatusGnirehtet"] := myGui.Add("Text", "x76 y172 w70", "❎ Gnirehtet")
@@ -452,6 +458,7 @@ ReflectSettings(Settings){
 	guiItems["InstanceNameBox"].Value := valid ? Settings["Fleet"][currentlySelectedIndex].Name : ""
 	guiItems["InstancePortBox"].Value := valid ? Settings["Fleet"][currentlySelectedIndex].Port : ""
 	guiItems["InstanceEnableCheckbox"].Value := valid ? f[currentlySelectedIndex].Enabled : 0
+	guiItems["InstanceHeadlessCheckbox"].Value := valid ? (f[currentlySelectedIndex].HeadlessModeSet = "enabled") : 0
 	port := valid ?  userSettings["Fleet"][currentlySelectedIndex].Port+1 : 00000
 	myLink := "https://localhost:" . port
 	guiItems["FleetLinkBox"].Text :=  '<a href="' . myLink . '">' . myLink . '</a>'
@@ -486,6 +493,7 @@ InitGuiItemsEvents(){
 	guiItems["FleetSyncVolCheckBox"].OnEvent("Click", HandleCheckBoxes) ;(*) => userSettings["Manager"].SyncVolume := guiItems["FleetSyncVolCheckBox"].Value)
 	guiItems["FleetRemoveDisconnectCheckbox"].OnEvent("Click", HandleCheckBoxes) ;(*) => userSettings["Manager"].RemoveDisconnected := guiItems["FleetRemoveDisconnectCheckbox"].Value)
 	guiItems["InstanceEnableCheckbox"].OnEvent("Click", HandleCheckBoxes)
+	guiItems["InstanceHeadlessCheckbox"].OnEvent("Click", HandleCheckBoxes)
 
 	guiItems["FleetButtonAdd"].OnEvent("Click", HandleInstanceAddButton)
 	guiItems["FleetButtonDelete"].OnEvent("Click", HandleInstanceDeleteButton)
@@ -614,7 +622,9 @@ HandleCheckBoxes(*) {
 	userSettings["Manager"].RemoveDisconnected := guiItems["FleetRemoveDisconnectCheckbox"].Value
 	valid := currentlySelectedIndex > 0 && currentlySelectedIndex <= userSettings["Fleet"].Length 
 	currentlySelectedIndex := valid ? currentlySelectedIndex : 1
-	userSettings["Fleet"][currentlySelectedIndex].Enabled := guiItems["InstanceEnableCheckbox"].Value
+	i := userSettings["Fleet"][currentlySelectedIndex]
+	i.Enabled := guiItems["InstanceEnableCheckbox"].Value
+	i.HeadlessModeSet := guiItems["InstanceHeadlessCheckbox"].Value ? "enabled" : "disabled"
 	UpdateButtonsLabels()
 }
 RefreshFleetList(){
@@ -676,6 +686,7 @@ HandleInstanceAddButton(*){
 	i.Enabled := 1
 	i.AudioDevice := "Unset"
 	i.AutoCaptureSink := i.AudioDevice = "Unset" ? "enabled" : "disabled"
+	i.HeadlessModeSet := "enabled"
 	i.configFile := configp "\fleet-" i.id ".conf"
 	i.logFile := configp "\fleet-" i.id ".log"
 	i.stateFile :=  configp "\state-" i.id ".json"
@@ -719,6 +730,7 @@ HandleListChange(*) {
 	RefreshAudioSelector()
 	guiItems["InstanceAudioSelector"].Text := ArrayHas(audioDevicesList, i.AudioDevice) ? i.AudioDevice : "Unset"
 	guiItems["InstanceEnableCheckbox"].Value := i.Enabled
+	guiItems["InstanceHeadlessCheckbox"].Value := (i.HeadlessModeSet = "enabled") ? 1 : 0
 	UpdateButtonsLabels()
 }
 UpdateWindowPosition(*){
@@ -885,6 +897,7 @@ UpdateButtonsLabels(){
 	pid := transientSettings["Fleet"].has(i.id) ? transientSettings["Fleet"][i.id] : 0
 	guiItems["InstanceEnableCheckbox"].Text := i.Enabled ? ProcessExist(pid)  ? "Running: " pid "" : "Stopped" :  ProcessExist(pid) ? "To be Disabled" : "Disabled"
 	CheckApolloFound()
+	guiItems["InstanceHeadlessCheckbox"].Text := (i.HeadlessModeSet = "enabled" ? "Force Enabled" : "Force Disabled")
 }
 ApplyLockState() {
 	global settingsLocked, guiItems, userSettings, currentlySelectedIndex
@@ -893,7 +906,7 @@ ApplyLockState() {
 	isReadOnly(cond := true) => cond ? "+ReadOnly" : "-ReadOnly"
 
 	textBoxes := ["PathsApolloBox"]
-	checkBoxes := ["InstanceEnableCheckbox", "FleetAutoStartCheckBox", "AndroidReverseTetheringCheckbox", "AndroidMicCheckbox", "AndroidCamCheckbox", "FleetSyncVolCheckBox", "FleetRemoveDisconnectCheckbox"]
+	checkBoxes := ["InstanceEnableCheckbox", "FleetAutoStartCheckBox", "AndroidReverseTetheringCheckbox", "AndroidMicCheckbox", "AndroidCamCheckbox", "FleetSyncVolCheckBox", "FleetRemoveDisconnectCheckbox", "InstanceHeadlessCheckbox"]
 	buttons := ["FleetButtonDelete", "FleetButtonAdd"]
 	androidSelectors := Map(
 		"AndroidMicSelector", "AndroidMicCheckbox",
@@ -1114,9 +1127,9 @@ CreateConfigMap(instance){
 		"virtual_sink", "AudioDevice",
 		"audio_sink", "AudioDevice",
 		"auto_capture_sink", "AutoCaptureSink",
+		"headless_mode", "HeadlessModeSet"
 	)
 	staticOptions := Map(
-		"headless_mode", "enabled",
 		"keep_sink_default", "disabled"
 	)
 
