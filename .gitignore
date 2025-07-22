@@ -2,4 +2,4 @@
 *.conf
 *.ini
 *.json
-
+*.backup

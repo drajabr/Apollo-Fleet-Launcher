@@ -93,6 +93,7 @@ ReadSettingsFile(Settings := Map(), File := "settings.ini", groups := "all") {
                 p.Config := IniRead(File, "Paths", "Config", A_ScriptDir "\config")
                 p.ADBTools := IniRead(File, "Paths", "ADB", A_ScriptDir "\bin\platform-tools")
                 p.apolloExe := p.Apollo "\sunshine.exe"
+				p.ApolloFound := FileExist(p.apolloExe)
                 p.gnirehtetExe := p.ADBTools "\gnirehtet.exe"
                 p.scrcpyExe := p.ADBTools "\scrcpy.exe"
                 p.adbExe := p.ADBTools "\adb.exe"
@@ -241,10 +242,9 @@ ReadTransientFile(transient := Map(), File := "transient.ini", groups := "all") 
 	}
 
 	if (groups = "all" || InStr(groups, "Fleet")) {
-		f := transient["Fleet"]
 		for line in StrSplit(IniRead(File, "Fleet",, ""), "`n")
 			if RegExMatch(line, "Instance-(\d+)\s*=\s*(\d+)", &m){
-				f[m[1]] := m[2]
+				transient["Fleet"][Integer(m[1])] := Integer(m[2])
 				;MsgBox("Read Fleet Instance-" m[1] " with PID: " m[2])
 			}
 	}
@@ -259,6 +259,7 @@ ReadTransientFile(transient := Map(), File := "transient.ini", groups := "all") 
 		w.cmdExit := IniRead(File, "Window", "cmdExit", 0)
 		w.cmdApply := IniRead(File, "Window", "cmdApply", 0)
 	}
+	return transient
 }
 
 WriteTransientFile(groups := "all") {
@@ -275,9 +276,9 @@ WriteTransientFile(groups := "all") {
 
 		if (groups = "all" || InStr(groups, "Fleet")) {
 			IniDelete(File, "Fleet")
-			for id in transientSettings["Fleet"] {
+			for id, pid in transientSettings["Fleet"] {
 				;MsgBox("Writing Fleet Instance-" id " with PID: " pid)
-				IniWrite(transientSettings["Fleet"][id], File, "Fleet", "Instance-" id)
+				IniWrite(pid, File, "Fleet", "Instance-" id)
 			}
 		}
 
@@ -516,11 +517,13 @@ CheckApolloFound(){
 	if !FileExist(path . "\sunshine.exe") {
 		guiItems["PathsApolloIndicator"].Text := "⚠️"
 		ShowMessage("Apollo not found in selected folder", 3)
+		userSettings["Paths"].ApolloFound := 0
 		return false
 	}
 	guiItems["PathsApolloIndicator"].Text := "✅"
 	userSettings["Paths"].Apollo := path
 	guiItems["PathsApolloBox"].Value := path
+	userSettings["Paths"].ApolloFound := 1
 	return true
 }
 HandlePathChange(*){
@@ -636,7 +639,6 @@ RefreshFleetList(){
 	guiItems["FleetListBox"].Choose(currentlySelectedIndex)
 	Loop userSettings["Fleet"].Length {
 		userSettings["Fleet"][A_Index].id := A_Index
-	RefreshTransientSettings()
 	}
 	UpdateButtonsLabels()
 }
@@ -1152,19 +1154,17 @@ bootstrapSettings() {
 
 }
 bootstrapTransientSettings() {
-
-	RefreshTransientSettings()
-	SetTimer(WriteTransientSettingsASAP ,100)
-}
-RefreshTransientSettings() {
-	global transientSettings := Map()
-	ReadTransientFile(transientSettings)
+	global transientSettings
+	transientSettings := Map()
+	transientSettings := ReadTransientFile()
 	Changed := false
 
+	tF := transientSettings["Fleet"]
 	for id, pid in transientSettings["Fleet"] {
 		isValid := false
 		for i in savedSettings["Fleet"] 
 			if i.id = id {
+				;MsgBox("valid PID " . pid . " for instance ID " . id)
 				isValid := true
 				break
 			}
@@ -1173,22 +1173,31 @@ RefreshTransientSettings() {
 			Changed := true
 		}
 	}
-	for i in savedSettings["Fleet"] 
-		if !transientSettings["Fleet"].Has(i.id) { 
+	for i in savedSettings["Fleet"] {
+		if !tF.Has(Integer(i.id)) { 
+			;MsgBox("Adding PID 0 for instance ID " . i.id)
 			transientSettings["Fleet"][i.id] := 0 
 			Changed := true
 		}
+	}
 	if Changed 
 		WriteTransientFile()
+	SetTimer(WriteTransientSettingsASAP ,100)
 }
 WriteTransientSettingsASAP() {
 	global transientSettings
-	static lastSettiongs := Map()
-	WriteTransientFile()
-
-	if DeepCompare(transientSettings, lastSettiongs) {
-		lastSettiongs:= DeepClone(transientSettings) ; Update lastSettiongs to current state
-		WriteTransientFile()
+	static lastSettings := Map(), firstRun := true
+	
+	if firstRun {
+		firstRun := false
+		lastSettings := DeepClone(transientSettings) ; Initialize lastSettings on first run
+	} else {
+		for cat in transientSettings
+			if DeepCompare(transientSettings[cat], lastSettings[cat]) {
+				lastSettings[cat] := DeepClone(transientSettings[cat]) ; Update lastSettings to current state
+				WriteTransientFile(cat)
+				UpdateButtonsLabels()
+			}
 	}
 }
 
@@ -1291,11 +1300,10 @@ FleetLaunchFleet(){
 	p := savedSettings["Paths"]
 
 	for i in f 
-		if i.Enabled{
-			running[i.id] := true
+		if i.Enabled
 			MaintainInstanceTimer(i.id)
-		}
-	SetTimer(CleanConfigAndKillPIDs, 3000) ; Clean up config files every 10 seconds
+
+	SetTimer(CleanConfigAndKillPIDs, 1000) ; Clean up config files every 10 seconds
 }
 CleanConfigAndKillPIDs() {
 	global savedSettings, transientSettings, running
@@ -1304,14 +1312,11 @@ CleanConfigAndKillPIDs() {
 		if running[id]
 			return
 	
-	f := savedSettings["Fleet"]
-	p := savedSettings["Paths"]
-
 	fileTypes := ["configFile","stateFile", "appsFile", "logFile"]
 
 	keepPIDs := []
 	keepFiles := []
-	for i in f {
+	for i in savedSettings["Fleet"] {
 		if i.Enabled && (!i.configChange || !firstRun){
 			keepPIDs.Push(transientSettings["Fleet"][i.id])
 			;MsgBox("Keeping pid: " transientSettings["Fleet"][i.id])
@@ -1321,7 +1326,7 @@ CleanConfigAndKillPIDs() {
 					keepFiles.Push(i.%file%)
 	}
 	KillProcessesExcept("sunshine.exe", keepPIDs, 5000)
-	Loop Files p.Config . '\*.*' 
+	Loop Files savedSettings["Paths"].Config . '\*.*' 
 		if !ArrayHas(keepFiles, A_LoopFileFullPath)
 			try
 				FileDelete(A_LoopFileFullPath)
@@ -1336,15 +1341,18 @@ DeleteApolloMaintainTimer(id){
 }
 MaintainInstance(id) {
 	global savedSettings, running, transientSettings
-
+	static lastPid := 0
 	running[id] := true
 	i := savedSettings["Fleet"][id]
-	if !(i.Enabled && FileExist(i.configFile) && FileExist(i.appsFile))
+	if !(userSettings["Paths"].ApolloFound && FileExist(i.configFile) && FileExist(i.appsFile))
 		return
 	else if !ProcessExist(transientSettings["Fleet"][id]) 
 		transientSettings["Fleet"][id] := RunPsExecAndGetPID(savedSettings["Paths"].apolloExe, i.configFile, id)
-
-	Sleep 10
+	if !transientSettings["Fleet"][id] != lastPid{
+		lastPid := transientSettings["Fleet"][id]
+		MsgBox("Starting " i.Name " with PID: " transientSettings["Fleet"][id])
+	}
+	Sleep 100
 	running[id] := false
 }
 
