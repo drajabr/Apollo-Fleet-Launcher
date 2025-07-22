@@ -79,14 +79,6 @@ ReadSettingsFile(Settings := Map(), File := "settings.ini", groups := "all") {
             case "Window":
                 w := Settings["Window"]
                 w.restorePosition := IniRead(File, "Window", "restorePosition", 1)
-                w.xPos := IniRead(File, "Window", "xPos", (A_ScreenWidth - 580) / 2)
-                w.yPos := IniRead(File, "Window", "yPos", (A_ScreenHeight - 198) / 2)
-                w.lastState := IniRead(File, "Window", "lastState", 1)
-                w.logShow := IniRead(File, "Window", "logShow", 0)
-                w.cmdReload := IniRead(File, "Window", "cmdReload", 0)
-                w.cmdExit := IniRead(File, "Window", "cmdExit", 0)
-                w.cmdApply := IniRead(File, "Window", "cmdApply", 0)
-
             case "Paths":
                 p := Settings["Paths"]
                 p.Apollo := IniRead(File, "Paths", "Apollo", "C:\Program Files\Apollo")
@@ -175,9 +167,6 @@ WriteSettingsFile(Settings := Map(), File := "settings.ini", groups := "all") {
 		if (groups = "all" || InStr(groups, "Window")) {
 			w := Settings["Window"]
 			changed += WriteIfChanged(File, "Window", "restorePosition", w.restorePosition)
-			changed += WriteIfChanged(File, "Window", "cmdReload", w.cmdReload)
-			changed += WriteIfChanged(File, "Window", "cmdExit", w.cmdExit)
-			changed += WriteIfChanged(File, "Window", "cmdApply", w.cmdApply)
 		}
 
 		if (groups = "all" || InStr(groups, "Paths")) {
@@ -291,6 +280,7 @@ WriteTransientFile(groups := "all") {
 			IniWrite(w.cmdReload, File, "Window", "cmdReload")
 			IniWrite(w.cmdExit, File, "Window", "cmdExit")
 			IniWrite(w.cmdApply, File, "Window", "cmdApply")
+
 		}
 	} else {
 		FileAppend("", File)
@@ -450,7 +440,7 @@ ReflectSettings(Settings){
 	guiItems["AndroidCamCheckbox"].Value := a.CamEnable
 	guiItems["AndroidCamSelector"].Text := a.CamDeviceID
 	guiItems["PathsApolloBox"].Value := Settings["Paths"].Apollo
-	guiItems["ButtonLogsShow"].Text := (Settings["Window"].logShow = 1 ? "Hide Logs" : "Show Logs")
+	guiItems["ButtonLogsShow"].Text := (transientSettings["Window"].logShow = 1 ? "Hide Logs" : "Show Logs")
 	;guiItems["InstanceAudioSelector"].Enabled :=0
 	guiItems["FleetListBox"].Delete()
 	guiItems["FleetListBox"].Add(EveryInstanceProp(Settings))
@@ -745,9 +735,9 @@ UpdateWindowPosition(*){
 	}
 }
 HandleLogsButton(*) {
-	global guiItems, savedSettings
-	userSettings["Window"].logShow := !userSettings["Window"].logShow
-	guiItems["ButtonLogsShow"].Text := (userSettings["Window"].logShow = 1 ? "Hide Logs" : "Show Logs")
+	global guiItems, savedSettings, transientSettings
+	transientSettings["Window"].logShow := !transientSettings["Window"].logShow
+	guiItems["ButtonLogsShow"].Text := (transientSettings["Window"].logShow = 1 ? "Hide Logs" : "Show Logs")
 	UpdateWindowPosition()
 	RestoremyGui()
 }
@@ -970,7 +960,7 @@ ExitMyApp() {
 	ExitApp()
 }
 MinimizemyGui(*) {
-    global myGui, savedSettings
+    global myGui, savedSettings, transientSettings
     ; Make sure window exists
     if !WinExist("ahk_id " myGui.Hwnd)
         return  ; Nothing to do
@@ -978,12 +968,12 @@ MinimizemyGui(*) {
     ; Get position BEFORE hiding
 	UpdateWindowPosition()
 
-    userSettings["Window"].lastState := 0
+    transientSettings["Window"].lastState := 0
     ; Now hide the window
     myGui.Hide()
 }
 RestoremyGui() {
-	global myGui, transientSettings, savedSettings
+	global myGui, transientSettings, savedSettings, transientSettings
 
 	h := (transientSettings["Window"].logShow = 0 ? 198 : 600)
 	x := transientSettings["Window"].xPos
@@ -1002,7 +992,7 @@ RestoremyGui() {
 	else
 		myGui.Show("x" xC " y" yC "w580 h" h)
 
-	savedSettings["Window"].lastState := 1
+	transientSettings["Window"].lastState := 1
 }
 
 MapSetIfChanged(map, option, newValue) {
@@ -1849,7 +1839,7 @@ if !savedSettings["Manager"].ShowErrors{
 	OnError(HandleError, -1)  ; -1 = override default behavior
 
 	HandleError(err, mode) {
-			;HandleReloadButton()
+			HandleReloadButton()
 			return true
 			; TODO pipe the error message to the status area
 	}
