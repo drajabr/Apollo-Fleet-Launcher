@@ -945,6 +945,8 @@ HandleLockButton(*) {
 		if UserSettingsWaiting(){
 			userSettings["Window"].cmdApply := 1
 			SaveUserSettings()
+			DeleteAllTimers()
+			WriteTransientFile()
 			Reload
 		}
 	}
