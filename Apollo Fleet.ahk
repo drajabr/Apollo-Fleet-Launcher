@@ -984,7 +984,14 @@ RestoremyGui() {
 	xC := (A_ScreenWidth - 580)/2 
 	yC := (A_ScreenHeight - h)/2
 
-	if (x > SysGet(78) || y > SysGet(79)){
+	; Virtual screen bounds
+	vx := SysGet(74) ; left
+	vy := SysGet(75) ; top
+	vw := SysGet(76) ; width
+	vh := SysGet(77) ; height
+
+	; If position outside entire virtual screen, reset
+	if (x < vx || x > vx+vw || y < vy || y > vy+vh) {
 		x := xC
 		y := yC
 	}
