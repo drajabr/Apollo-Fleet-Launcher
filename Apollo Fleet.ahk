@@ -1261,7 +1261,7 @@ RunAndGetPID(exePath, args := "", workingDir := "") {
 }
 
 RunPsExecAndGetPID(exePath, args := "", id := 0) {
-    workingDir :=  SubStr(exePath, 1, InStr(exePath, "\",, -1) - 1)
+    workingDir := SubStr(exePath, 1, InStr(exePath, "\",, -1) - 1)
     psexecPath := savedSettings["Paths"].paexecExe
     sessionId := DllCall("Kernel32.dll\WTSGetActiveConsoleSessionId")
     tmpFile := A_Temp "\apollo-fleet-" id ".txt"
@@ -1272,9 +1272,9 @@ RunPsExecAndGetPID(exePath, args := "", id := 0) {
 
     psCmd := "$p=Start-Process -WindowStyle Hidden -FilePath '" . exePath . "' -ArgumentList '" . args . "' -PassThru;$p.Id>'" . tmpFile . "'"
 
-	cmd := Format('"{1}" -accepteula -i {2} -w "{3}" -s powershell -Command "{4}"', psexecPath, sessionId, workingDir, psCmd)
+    cmd := Format('"{1}" -accepteula -i {2} -w "{3}" -s "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -Command "{4}"', psexecPath, sessionId, workingDir, psCmd)
 
-    RunWait(cmd, , "Hide")
+    Run(cmd, , "Hide")
 
     Loop 50 {
         Sleep 10
@@ -1349,7 +1349,7 @@ MaintainInstance(id) {
 		transientSettings["Fleet"][id] := RunPsExecAndGetPID(savedSettings["Paths"].apolloExe, i.configFile, id)
 	if !transientSettings["Fleet"][id] != lastPid{
 		lastPid := transientSettings["Fleet"][id]
-		MsgBox("Starting " i.Name " with PID: " transientSettings["Fleet"][id])
+		ShowMessage("Starting " i.Name " with PID: " transientSettings["Fleet"][id])
 	}
 	Sleep 100
 	running[id] := false
