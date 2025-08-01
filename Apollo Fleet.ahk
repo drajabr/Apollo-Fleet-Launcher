@@ -1083,9 +1083,25 @@ FleetConfigInit(*) {
 				hasDesktopApp := false
 				for app in currentJson["apps"] {
 					if app.Has("name") && app["name"] = "Desktop" {
-						;MsgBox(app["terminate-on-pause"] != intendedTerminate ? "Updating terminate-on-pause for Desktop app." : "Desktop app already has correct terminate-on-pause value.")
-
-						if !app.Has("terminate-on-pause") || (app["terminate-on-pause"] == JSON.true && intendedTerminate == JSON.false) || (app["terminate-on-pause"] == JSON.false && intendedTerminate == JSON.true) {
+						; Check if we need to update terminate-on-pause
+						needsUpdate := false
+						
+						if !app.Has("terminate-on-pause") {
+							needsUpdate := true
+						} else {
+							; Compare current value with intended value
+							; Handle both JSON boolean objects and regular booleans/numbers
+							currentVal := app["terminate-on-pause"]
+							if (currentVal == JSON.true || currentVal == true || currentVal == 1) {
+								needsUpdate := (intendedTerminate == JSON.false)
+							} else if (currentVal == JSON.false || currentVal == false || currentVal == 0) {
+								needsUpdate := (intendedTerminate == JSON.true)
+							} else {
+								needsUpdate := true ; Unknown value, force update
+							}
+						}
+						
+						if needsUpdate {
 							app["terminate-on-pause"] := intendedTerminate
 							i.configChange := true
 						}
@@ -1097,8 +1113,33 @@ FleetConfigInit(*) {
 					i.configChange := true
 				}
 				if i.configChange {
+					; CRITICAL FIX: Recreate the entire structure to ensure proper JSON boolean handling
+					newJson := Map(
+						"apps", [],
+						"env", currentJson.Has("env") ? currentJson["env"] : {},
+						"version", currentJson.Has("version") ? currentJson["version"] : 2
+					)
+					
+					; Rebuild apps array with proper JSON boolean types
+					for app in currentJson["apps"] {
+						newApp := Map()
+						for key, value in app {
+							if key = "terminate-on-pause" {
+								; Ensure this is always a proper JSON boolean
+								if (value == JSON.true || value == true || value == 1) {
+									newApp[key] := JSON.true
+								} else {
+									newApp[key] := JSON.false
+								}
+							} else {
+								newApp[key] := value
+							}
+						}
+						newJson["apps"].Push(newApp)
+					}
+					
 					FileDelete(i.appsFile)
-					FileAppend(JSON.stringify(currentJson), i.appsFile)
+					FileAppend(JSON.stringify(newJson), i.appsFile)
 				}
 			} else {
 				FileDelete(i.appsFile)
@@ -1108,6 +1149,7 @@ FleetConfigInit(*) {
 		}
 	}
 }
+
 MirrorMapItemsIntoAnother(inputMap, outputMap){
 	modified := false
 	for option, value in inputMap {
