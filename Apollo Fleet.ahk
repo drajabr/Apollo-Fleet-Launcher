@@ -186,15 +186,17 @@ WriteSettingsFile(Settings := Map(), File := "settings.ini", groups := "all") {
 		}
 
 		if (groups = "all" || InStr(groups, "Fleet")) {
-			; Clear previous Instance sections
-			for section in StrSplit(IniRead(File), "`n")
-				if RegExMatch(section, "^\[Instance\d+\]$")
+			sections := IniRead(File)
+			for section in StrSplit(sections, "`n") {
+				section := Trim(section)
+				if RegExMatch(section, "^Instance\d+$")
 					IniDelete(File, section)
-
+			}
+			
 			for i in Settings["Fleet"] {
 				section := "Instance" i.id
 				IniWrite(i.Name, File, section, "Name")
-				IniWrite(i.Port, File, section, "Port")
+				IniWrite(i.Port, File, section, "Port") 
 				IniWrite(i.Enabled, File, section, "Enabled")
 				IniWrite(i.AudioDevice, File, section, "AudioDevice")
 				IniWrite(i.HeadlessModeSet, File, section, "HeadlessModeSet")

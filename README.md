@@ -21,6 +21,11 @@ https://github.com/user-attachments/assets/72a3909f-b1c7-4aa2-bd78-3a70d3acbc61
 > If you find any issue please don't hesitate to open an issue in the repo, your feedback "and pull requests" are very welcomed.
 
 ## Changelog
+* v0.3.3 Bug fixes
+  * FIX: Run with powershell full path to avoid errors if not defined in PATH for some reason
+  * FIX: Reset window area if one monitor disconnected
+  * FIX: Stop all timers before apply, so don't result orphand processes in some cases
+  * FIX: Properly delete instances from settings file
 * v0.3.2 Bug fixes and enhancements
   * FIX: Proper JSON boolean handling
   * FIX: Preserve pids properly, in seperate "transient" ini file
