@@ -26,6 +26,7 @@ https://github.com/user-attachments/assets/72a3909f-b1c7-4aa2-bd78-3a70d3acbc61
   * FIX: Reset window area if one monitor disconnected
   * FIX: Stop all timers before apply, so don't result orphand processes in some cases
   * FIX: Properly delete instances from settings file
+  * FIX: Handle terminate-on-pause override properly if the apps.json was already initialized
 * v0.3.2 Bug fixes and enhancements
   * FIX: Proper JSON boolean handling
   * FIX: Preserve pids properly, in seperate "transient" ini file
