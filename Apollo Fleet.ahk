@@ -1272,9 +1272,9 @@ RunPsExecAndGetPID(exePath, args := "", id := 0) {
 
     psCmd := "$p=Start-Process -WindowStyle Hidden -FilePath '" . exePath . "' -ArgumentList '" . args . "' -PassThru;$p.Id>'" . tmpFile . "'"
 
-    cmd := Format('"{1}" -accepteula -i {2} -w "{3}" -s "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -Command "{4}"', psexecPath, sessionId, workingDir, psCmd)
+	cmd := Format('"{1}" -accepteula -i {2} -w "{3}" -s "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"  -Command "{4}"', psexecPath, sessionId, workingDir, psCmd)
 
-    Run(cmd, , "Hide")
+    RunWait(cmd, , "Hide")
 
     Loop 50 {
         Sleep 10
