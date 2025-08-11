@@ -299,7 +299,7 @@ InitmyGui() {
 	if !A_IsCompiled {
 		TraySetIcon("./icons/9.ico")
 	}
-	myGui := Gui("+AlwaysOnTop -SysMenu")
+	myGui := Gui("+AlwaysOnTop -SysMenu -DPIScale")
 
 	guiItems["ButtonLockSettings"] := myGui.Add("Button", "x520 y5 w50 h40", "🔒")
 	guiItems["ButtonReload"] := myGui.Add("Button", "x520 y50 w50 h40", "Reload")
