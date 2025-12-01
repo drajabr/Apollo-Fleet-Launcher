@@ -369,13 +369,24 @@ InitmyGui() {
 	myGui.Title := "Apollo Fleet Manager"
 
 	if savedSettings["Manager"].DarkTheme {
-		EnableDarkMode(myGui, guiItems)
-		SetWindowAttribute(myGui, true)
-		SetWindowTheme(myGui, true)
-		SetSysLinkColor(guiItems["FleetLinkBox"])
+		TryEnableDarkMode(myGui, guiItems)
 	}
 }
-
+TryEnableDarkMode(gui, guiItems) {
+    try {
+        ; Attempt dark mode
+        EnableDarkMode(gui, guiItems)
+        SetWindowAttribute(gui, true)
+        SetWindowTheme(gui, true)
+        SetSysLinkColor(guiItems["FleetLinkBox"])
+    } catch {
+        ; Fallback: force light mode
+        ShowMessage("DarkColors not available, using light mode", 3)
+        ; Optionally reset GUI colors if needed
+        gui.BackColor := "White"
+        gui.ForeColor := "Black"
+    }
+}
 SetSysLinkColor(linkObj) {
 	; Thanks for @teadrinker https://www.autohotkey.com/boards/viewtopic.php?t=114011
 	static LM_SETITEM := 0x702, mask := (LIF_ITEMINDEX := 0x1) | (LIF_STATE := 0x2), LIS_DEFAULTCOLORS := 0x10
