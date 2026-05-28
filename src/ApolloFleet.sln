@@ -1,0 +1,30 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BBF4-00C04F79EFBC}") = "ApolloFleet.Core", "ApolloFleet.Core\ApolloFleet.Core.csproj", "{B2F8C4A1-0E3D-4B1A-9C7E-6D5F4A3B2C10}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BBF4-00C04F79EFBC}") = "ApolloFleet.Core.Tests", "ApolloFleet.Core.Tests\ApolloFleet.Core.Tests.csproj", "{C3D9E5B2-1F4E-5C2B-AD8F-7E6A5B4C3D21}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BBF4-00C04F79EFBC}") = "ApolloFleet.App", "ApolloFleet.App\ApolloFleet.App.csproj", "{D4EAF6C3-2A5F-6D3C-BE9A-8F7B6C5D4E32}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B2F8C4A1-0E3D-4B1A-9C7E-6D5F4A3B2C10}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B2F8C4A1-0E3D-4B1A-9C7E-6D5F4A3B2C10}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B2F8C4A1-0E3D-4B1A-9C7E-6D5F4A3B2C10}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B2F8C4A1-0E3D-4B1A-9C7E-6D5F4A3B2C10}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C3D9E5B2-1F4E-5C2B-AD8F-7E6A5B4C3D21}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C3D9E5B2-1F4E-5C2B-AD8F-7E6A5B4C3D21}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C3D9E5B2-1F4E-5C2B-AD8F-7E6A5B4C3D21}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C3D9E5B2-1F4E-5C2B-AD8F-7E6A5B4C3D21}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D4EAF6C3-2A5F-6D3C-BE9A-8F7B6C5D4E32}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D4EAF6C3-2A5F-6D3C-BE9A-8F7B6C5D4E32}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D4EAF6C3-2A5F-6D3C-BE9A-8F7B6C5D4E32}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D4EAF6C3-2A5F-6D3C-BE9A-8F7B6C5D4E32}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
