@@ -48,6 +48,7 @@
   <data name="AutoStartCheckBox" xml:space="preserve"><value>Auto Run Fleet</value></data>
   <data name="SyncVolumeCheckBox" xml:space="preserve"><value>Sync Playback Volume</value></data>
   <data name="RemoveOnDisconnectCheckBox" xml:space="preserve"><value>Remove On Disconnect</value></data>
+  <data name="Settings_Language" xml:space="preserve"><value>Language</value></data>
   <data name="Group_Fleet_Header" xml:space="preserve"><value>Fleet Setup</value></data>
   <data name="Group_FleetOptions_Header" xml:space="preserve"><value>Settings</value></data>
 </root>

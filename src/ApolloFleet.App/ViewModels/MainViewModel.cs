@@ -1,5 +1,6 @@
 ﻿using System.Collections.Specialized;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Text.Json;
 using System.Windows;
@@ -20,6 +21,7 @@ public partial class MainViewModel : ObservableObject
     private readonly ProcessSupervisor _supervisor;
     private readonly IInstanceHealthComputer _health;
     private readonly FileLogWriter _log;
+    private IReadOnlyList<LanguageOption> _availableLanguages = Array.Empty<LanguageOption>();
 
     private string _snapshotJson = "";
     private Window? _window;
@@ -96,6 +98,8 @@ public partial class MainViewModel : ObservableObject
 
     public string CurrentLanguageSymbol => GetLanguageSymbol(Draft.Locale);
 
+    public IReadOnlyList<LanguageOption> AvailableLanguages => _availableLanguages;
+
     public bool CanRemoveInstance => SelectedInstance is not null && Draft.Instances.Count > 1;
 
     partial void OnSelectedInstanceChanged(FleetInstance? value)
@@ -137,6 +141,7 @@ public partial class MainViewModel : ObservableObject
         StatusMessage = "";
         SelectedInstance = Draft.Instances.FirstOrDefault();
         _log.Info($"Application started. Loaded {Draft.Instances.Count} instance(s). Apollo path: {(string.IsNullOrEmpty(Draft.Paths.ApolloRoot) ? "<unset>" : Draft.Paths.ApolloRoot)}");
+        GetAvailableLanguages();
         OnPropertyChanged(nameof(CurrentLanguageSymbol));
     }
 
@@ -573,29 +578,104 @@ public partial class MainViewModel : ObservableObject
         CaptureSnapshot();
     }
 
+    public IReadOnlyList<LanguageOption> GetAvailableLanguages()
+    {
+        _availableLanguages = DiscoverAvailableLanguages();
+        OnPropertyChanged(nameof(AvailableLanguages));
+        return _availableLanguages;
+    }
+
     private static string NormalizeLocale(string? locale)
     {
         var v = (locale ?? string.Empty).Trim();
         if (string.IsNullOrEmpty(v))
             return "en";
 
-        if (v.StartsWith("ar", StringComparison.OrdinalIgnoreCase))
-            return "ar";
-        if (v.StartsWith("es", StringComparison.OrdinalIgnoreCase))
-            return "es";
-        if (v.StartsWith("fr", StringComparison.OrdinalIgnoreCase))
-            return "fr";
-        return "en";
+        v = v.Replace('_', '-');
+        try
+        {
+            return CultureInfo.GetCultureInfo(v).Name;
+        }
+        catch
+        {
+            return v;
+        }
     }
 
     private static string GetLanguageSymbol(string? locale)
     {
-        return NormalizeLocale(locale) switch
-        {
-            "ar" => "AR",
-            "es" => "ES",
-            "fr" => "FR",
-            _ => "EN"
-        };
+        var normalized = NormalizeLocale(locale);
+        var primary = normalized.Split('-', StringSplitOptions.RemoveEmptyEntries)[0];
+        if (string.IsNullOrWhiteSpace(primary))
+            return "EN";
+
+        return primary.Length >= 2
+            ? primary[..2].ToUpperInvariant()
+            : primary.ToUpperInvariant();
     }
+
+    private static IReadOnlyList<LanguageOption> DiscoverAvailableLanguages()
+    {
+        var locales = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "en" };
+        var i18nDir = Path.Combine(AppContext.BaseDirectory, "i18n");
+        if (Directory.Exists(i18nDir))
+        {
+            foreach (var file in Directory.EnumerateFiles(i18nDir, "Resources.*.resx", SearchOption.TopDirectoryOnly))
+            {
+                var name = Path.GetFileNameWithoutExtension(file);
+                if (!name.StartsWith("Resources.", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                var locale = name["Resources.".Length..];
+                if (!string.IsNullOrWhiteSpace(locale))
+                    locales.Add(NormalizeLocale(locale));
+            }
+
+            foreach (var dir in Directory.EnumerateDirectories(i18nDir, "*", SearchOption.TopDirectoryOnly))
+            {
+                var token = Path.GetFileName(dir);
+                if (!string.IsNullOrWhiteSpace(token) && LooksLikeLocaleToken(token))
+                    locales.Add(NormalizeLocale(token));
+            }
+        }
+
+        var ordered = locales
+            .OrderBy(l => l.Equals("en", StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+            .ThenBy(l => l, StringComparer.OrdinalIgnoreCase)
+            .Select(locale => new LanguageOption(
+                locale,
+                GetLanguageSymbol(locale),
+                GetLanguageDisplayName(locale)))
+            .ToList();
+
+        return ordered;
+    }
+
+    private static bool LooksLikeLocaleToken(string token)
+    {
+        var parts = token.Split('-', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 0)
+            return false;
+
+        return parts.All(p => p.Length is >= 2 and <= 8 && p.All(char.IsLetter));
+    }
+
+    private static string GetLanguageDisplayName(string locale)
+    {
+        try
+        {
+            var culture = CultureInfo.GetCultureInfo(locale);
+            var name = culture.NativeName;
+            if (!string.IsNullOrWhiteSpace(name))
+                return char.ToUpper(name[0], culture) + name[1..];
+        }
+        catch
+        {
+            // Fallback to locale code when culture is not recognized.
+        }
+
+        return locale.ToUpperInvariant();
+    }
+
+    public sealed record LanguageOption(string Locale, string Symbol, string DisplayName);
 }

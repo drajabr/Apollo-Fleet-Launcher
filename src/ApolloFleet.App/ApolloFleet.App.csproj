@@ -32,8 +32,18 @@
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Remove="i18n\Resources*.resx" />
-    <Content Include="i18n\Resources*.resx">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
   </ItemGroup>
+
+  <Target Name="OrganizeI18nOutput" AfterTargets="Build;Publish">
+    <ItemGroup>
+      <_I18nResx Include="i18n\Resources*.resx" />
+    </ItemGroup>
+
+    <MakeDir Directories="$(OutDir)i18n" />
+    <Copy SourceFiles="@(_I18nResx)"
+          DestinationFiles="@(_I18nResx->'$(OutDir)i18n\%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -Command &quot;$root='$(OutDir)'; $i18n=Join-Path $root 'i18n'; New-Item -ItemType Directory -Force -Path $i18n | Out-Null; Get-ChildItem -Path $root -Directory | Where-Object { $_.Name -match '^[a-z]{2}(-[A-Za-z0-9]{2,8})?$' -and $_.Name -ne 'i18n' } | ForEach-Object { $dst=Join-Path $i18n $_.Name; if (Test-Path $dst) { Remove-Item -Recurse -Force $dst }; Move-Item -Path $_.FullName -Destination $dst }&quot;" />
+  </Target>
 </Project>

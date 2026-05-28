@@ -9,9 +9,9 @@
     xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
     mc:Ignorable="d"
     Title="{local:LocString Key=Window_Title}"
-    Width="700"
-    MinWidth="700"
-    MaxWidth="700"
+    Width="740"
+    MinWidth="740"
+    MaxWidth="740"
     Height="390"
     ResizeMode="CanMinimize"
     WindowStartupLocation="CenterScreen"
@@ -361,16 +361,7 @@
                                Content="{Binding CurrentLanguageSymbol}"
                                ToolTip="{local:LocString Key=Settings_Language}"
                                Click="LanguageButton_Click"
-                               Panel.ZIndex="10">
-                        <ui:Button.ContextMenu>
-                            <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
-                                <MenuItem Header="EN English" Command="{Binding ChangeLanguageCommand}" CommandParameter="en"/>
-                                <MenuItem Header="AR العربية" Command="{Binding ChangeLanguageCommand}" CommandParameter="ar"/>
-                                <MenuItem Header="ES Español" Command="{Binding ChangeLanguageCommand}" CommandParameter="es"/>
-                                <MenuItem Header="FR Français" Command="{Binding ChangeLanguageCommand}" CommandParameter="fr"/>
-                            </ContextMenu>
-                        </ui:Button.ContextMenu>
-                    </ui:Button>
+                               Panel.ZIndex="10"/>
                 </Grid>
 
                     <HeaderedContentControl Grid.Row="1" Style="{StaticResource SectionCard}" Header="{local:LocString Key=Group_Actions_Header}"

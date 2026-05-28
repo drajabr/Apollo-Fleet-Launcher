@@ -231,8 +231,25 @@ public partial class MainWindow : FluentWindow
 
     private void LanguageButton_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is not System.Windows.Controls.Button button || button.ContextMenu is null)
+        if (sender is not System.Windows.Controls.Button button)
             return;
+
+        var menu = new System.Windows.Controls.ContextMenu();
+        var current = _vm.Draft.Locale;
+
+        foreach (var option in _vm.GetAvailableLanguages())
+        {
+            menu.Items.Add(new System.Windows.Controls.MenuItem
+            {
+                Header = $"{option.Symbol} {option.DisplayName}",
+                Command = _vm.ChangeLanguageCommand,
+                CommandParameter = option.Locale,
+                IsCheckable = true,
+                IsChecked = string.Equals(current, option.Locale, StringComparison.OrdinalIgnoreCase)
+            });
+        }
+
+        button.ContextMenu = menu;
 
         button.ContextMenu.PlacementTarget = button;
         button.ContextMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
