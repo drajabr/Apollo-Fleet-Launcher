@@ -14,7 +14,10 @@ A newer **.NET 8 + WinUI 3** implementation lives under [`src/ApolloFleet.sln`](
 - **Elevation / PaExec:** see [`docs/elevation.md`](docs/elevation.md).
 - **Minimum tested Apollo:** use a current stable [Apollo release](https://github.com/ClassicOldSong/Apollo/releases); Web UI URL logic uses **HTTPS on streaming port + 1** (same as the legacy AHK launcher).
 
-This is the same concept of my old [Multi-streaming-setup](https://github.com/drajabr/My-Sunshine-setup) scripts, with ease of GUI and Auto Configuration, bundled with necessary binaries for Android clients stuff.
+This is the same concept of my old [Multi-streaming-setup](https://github.com/drajabr/My-Sunshine-setup) scripts, with ease of GUI and Auto Configuration.
+
+> [!Note]
+> The `.NET` port replaces the original AutoHotkey app and **drops the Android helper features** (reverse tethering, ADB, scrcpy mic/cam, bundled platform-tools). If you need those, use a `v0.3.x` release from the AHK era.
 
 ## Preview
 <img width="582" height="230" alt="image" src="https://github.com/user-attachments/assets/2bfe3efe-21ab-494b-a790-5a0133e1b18d" />
@@ -26,7 +29,7 @@ https://github.com/user-attachments/assets/72a3909f-b1c7-4aa2-bd78-3a70d3acbc61
 
 
 # Current Status
-[![Build](https://github.com/drajabr/Apollo-Fleet-Launcher/actions/workflows/build.yml/badge.svg)](https://github.com/drajabr/Apollo-Fleet-Launcher/actions/workflows/build.yml)
+[![WinUI CI](https://github.com/drajabr/Apollo-Fleet-Launcher/actions/workflows/apollofleet-ci.yml/badge.svg)](https://github.com/drajabr/Apollo-Fleet-Launcher/actions/workflows/apollofleet-ci.yml)
 
 > [!Note]
 > Please bear in mind I'm not a proffissional programmer, this tool could have many issues or some unimplemented features yet, but this is an essential tool for me I use everyday so expect I keep working on delivering fixes and featuers for it.
@@ -115,14 +118,9 @@ https://github.com/user-attachments/assets/72a3909f-b1c7-4aa2-bd78-3a70d3acbc61
 - [x] Multi-instance: Enable terminate-on-pause setting to Remove virtual display on client disconnect
 - [x] Multi-instance: Maintain Apollo instances "in case one exit/crash" 
 - [x] Multi-instance: Fix volume level sync 
-- [x] Android Clients: ADB Revrse tethering via Gnirehtet
-- [x] Android Clients: Maintain client Mic to PC using scrcpy
-- [x] Android Clients: Maintain client Cam to PC using scrcpy
-- [ ] Android Clients: Automate virtual Cam (need suitable driver first)
-- [ ] Android Clients: Support Mic with other than scrcpy (like AndroidMic)
-- [ ] Android Clients: Automate virtual Cam (something like tiny obs client?)
-- [ ] Android Clients: Support Cam for Android version below 12 (like DroidCamX)
-- [ ] Android Clients: Possibly bind instance to a device, thus that as soon as it connects launch the client using adb shell?
+
+**Android client helpers** (AHK era only — **removed in the `.NET` port**; available in `v0.3.x` releases):
+- ADB reverse tethering via Gnirehtet, client Mic/Cam to PC via scrcpy, bundled adb/scrcpy/gnirehtet binaries.
 
 
 # Many thanks to:

@@ -1,9 +1,13 @@
-﻿name: WinUI Release
+name: WinUI Release
 
+# Version-driven: bumping the repo-root VERSION file on main cuts a release.
+# The tag (v<VERSION>) is created by this workflow, not pushed by hand, so the
+# release version always matches the file the app is built from.
 on:
   push:
-    tags:
-      - "v*"
+    branches: [main]
+    paths: ["VERSION"]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -15,44 +19,74 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Read version
+        id: ver
+        shell: pwsh
+        run: |
+          $v = (Get-Content VERSION -Raw).Trim()
+          if ($v -notmatch '^\d+\.\d+\.\d+(\.\d+)?$') { throw "VERSION '$v' is not X.Y.Z" }
+          "version=$v" >> $env:GITHUB_OUTPUT
+          "tag=v$v"    >> $env:GITHUB_OUTPUT
+          Write-Host "Releasing v$v"
+
+      - name: Skip if tag already exists
+        id: guard
+        shell: pwsh
+        run: |
+          $tag = "${{ steps.ver.outputs.tag }}"
+          $exists = (git tag -l $tag) -or (git ls-remote --tags origin "refs/tags/$tag")
+          if ($exists) {
+            Write-Host "::warning::Tag $tag already exists - skipping release. Bump VERSION to publish."
+            "skip=true" >> $env:GITHUB_OUTPUT
+          } else {
+            "skip=false" >> $env:GITHUB_OUTPUT
+          }
 
       - name: Setup .NET
+        if: steps.guard.outputs.skip == 'false'
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "8.0.x"
 
       - name: Restore
+        if: steps.guard.outputs.skip == 'false'
         run: |
           dotnet restore src/ApolloFleet.Core/ApolloFleet.Core.csproj
           dotnet restore src/ApolloFleet.Core.Tests/ApolloFleet.Core.Tests.csproj
           dotnet restore src/ApolloFleet.App/ApolloFleet.App.csproj -r win-x64
 
-      - name: Build Core + tests
+      - name: Build + test
+        if: steps.guard.outputs.skip == 'false'
         run: |
           dotnet build src/ApolloFleet.Core/ApolloFleet.Core.csproj -c Release --no-restore
           dotnet build src/ApolloFleet.Core.Tests/ApolloFleet.Core.Tests.csproj -c Release --no-restore
+          dotnet test src/ApolloFleet.Core.Tests/ApolloFleet.Core.Tests.csproj -c Release --no-build --verbosity normal
 
-      - name: Test
-        run: dotnet test src/ApolloFleet.Core.Tests/ApolloFleet.Core.Tests.csproj -c Release --no-build --verbosity normal
-
-      # -r win-x64 must match the publish RID so the --no-build publish reads the
-      # same bin\x64\Release\net8.0-windows\win-x64 output the build produced.
-      - name: Build + publish WinUI app
+      # -r win-x64 on build must match the publish RID so the --no-build publish
+      # reads the same bin\x64\Release\net8.0-windows\win-x64 output.
+      - name: Publish (folder, framework-dependent x64)
+        if: steps.guard.outputs.skip == 'false'
         run: |
           dotnet build src/ApolloFleet.App/ApolloFleet.App.csproj -c Release --no-restore -r win-x64 -p:Platform=x64
           dotnet publish src/ApolloFleet.App/ApolloFleet.App.csproj -c Release --no-build -r win-x64 --self-contained false -p:Platform=x64 -o "${{ github.workspace }}/publish/ApolloFleet"
 
       - name: Zip folder
+        if: steps.guard.outputs.skip == 'false'
         shell: pwsh
         run: |
-          $ver = "${{ github.ref_name }}"
-          $zip = "ApolloFleet-${ver}-win-x64.zip"
+          $zip = "ApolloFleet-${{ steps.ver.outputs.tag }}-win-x64.zip"
           Compress-Archive -Path "publish/ApolloFleet/*" -DestinationPath $zip
-          echo "ZIP_NAME=$zip" >> $env:GITHUB_ENV
+          "ZIP_NAME=$zip" >> $env:GITHUB_ENV
 
       - name: Create GitHub Release
+        if: steps.guard.outputs.skip == 'false'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
+          tag_name: ${{ steps.ver.outputs.tag }}
+          name: ${{ steps.ver.outputs.tag }}
+          target_commitish: ${{ github.sha }}
           files: ${{ env.ZIP_NAME }}
           generate_release_notes: true

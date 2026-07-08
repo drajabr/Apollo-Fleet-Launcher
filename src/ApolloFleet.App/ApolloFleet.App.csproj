@@ -19,6 +19,16 @@
     <Product>Apollo Fleet Launcher</Product>
     <AssemblyTitle>Apollo Fleet Launcher</AssemblyTitle>
   </PropertyGroup>
+
+  <!-- Single source of truth for the app version: the repo-root VERSION file.
+       The release workflow reads the same file for the tag, so the assembly
+       version and the release tag can never drift. -->
+  <PropertyGroup Condition="Exists('$(MSBuildProjectDirectory)/../../VERSION')">
+    <_VersionRaw>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)/../../VERSION'))</_VersionRaw>
+    <Version>$(_VersionRaw.Trim())</Version>
+    <AssemblyVersion>$(Version)</AssemblyVersion>
+    <FileVersion>$(Version)</FileVersion>
+  </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
     <PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="2.0.1" />
