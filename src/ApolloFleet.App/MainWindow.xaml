@@ -1,0 +1,463 @@
+<ui:FluentWindow x:Class="ApolloFleet.App.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:local="clr-namespace:ApolloFleet.App"
+    xmlns:vm="clr-namespace:ApolloFleet.App.ViewModels"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+    mc:Ignorable="d"
+    Title="{local:LocString Key=Window_Title}"
+    Width="740"
+    MinWidth="740"
+    MaxWidth="740"
+    Height="390"
+    ResizeMode="CanMinimize"
+    WindowStartupLocation="CenterScreen"
+    ExtendsContentIntoTitleBar="True"
+    WindowBackdropType="Mica"
+    Icon="pack://application:,,,/app.ico"
+    SizeToContent="Manual"
+    d:DataContext="{d:DesignInstance Type=vm:MainViewModel}">
+
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome CaptionHeight="34"
+                            ResizeBorderThickness="0"
+                            GlassFrameThickness="0"
+                            CornerRadius="0"
+                            UseAeroCaptionButtons="False"/>
+    </shell:WindowChrome.WindowChrome>
+
+    <ui:FluentWindow.Resources>
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+
+        <Style x:Key="SectionCard" TargetType="HeaderedContentControl">
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="HeaderedContentControl">
+                        <Border CornerRadius="6"
+                                BorderThickness="1"
+                                BorderBrush="{DynamicResource ControlStrokeColorSecondaryBrush}"
+                                Background="{DynamicResource SubtleFillColorTransparentBrush}"
+                                Padding="12,8,12,10">
+                            <DockPanel LastChildFill="True">
+                                <TextBlock DockPanel.Dock="Top"
+                                           Text="{TemplateBinding Header}"
+                                           FontSize="12"
+                                           FontWeight="SemiBold"
+                                           Margin="0,0,0,6"
+                                           Foreground="White"/>
+                                <ContentPresenter/>
+                            </DockPanel>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="LogTextBoxNoHover" TargetType="TextBox">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <ScrollViewer x:Name="PART_ContentHost"
+                                      Background="Transparent"
+                                      BorderThickness="0"
+                                      Focusable="False"
+                                      HorizontalScrollBarVisibility="{TemplateBinding HorizontalScrollBarVisibility}"
+                                      VerticalScrollBarVisibility="{TemplateBinding VerticalScrollBarVisibility}"/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+    </ui:FluentWindow.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <ui:TitleBar Grid.Row="0" Title="{local:LocString Key=Window_Title}" ShowMaximize="False">
+            <ui:TitleBar.Icon>
+                <ui:ImageIcon Source="pack://application:,,,/app.ico"/>
+            </ui:TitleBar.Icon>
+        </ui:TitleBar>
+
+        <Grid Grid.Row="1" Margin="14,8,14,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="455"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- ============ Fleet card ============ -->
+            <HeaderedContentControl Grid.Column="0" Style="{StaticResource SectionCard}" Header="Fleet Setup" Margin="0,0,12,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Apollo folder row -->
+                    <Grid Grid.Row="0" Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="{local:LocString Key=Label_ApolloFolder}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <Grid Grid.Column="1">
+                            <ui:TextBox x:Name="ApolloPathBox"
+                                        PlaceholderText="{local:LocString Key=Placeholder_ApolloFolder}"
+                                        Text="{Binding Draft.Paths.ApolloRoot, UpdateSourceTrigger=PropertyChanged}"
+                                        IsEnabled="{Binding IsEditorEnabled}"
+                                        Padding="10,5,32,5"/>
+                            <TextBlock Text="{Binding ApolloIndicatorGlyph}"
+                                       Foreground="{Binding ApolloIndicatorBrush}"
+                                       HorizontalAlignment="Right"
+                                       VerticalAlignment="Center"
+                                       FontSize="16"
+                                       Margin="0,0,10,0"
+                                       ToolTip="{Binding ApolloStatusText}"
+                                       IsHitTestVisible="False"/>
+                        </Grid>
+                        <ui:Button Grid.Column="2"
+                               Content="…"
+                               Margin="6,0,0,0"
+                               Width="34"
+                               FontSize="16"
+                               Appearance="Secondary"
+                               CornerRadius="8"
+                               ToolTip="{local:LocString Key=Tooltip_BrowseApolloFolder}"
+                               Command="{Binding BrowseApolloCommand}"
+                               IsEnabled="{Binding IsEditorEnabled}"/>
+                    </Grid>
+
+                    <!-- List + editor -->
+                    <Grid Grid.Row="1" Margin="0,4,0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="150"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <Border Grid.Column="0"
+                                BorderThickness="1"
+                                BorderBrush="{DynamicResource ControlStrokeColorSecondaryBrush}"
+                                CornerRadius="4">
+                            <ListBox x:Name="FleetListBox"
+                                     BorderThickness="0"
+                                     ItemsSource="{Binding Draft.Instances}"
+                                     DisplayMemberPath="Name"
+                                     SelectedItem="{Binding SelectedInstance}"
+                                     IsEnabled="True">
+                                <ListBox.ItemContainerStyle>
+                                    <Style TargetType="ListBoxItem">
+                                        <Setter Property="Margin" Value="4,2"/>
+                                        <Setter Property="Padding" Value="8,5"/>
+                                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="ListBoxItem">
+                                                    <Border x:Name="ItemBorder"
+                                                            Background="Transparent"
+                                                            BorderBrush="Transparent"
+                                                            BorderThickness="1"
+                                                            CornerRadius="3"
+                                                            SnapsToDevicePixels="True">
+                                                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                                          VerticalAlignment="Center"
+                                                                          Margin="{TemplateBinding Padding}"/>
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}"/>
+                                                            <Setter TargetName="ItemBorder" Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}"/>
+                                                        </Trigger>
+                                                        <Trigger Property="IsSelected" Value="True">
+                                                            <Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource ControlFillColorInputActiveBrush}"/>
+                                                            <Setter TargetName="ItemBorder" Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}"/>
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </ListBox.ItemContainerStyle>
+                            </ListBox>
+                        </Border>
+
+                        <Grid Grid.Column="1" Margin="12,0,0,0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="46"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="110"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Row 0: Name (full width) -->
+                            <TextBlock Grid.Row="0" Grid.Column="0"
+                                       Text="{local:LocString Key=InstanceNameLabel}" VerticalAlignment="Center" Margin="0,0,6,6"/>
+                            <ui:TextBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,0,0,6"
+                                        PlaceholderText="{local:LocString Key=Placeholder_InstanceName}"
+                                        Text="{Binding SelectedInstance.Name, UpdateSourceTrigger=PropertyChanged}"
+                                        IsEnabled="{Binding IsEditorEnabled}"/>
+
+                            <!-- Row 1: Port + Enable checkbox -->
+                            <TextBlock Grid.Row="1" Grid.Column="0"
+                                       Text="{local:LocString Key=InstancePortLabel}" VerticalAlignment="Center" Margin="0,0,6,6"/>
+                            <ui:TextBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,0,0,6"
+                                        Text="{Binding SelectedInstance.Port, UpdateSourceTrigger=PropertyChanged}"
+                                        IsEnabled="{Binding IsEditorEnabled}"/>
+
+                            <!-- Row 2: Audio -->
+                            <TextBlock Grid.Row="2" Grid.Column="0"
+                                       Text="{local:LocString Key=InstanceAudioLabel}" VerticalAlignment="Center" Margin="0,0,6,6"/>
+                            <ComboBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2"
+                                      x:Name="AudioCombo" Margin="0,0,0,6"
+                                      DropDownOpened="AudioCombo_DropDownOpened"
+                                      IsEnabled="{Binding IsEditorEnabled}">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Display}"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   ToolTip="{Binding Display}"/>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+
+                            <!-- Row 3: Force Headless + Enabled -->
+                            <CheckBox Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,2,12,4"
+                                      Content="{local:LocString Key=InstanceHeadlessLabel}"
+                                      IsChecked="{Binding SelectedInstance.Headless}"
+                                      IsEnabled="{Binding IsEditorEnabled}"/>
+                            <CheckBox Grid.Row="3" Grid.Column="2" Margin="0,2,0,4"
+                                      VerticalAlignment="Center"
+                                      HorizontalAlignment="Left"
+                                      Content="{local:LocString Key=InstanceEnabledLabel}"
+                                      ToolTip="{local:LocString Key=Tooltip_EnableInstance}"
+                                      IsChecked="{Binding SelectedInstance.Enabled}"
+                                      IsEnabled="{Binding IsEditorEnabled}"/>
+
+                            <!-- Row 5: WebUI (pinned to bottom by * spacer in row 4) -->
+                            <StackPanel Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="3"
+                                        Orientation="Horizontal" Margin="0,4,0,0"
+                                        VerticalAlignment="Bottom">
+                                <TextBlock Text="{local:LocString Key=Label_WebUi}" VerticalAlignment="Center"/>
+                                <TextBlock TextTrimming="CharacterEllipsis" VerticalAlignment="Center">
+                                    <Hyperlink NavigateUri="{Binding SelectedWebUiUrl, Mode=OneWay, FallbackValue='about:blank', TargetNullValue='about:blank'}"
+                                               RequestNavigate="Hyperlink_RequestNavigate">
+                                        <Run Text="{Binding SelectedWebUiUrl, Mode=OneWay, FallbackValue='—', TargetNullValue='—'}"/>
+                                    </Hyperlink>
+                                </TextBlock>
+                            </StackPanel>
+                        </Grid>
+                    </Grid>
+
+                    <!-- Add / Delete (under list) + running-count label -->
+                    <Grid Grid.Row="2" Margin="0,8,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="150"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid Grid.Column="0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="32"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <ui:Button Grid.Column="0"
+                                       Width="32" Height="32"
+                                       Padding="0"
+                                       FontFamily="Segoe UI Emoji"
+                                       FontSize="14"
+                                       Appearance="Danger"
+                                       Background="#C42B1C"
+                                       BorderBrush="Transparent"
+                                       BorderThickness="0"
+                                       Foreground="White"
+                                       Content="&#x274C;"
+                                       HorizontalContentAlignment="Center"
+                                       VerticalContentAlignment="Center"
+                                       CornerRadius="8"
+                                       ToolTip="{local:LocString Key=Tooltip_RemoveSelectedInstance}"
+                                       Command="{Binding RemoveInstanceCommand}"
+                                       IsEnabled="{Binding IsEditorEnabled}"/>
+                            <ui:Button Grid.Column="1"
+                                       Margin="6,0,0,0"
+                                       Height="32"
+                                       HorizontalAlignment="Stretch"
+                                       HorizontalContentAlignment="Center"
+                                       Appearance="Primary"
+                                       CornerRadius="8"
+                                       Content="{local:LocString Key=AddInstanceButton}"
+                                       ToolTip="{local:LocString Key=Tooltip_AddInstance}"
+                                       Command="{Binding AddInstanceCommand}"
+                                       IsEnabled="{Binding IsEditorEnabled}"/>
+                        </Grid>
+                        <TextBlock Grid.Column="1"
+                                   x:Name="StatusText"
+                                   Margin="14,0,0,0"
+                                   VerticalAlignment="Center"
+                                   TextTrimming="CharacterEllipsis"
+                                   Foreground="White"
+                                   FontSize="13"
+                                   Text="{Binding StatusMessage}"/>
+                    </Grid>
+                </Grid>
+            </HeaderedContentControl>
+
+            <!-- ============ Middle: Options + Actions ============ -->
+            <Grid Grid.Column="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <Grid Grid.Row="0" Margin="0,0,0,5">
+                    <HeaderedContentControl Style="{StaticResource SectionCard}" Header="{local:LocString Key=Group_FleetOptions_Header}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <CheckBox Grid.Row="0" VerticalAlignment="Center" Content="{local:LocString Key=AutoStartCheckBox}"
+                                      IsChecked="{Binding Draft.Manager.AutoStart}"
+                                      IsEnabled="{Binding IsEditorEnabled}"/>
+                            <CheckBox Grid.Row="1" VerticalAlignment="Center" Content="{local:LocString Key=SyncVolumeCheckBox}"
+                                      IsChecked="{Binding Draft.Manager.SyncVolume}"
+                                      IsEnabled="{Binding IsEditorEnabled}"/>
+                            <CheckBox Grid.Row="2" VerticalAlignment="Center" Content="{local:LocString Key=RemoveOnDisconnectCheckBox}"
+                                      IsChecked="{Binding Draft.Manager.RemoveOnDisconnect}"
+                                      IsEnabled="{Binding IsEditorEnabled}"/>
+                            <CheckBox Grid.Row="3" VerticalAlignment="Center" Content="{local:LocString Key=StartMinimizedCheckBox}"
+                                      IsChecked="{Binding Draft.Manager.StartMinimized}"
+                                      IsEnabled="{Binding IsEditorEnabled}"/>
+                        </Grid>
+                    </HeaderedContentControl>
+
+                    <ui:Button x:Name="LanguageButton"
+                               Width="40"
+                               Height="40"
+                               HorizontalAlignment="Right"
+                               VerticalAlignment="Top"
+                               Margin="0,4,4,0"
+                               Appearance="Secondary"
+                               CornerRadius="8"
+                               FontWeight="SemiBold"
+                               Content="{Binding CurrentLanguageSymbol}"
+                               ToolTip="{local:LocString Key=Settings_Language}"
+                               Click="LanguageButton_Click"
+                               Panel.ZIndex="10"/>
+                </Grid>
+
+                    <HeaderedContentControl Grid.Row="1" Style="{StaticResource SectionCard}" Header="{local:LocString Key=Group_Actions_Header}"
+                                        Margin="0,5,0,0">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <ui:Button x:Name="LockButton"
+                                   Grid.Row="0"
+                                   Grid.Column="0"
+                                   Margin="0,0,6,6"
+                                   HorizontalAlignment="Stretch"
+                                   VerticalAlignment="Stretch"
+                                   HorizontalContentAlignment="Center"
+                                   Appearance="Primary"
+                                   FontFamily="Segoe UI Emoji"
+                                   FontSize="16"
+                                   Content="{Binding PrimaryActionLabel}"
+                                   Command="{Binding UnlockOrApplyCommand}"
+                                   ToolTip="{Binding PrimaryActionTooltip}"/>
+
+                        <ui:Button x:Name="LogsButton"
+                                   Grid.Row="0"
+                                   Grid.Column="1"
+                                   Margin="6,0,0,6"
+                                   HorizontalAlignment="Stretch"
+                                   VerticalAlignment="Stretch"
+                                   HorizontalContentAlignment="Center"
+                                   FontFamily="Segoe UI Emoji"
+                                   FontSize="16"
+                                   Content="{Binding ToggleLogLabel}"
+                                   Click="LogsButton_Click"
+                                   ToolTip="{Binding ToggleLogTooltip}"/>
+
+                        <ui:Button x:Name="ReloadButton"
+                                   Grid.Row="1"
+                                   Grid.Column="0"
+                                   Margin="0,6,6,0"
+                                   HorizontalAlignment="Stretch"
+                                   VerticalAlignment="Stretch"
+                                   HorizontalContentAlignment="Center"
+                                   FontFamily="Segoe UI Emoji"
+                                   FontSize="16"
+                                   Content="{Binding SecondaryActionLabel}"
+                                   Command="{Binding CancelOrReloadCommand}"
+                                   ToolTip="{Binding SecondaryActionTooltip}"/>
+
+                        <ui:Button x:Name="MinButton"
+                                   Grid.Row="1"
+                                   Grid.Column="1"
+                                   Margin="6,6,0,0"
+                                   HorizontalAlignment="Stretch"
+                                   VerticalAlignment="Stretch"
+                                   HorizontalContentAlignment="Center"
+                                   FontFamily="Segoe UI Emoji"
+                                   FontSize="18"
+                                   Content="&#x1F5D5;"
+                                   Click="MinButton_Click"
+                                   ToolTip="{local:LocString Key=Tooltip_MinimizeToTray}"/>
+                    </Grid>
+                </HeaderedContentControl>
+            </Grid>
+        </Grid>
+
+        <!-- Collapsible log pane -->
+        <Border Grid.Row="2"
+                BorderThickness="0"
+                Visibility="{Binding LogPaneOpen, Converter={StaticResource BoolToVis}}">
+            <Border Margin="14,8,14,12"
+                    CornerRadius="8"
+                BorderThickness="1"
+                BorderBrush="{DynamicResource ControlStrokeColorSecondaryBrush}"
+                    Background="{DynamicResource SubtleFillColorTransparentBrush}"
+                    Padding="2">
+            <TextBox x:Name="LogBox"
+                     Style="{StaticResource LogTextBoxNoHover}"
+                     AcceptsReturn="True"
+                     TextWrapping="NoWrap"
+                     IsReadOnly="True"
+                     Padding="2,0,2,0"
+                     FontFamily="Cascadia Mono, Consolas, monospace"
+                     FontSize="12"
+                     VerticalScrollBarVisibility="Auto"
+                     HorizontalScrollBarVisibility="Auto"/>
+            </Border>
+        </Border>
+    </Grid>
+</ui:FluentWindow>

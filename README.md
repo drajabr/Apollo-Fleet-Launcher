@@ -1,6 +1,18 @@
-# Apollo Fleet Launcher
+﻿# Apollo Fleet Launcher
 
 A simple tool to configure multiple instances of [@ClassicOldSong/Apollo](https://github.com/ClassicOldSong/Apollo) for streaming multi monitor mode, mainly targeting desktop use case where multi devices like android tablets can be used as Plug and play external monitor.
+
+## WinUI 3 manager (`src/`)
+
+A newer **.NET 8 + WinUI 3** implementation lives under [`src/ApolloFleet.sln`](src/ApolloFleet.sln): multi-instance Apollo hosting, lock/apply settings flow, tray, English + Arabic (RTL) + Spanish + French, scheduled logon task (`ApolloFleet`) with optional cooperation with `ApolloService`, and GitHub Actions **WinUI CI / WinUI Release** workflows.
+
+- **Run:** build `ApolloFleet.App` (x64), install [Windows App Runtime 1.5+](https://learn.microsoft.com/windows/apps/windows-app-sdk/) and .NET 8 desktop runtime if needed, then run `ApolloFleet.App.exe`.
+- **Single EXE publish:** run `./build.ps1 -Configuration Release -Publish` to create one file at `dist/Release/win-x64/ApolloFleet.App.exe`.
+- **Settings / state:** `%LocalAppData%\ApolloFleet\settings.json` and `state.json`.
+- **SmartScreen:** CI builds are **unsigned**; Windows SmartScreen may warn until you trust the app or apply a code signature.
+- **Uninstall:** exit the app (tray **Exit**), delete the install folder, remove the scheduled task **ApolloFleet** if you enabled auto-start (`Task Scheduler` → `Task Scheduler Library`), and optionally delete `%LocalAppData%\ApolloFleet\`.
+- **Elevation / PaExec:** see [`docs/elevation.md`](docs/elevation.md).
+- **Minimum tested Apollo:** use a current stable [Apollo release](https://github.com/ClassicOldSong/Apollo/releases); Web UI URL logic uses **HTTPS on streaming port + 1** (same as the legacy AHK launcher).
 
 This is the same concept of my old [Multi-streaming-setup](https://github.com/drajabr/My-Sunshine-setup) scripts, with ease of GUI and Auto Configuration, bundled with necessary binaries for Android clients stuff.
 

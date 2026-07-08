@@ -1,0 +1,55 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Window_Title" xml:space="preserve"><value>مدير Apollo Fleet</value></data>
+  <data name="Group_Actions_Header" xml:space="preserve"><value>الإجراءات</value></data>
+  <data name="Label_ApolloFolder" xml:space="preserve"><value>مجلد Apollo:</value></data>
+  <data name="Placeholder_ApolloFolder" xml:space="preserve"><value>C:\Program Files\Apollo</value></data>
+  <data name="Tooltip_BrowseApolloFolder" xml:space="preserve"><value>تصفح مجلد Apollo</value></data>
+  <data name="InstanceNameLabel" xml:space="preserve"><value>الاسم:</value></data>
+  <data name="Placeholder_InstanceName" xml:space="preserve"><value>اسم المثيل</value></data>
+  <data name="InstancePortLabel" xml:space="preserve"><value>المنفذ:</value></data>
+  <data name="InstanceAudioLabel" xml:space="preserve"><value>الصوت:</value></data>
+  <data name="InstanceHeadlessLabel" xml:space="preserve"><value>فرض وضع بدون واجهة</value></data>
+  <data name="InstanceEnabledLabel" xml:space="preserve"><value>مفعل</value></data>
+  <data name="Tooltip_EnableInstance" xml:space="preserve"><value>تفعيل هذا المثيل</value></data>
+  <data name="Label_WebUi" xml:space="preserve"><value>WebUI: </value></data>
+  <data name="Tooltip_RemoveSelectedInstance" xml:space="preserve"><value>إزالة المثيل المحدد</value></data>
+  <data name="AddInstanceButton" xml:space="preserve"><value>إضافة مثيل</value></data>
+  <data name="Tooltip_AddInstance" xml:space="preserve"><value>إضافة مثيل جديد</value></data>
+  <data name="Tooltip_MinimizeToTray" xml:space="preserve"><value>تصغير إلى شريط النظام</value></data>
+  <data name="UI_HideLogs" xml:space="preserve"><value>إخفاء السجلات</value></data>
+  <data name="UI_ShowLogs" xml:space="preserve"><value>إظهار السجلات</value></data>
+  <data name="Status_ApolloFound" xml:space="preserve"><value>تم العثور على مجلد Apollo.</value></data>
+  <data name="Status_ApolloMissing" xml:space="preserve"><value>لم يتم العثور على مجلد Apollo.</value></data>
+  <data name="UI_Apply" xml:space="preserve"><value>تطبيق</value></data>
+  <data name="UI_Unlock" xml:space="preserve"><value>فتح</value></data>
+  <data name="UI_Reload" xml:space="preserve"><value>إعادة تحميل</value></data>
+  <data name="UI_Cancel" xml:space="preserve"><value>إلغاء</value></data>
+  <data name="Status_Applied" xml:space="preserve"><value>تم تطبيق الإعدادات.</value></data>
+  <data name="Error_Title" xml:space="preserve"><value>خطأ</value></data>
+  <data name="Error_Close" xml:space="preserve"><value>إغلاق</value></data>
+  <data name="Confirm_RemoveInstance_Title" xml:space="preserve"><value>إزالة المثيل؟</value></data>
+  <data name="Confirm_RemoveInstance_Body" xml:space="preserve"><value>إزالة المثيل المحدد؟</value></data>
+  <data name="UI_Remove" xml:space="preserve"><value>إزالة</value></data>
+  <data name="Status_Placeholder" xml:space="preserve"><value>جاهز.</value></data>
+  <data name="Status_NoEnabledInstances" xml:space="preserve"><value>لا توجد مثيلات مفعلة.</value></data>
+  <data name="Status_RunningFmt" xml:space="preserve"><value>{0}/{1} مثيل قيد التشغيل</value></data>
+  <data name="PortValidation_OutOfRange" xml:space="preserve"><value>يجب أن يكون المنفذ بين 1 و65535.</value></data>
+  <data name="PortValidation_Duplicate" xml:space="preserve"><value>تم اكتشاف منفذ مكرر.</value></data>
+  <data name="Audio_Unset" xml:space="preserve"><value>غير محدد</value></data>
+  <data name="Tray_Tooltip" xml:space="preserve"><value>مدير Apollo Fleet</value></data>
+  <data name="Tray_Open" xml:space="preserve"><value>فتح</value></data>
+  <data name="Tray_Exit" xml:space="preserve"><value>خروج</value></data>
+  <data name="Tray_TooltipFmt" xml:space="preserve"><value>{0} ({1}/{2})</value></data>
+  <data name="AutoStartCheckBox" xml:space="preserve"><value>تشغيل الأسطول تلقائيا</value></data>
+  <data name="SyncVolumeCheckBox" xml:space="preserve"><value>مزامنة مستوى صوت التشغيل</value></data>
+  <data name="RemoveOnDisconnectCheckBox" xml:space="preserve"><value>إزالة عند قطع الاتصال</value></data>
+  <data name="StartMinimizedCheckBox" xml:space="preserve"><value>البدء مصغرا</value></data>
+  <data name="Group_Fleet_Header" xml:space="preserve"><value>إعداد الأسطول</value></data>
+  <data name="Group_FleetOptions_Header" xml:space="preserve"><value>الإعدادات</value></data>
+  <data name="Settings_Language" xml:space="preserve"><value>اللغة</value></data>
+</root>

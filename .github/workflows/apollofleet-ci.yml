@@ -1,0 +1,49 @@
+﻿name: WinUI CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  build-test:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore Core + tests + App
+        run: |
+          dotnet restore src/ApolloFleet.Core/ApolloFleet.Core.csproj
+          dotnet restore src/ApolloFleet.Core.Tests/ApolloFleet.Core.Tests.csproj
+          dotnet restore src/ApolloFleet.App/ApolloFleet.App.csproj -r win-x64
+
+      - name: Build Core
+        run: dotnet build src/ApolloFleet.Core/ApolloFleet.Core.csproj -c Release --no-restore
+
+      - name: Build tests
+        run: dotnet build src/ApolloFleet.Core.Tests/ApolloFleet.Core.Tests.csproj -c Release --no-restore
+
+      - name: Test
+        run: dotnet test src/ApolloFleet.Core.Tests/ApolloFleet.Core.Tests.csproj -c Release --no-build --verbosity normal
+
+      # -r win-x64 must match the publish RID so the --no-build publish reads the
+      # same bin\x64\Release\net8.0-windows\win-x64 output the build produced.
+      - name: Build WinUI app (x64)
+        run: dotnet build src/ApolloFleet.App/ApolloFleet.App.csproj -c Release --no-restore -r win-x64 -p:Platform=x64
+
+      - name: Publish (folder, unpackaged)
+        run: dotnet publish src/ApolloFleet.App/ApolloFleet.App.csproj -c Release --no-build -r win-x64 --self-contained false -p:Platform=x64 -o "${{ github.workspace }}/artifacts/ApolloFleet"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ApolloFleet-win-x64-Release
+          path: artifacts/ApolloFleet

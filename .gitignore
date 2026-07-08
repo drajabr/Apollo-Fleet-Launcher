@@ -2,4 +2,15 @@
 *.conf
 *.ini
 *.json
+!src/**/*.json
 *.backup
+
+# .NET build outputs (scoped so root /bin tooling folder remains tracked)
+src/**/bin/
+src/**/obj/
+dist/
+
+# generated console output files
+stdout.txt
+stderr.txt
+build.log

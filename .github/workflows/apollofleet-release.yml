@@ -1,0 +1,58 @@
+﻿name: WinUI Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore
+        run: |
+          dotnet restore src/ApolloFleet.Core/ApolloFleet.Core.csproj
+          dotnet restore src/ApolloFleet.Core.Tests/ApolloFleet.Core.Tests.csproj
+          dotnet restore src/ApolloFleet.App/ApolloFleet.App.csproj -r win-x64
+
+      - name: Build Core + tests
+        run: |
+          dotnet build src/ApolloFleet.Core/ApolloFleet.Core.csproj -c Release --no-restore
+          dotnet build src/ApolloFleet.Core.Tests/ApolloFleet.Core.Tests.csproj -c Release --no-restore
+
+      - name: Test
+        run: dotnet test src/ApolloFleet.Core.Tests/ApolloFleet.Core.Tests.csproj -c Release --no-build --verbosity normal
+
+      # -r win-x64 must match the publish RID so the --no-build publish reads the
+      # same bin\x64\Release\net8.0-windows\win-x64 output the build produced.
+      - name: Build + publish WinUI app
+        run: |
+          dotnet build src/ApolloFleet.App/ApolloFleet.App.csproj -c Release --no-restore -r win-x64 -p:Platform=x64
+          dotnet publish src/ApolloFleet.App/ApolloFleet.App.csproj -c Release --no-build -r win-x64 --self-contained false -p:Platform=x64 -o "${{ github.workspace }}/publish/ApolloFleet"
+
+      - name: Zip folder
+        shell: pwsh
+        run: |
+          $ver = "${{ github.ref_name }}"
+          $zip = "ApolloFleet-${ver}-win-x64.zip"
+          Compress-Archive -Path "publish/ApolloFleet/*" -DestinationPath $zip
+          echo "ZIP_NAME=$zip" >> $env:GITHUB_ENV
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: ${{ env.ZIP_NAME }}
+          generate_release_notes: true
