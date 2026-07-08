@@ -335,6 +335,7 @@
                                 <RowDefinition Height="*"/>
                                 <RowDefinition Height="*"/>
                                 <RowDefinition Height="*"/>
+                                <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
 
                             <CheckBox Grid.Row="0" VerticalAlignment="Center" Content="{local:LocString Key=AutoStartCheckBox}"
@@ -345,6 +346,9 @@
                                       IsEnabled="{Binding IsEditorEnabled}"/>
                             <CheckBox Grid.Row="2" VerticalAlignment="Center" Content="{local:LocString Key=RemoveOnDisconnectCheckBox}"
                                       IsChecked="{Binding Draft.Manager.RemoveOnDisconnect}"
+                                      IsEnabled="{Binding IsEditorEnabled}"/>
+                            <CheckBox Grid.Row="3" VerticalAlignment="Center" Content="{local:LocString Key=StartMinimizedCheckBox}"
+                                      IsChecked="{Binding Draft.Manager.StartMinimized}"
                                       IsEnabled="{Binding IsEditorEnabled}"/>
                         </Grid>
                     </HeaderedContentControl>

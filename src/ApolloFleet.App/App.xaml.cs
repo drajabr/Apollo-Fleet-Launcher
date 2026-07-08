@@ -41,6 +41,10 @@ public partial class App : Application
 
             var window = new MainWindow();
             MainWindow = window;
+            // Tray-first start: showing minimized triggers the existing
+            // StateChanged handler which hides the window to the tray.
+            if (settings.Manager.StartMinimized)
+                window.WindowState = WindowState.Minimized;
             window.Show();
         }
         catch (Exception ex)

@@ -48,6 +48,7 @@
   <data name="AutoStartCheckBox" xml:space="preserve"><value>Ejecutar flota automáticamente</value></data>
   <data name="SyncVolumeCheckBox" xml:space="preserve"><value>Sincronizar volumen de reproducción</value></data>
   <data name="RemoveOnDisconnectCheckBox" xml:space="preserve"><value>Quitar al desconectar</value></data>
+  <data name="StartMinimizedCheckBox" xml:space="preserve"><value>Iniciar minimizado</value></data>
   <data name="Group_Fleet_Header" xml:space="preserve"><value>Configuración de flota</value></data>
   <data name="Group_FleetOptions_Header" xml:space="preserve"><value>Configuración</value></data>
   <data name="Settings_Language" xml:space="preserve"><value>Idioma</value></data>

@@ -48,6 +48,7 @@
   <data name="AutoStartCheckBox" xml:space="preserve"><value>Demarrer la flotte automatiquement</value></data>
   <data name="SyncVolumeCheckBox" xml:space="preserve"><value>Synchroniser le volume de lecture</value></data>
   <data name="RemoveOnDisconnectCheckBox" xml:space="preserve"><value>Supprimer a la deconnexion</value></data>
+  <data name="StartMinimizedCheckBox" xml:space="preserve"><value>Demarrer reduit</value></data>
   <data name="Group_Fleet_Header" xml:space="preserve"><value>Configuration de la flotte</value></data>
   <data name="Group_FleetOptions_Header" xml:space="preserve"><value>Parametres</value></data>
   <data name="Settings_Language" xml:space="preserve"><value>Langue</value></data>

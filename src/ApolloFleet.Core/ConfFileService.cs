@@ -27,6 +27,11 @@ public sealed class ConfFileService
         map["file_state"] = statePath;
         map["credentials_file"] = statePath;
         map["file_apps"] = appsPath;
+        // Per-instance TLS material in the (user-writable) fleet dir. Without this,
+        // sunshine resolves cert/pkey relative to its install dir and an unelevated
+        // instance dies with "use_certificate_chain_file: Access is denied".
+        map["cert"] = Path.Combine(fleetDir, instance.CertFileName);
+        map["pkey"] = Path.Combine(fleetDir, instance.KeyFileName);
         map["auto_capture_sink"] = instance.GetAutoCaptureSinkValue();
         map["headless_mode"] = instance.GetHeadlessModeValue();
 

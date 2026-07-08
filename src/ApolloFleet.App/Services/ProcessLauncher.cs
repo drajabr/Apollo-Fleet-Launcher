@@ -13,7 +13,7 @@ public sealed class ProcessLauncher : IProcessLauncher
     [DllImport("kernel32.dll")]
     private static extern uint WTSGetActiveConsoleSessionId();
 
-    public Task<int?> StartSunshineAsync(string sunshineExePath, string configPath, string instanceId, string? helperExePath, CancellationToken cancellationToken = default)
+    public async Task<int?> StartSunshineAsync(string sunshineExePath, string configPath, string instanceId, string? helperExePath, CancellationToken cancellationToken = default)
     {
         var workDir = Path.GetDirectoryName(sunshineExePath);
         if (string.IsNullOrEmpty(workDir))
@@ -21,15 +21,25 @@ public sealed class ProcessLauncher : IProcessLauncher
 
         var helper = ResolveHelper(helperExePath);
         if (!string.IsNullOrWhiteSpace(helper))
-            return StartViaHelperAsync(helper, sunshineExePath, configPath, workDir, instanceId, cancellationToken);
+        {
+            var pid = await StartViaHelperAsync(helper, sunshineExePath, configPath, workDir, instanceId, cancellationToken).ConfigureAwait(false);
+            if (pid is > 0)
+                return pid;
+            // Helper could not produce a pid (e.g. PaExec requires elevation) — fall back to direct start.
+        }
 
-        return Task.FromResult(StartDirect(sunshineExePath, configPath, workDir));
+        return StartDirect(sunshineExePath, configPath, workDir);
     }
 
     private static string? ResolveHelper(string? configured)
     {
         if (!string.IsNullOrWhiteSpace(configured) && File.Exists(configured))
             return configured;
+
+        // Auto-probing bundled helpers only makes sense when we can actually use them:
+        // PaExec-style session launch requires an elevated caller (see docs/elevation.md).
+        if (!IsElevated())
+            return null;
 
         // Probe well-known bundled locations relative to the running executable
         // and the repository layout (bin/PAExec/paexec.exe at the repo root).
@@ -52,6 +62,20 @@ public sealed class ProcessLauncher : IProcessLauncher
         return null;
     }
 
+    private static bool IsElevated()
+    {
+        try
+        {
+            using var identity = System.Security.Principal.WindowsIdentity.GetCurrent();
+            return new System.Security.Principal.WindowsPrincipal(identity)
+                .IsInRole(System.Security.Principal.WindowsBuiltInRole.Administrator);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     private static int? StartDirect(string exe, string configPath, string workDir)
     {
         var psi = new ProcessStartInfo
@@ -59,7 +83,10 @@ public sealed class ProcessLauncher : IProcessLauncher
             FileName = exe,
             Arguments = $"\"{configPath}\"",
             WorkingDirectory = workDir,
-            UseShellExecute = false
+            UseShellExecute = false,
+            // sunshine.exe is a console-subsystem binary; without CREATE_NO_WINDOW
+            // every instance pops a visible console window.
+            CreateNoWindow = true
         };
         var p = Process.Start(psi);
         return p?.Id;

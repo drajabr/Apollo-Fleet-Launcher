@@ -19,11 +19,19 @@ public sealed class ProcessSupervisor : IDisposable
     private readonly FileLogWriter _log;
     private readonly AudioVolumeSink _audio;
     private readonly ConcurrentDictionary<string, int> _restartAttempts = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, DateTime> _lastStartUtc = new(StringComparer.Ordinal);
+    // Serializes maintain / cleanup / fleet-restart so they never race each other:
+    // cleanup must not kill a pid that maintain started but has not persisted yet,
+    // and overlapping maintain ticks must not double-start the same instance.
+    private readonly SemaphoreSlim _mutex = new(1, 1);
     private Timer? _maintain;
     private Timer? _cleanup;
     private Timer? _volume;
     private volatile AppSettings? _settings;
     private volatile bool _syncVolume;
+
+    private const int MaxRestartAttempts = 8;
+    private static readonly TimeSpan StableUptime = TimeSpan.FromSeconds(60);
 
     public ProcessSupervisor(
         ISettingsStore store,
@@ -48,19 +56,27 @@ public sealed class ProcessSupervisor : IDisposable
     public void Start()
     {
         _maintain ??= new Timer(_ => _ = MaintainTickAsync(), null, TimeSpan.Zero, TimeSpan.FromSeconds(5));
-        _cleanup ??= new Timer(_ => CleanupTick(), null, TimeSpan.FromSeconds(3), TimeSpan.FromSeconds(10));
+        _cleanup ??= new Timer(_ => _ = CleanupTickAsync(), null, TimeSpan.FromSeconds(3), TimeSpan.FromSeconds(10));
         _volume ??= new Timer(_ => VolumeTick(), null, TimeSpan.Zero, TimeSpan.FromSeconds(2));
     }
 
     public async Task RestartFleetAsync(CancellationToken cancellationToken = default)
     {
-        var settings = _settings ?? await _store.LoadSettingsAsync(cancellationToken).ConfigureAwait(false);
-        var state = await _store.LoadStateAsync(cancellationToken).ConfigureAwait(false);
-        await StopEnabledInstancesAsync(settings, state, cancellationToken).ConfigureAwait(false);
-        foreach (var id in settings.Instances.Select(i => i.Id))
-            state.InstanceProcessIds[id] = 0;
-        await _store.SaveStateAsync(state, cancellationToken).ConfigureAwait(false);
-        await StaggerStartAsync(settings, state, cancellationToken).ConfigureAwait(false);
+        await _mutex.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var settings = _settings ?? await _store.LoadSettingsAsync(cancellationToken).ConfigureAwait(false);
+            var state = await _store.LoadStateAsync(cancellationToken).ConfigureAwait(false);
+            await StopEnabledInstancesAsync(settings, state, cancellationToken).ConfigureAwait(false);
+            foreach (var id in settings.Instances.Select(i => i.Id))
+                state.InstanceProcessIds[id] = 0;
+            await _store.SaveStateAsync(state, cancellationToken).ConfigureAwait(false);
+            await StaggerStartAsync(settings, state, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            _mutex.Release();
+        }
     }
 
     private async Task StopEnabledInstancesAsync(AppSettings settings, AppState state, CancellationToken ct)
@@ -130,6 +146,7 @@ public sealed class ProcessSupervisor : IDisposable
             {
                 state.InstanceProcessIds[inst.Id] = p;
                 _restartAttempts[inst.Id] = 0;
+                _lastStartUtc[inst.Id] = DateTime.UtcNow;
                 _log.Info($"Started instance {inst.Name} pid={p}");
             }
             else
@@ -143,6 +160,9 @@ public sealed class ProcessSupervisor : IDisposable
 
     private async Task MaintainTickAsync()
     {
+        if (!await _mutex.WaitAsync(0).ConfigureAwait(false))
+            return; // a maintain/cleanup/restart pass is already running
+
         try
         {
             var settings = _settings ?? await _store.LoadSettingsAsync().ConfigureAwait(false);
@@ -156,11 +176,25 @@ public sealed class ProcessSupervisor : IDisposable
                 state.InstanceProcessIds.TryGetValue(inst.Id, out var pid);
                 var alive = _health.GetProcessState(pid <= 0 ? null : pid) == InstanceRunState.Running;
                 if (alive)
+                {
+                    // Only sustained uptime clears the backoff counter; resetting on
+                    // start would let a crash-looping instance restart forever.
+                    if (_restartAttempts.TryGetValue(inst.Id, out var a) && a > 0
+                        && _lastStartUtc.TryGetValue(inst.Id, out var startedAt)
+                        && DateTime.UtcNow - startedAt >= StableUptime)
+                    {
+                        _restartAttempts[inst.Id] = 0;
+                    }
                     continue;
+                }
 
                 var n = _restartAttempts.AddOrUpdate(inst.Id, _ => 1, (_, c) => c + 1);
-                if (n > 8)
+                if (n > MaxRestartAttempts)
+                {
+                    if (n == MaxRestartAttempts + 1)
+                        _log.Warn($"Instance {inst.Name} keeps exiting; giving up after {MaxRestartAttempts} restart attempts (re-apply settings to retry).");
                     continue;
+                }
 
                 var conf = Path.Combine(settings.Paths.FleetConfigDirectory, inst.ConfFileName);
                 if (!File.Exists(conf))
@@ -172,7 +206,7 @@ public sealed class ProcessSupervisor : IDisposable
                 if (newPid is int p && p > 0)
                 {
                     state.InstanceProcessIds[inst.Id] = p;
-                    _restartAttempts[inst.Id] = 0;
+                    _lastStartUtc[inst.Id] = DateTime.UtcNow;
                     _log.Info($"Supervisor restarted {inst.Name} pid={p} (attempt {n})");
                     await _store.SaveStateAsync(state).ConfigureAwait(false);
                 }
@@ -182,49 +216,57 @@ public sealed class ProcessSupervisor : IDisposable
         {
             /* ignore */
         }
+        finally
+        {
+            _mutex.Release();
+        }
     }
 
-    private void CleanupTick()
+    private async Task CleanupTickAsync()
     {
+        var settings = _settings;
+        if (settings is null)
+            return;
+
+        if (!await _mutex.WaitAsync(0).ConfigureAwait(false))
+            return; // never sweep while instances are being (re)started
+
         try
         {
-            var settings = _settings;
-            if (settings is null)
-                return;
-
-            _ = Task.Run(async () =>
+            var state = await _store.LoadStateAsync().ConfigureAwait(false);
+            var keep = new HashSet<int>();
+            foreach (var inst in settings.Instances.Where(i => i.Enabled))
             {
-                var state = await _store.LoadStateAsync().ConfigureAwait(false);
-                var keep = new HashSet<int>();
-                foreach (var inst in settings.Instances.Where(i => i.Enabled))
-                {
-                    if (state.InstanceProcessIds.TryGetValue(inst.Id, out var pid) && pid > 0)
-                        keep.Add(pid);
-                }
+                if (state.InstanceProcessIds.TryGetValue(inst.Id, out var pid) && pid > 0)
+                    keep.Add(pid);
+            }
 
-                foreach (var p in Process.GetProcessesByName("sunshine"))
+            foreach (var p in Process.GetProcessesByName("sunshine"))
+            {
+                try
                 {
-                    try
-                    {
-                        if (!keep.Contains(p.Id))
-                            p.Kill(entireProcessTree: true);
-                    }
-                    catch
-                    {
-                        /* ignore */
-                    }
-                    finally
-                    {
-                        p.Dispose();
-                    }
+                    if (!keep.Contains(p.Id))
+                        p.Kill(entireProcessTree: true);
                 }
+                catch
+                {
+                    /* ignore */
+                }
+                finally
+                {
+                    p.Dispose();
+                }
+            }
 
-                PruneOrphanFleetFiles(settings, state);
-            });
+            PruneOrphanFleetFiles(settings, state);
         }
         catch
         {
             /* ignore */
+        }
+        finally
+        {
+            _mutex.Release();
         }
     }
 
@@ -241,6 +283,8 @@ public sealed class ProcessSupervisor : IDisposable
             keep.Add(Path.Combine(dir, inst.AppsFileName));
             keep.Add(Path.Combine(dir, inst.LogFileName));
             keep.Add(Path.Combine(dir, inst.StateFileName));
+            keep.Add(Path.Combine(dir, inst.CertFileName));
+            keep.Add(Path.Combine(dir, inst.KeyFileName));
         }
 
         foreach (var f in Directory.EnumerateFiles(dir))
@@ -290,5 +334,6 @@ public sealed class ProcessSupervisor : IDisposable
         _maintain?.Dispose();
         _cleanup?.Dispose();
         _volume?.Dispose();
+        _mutex.Dispose();
     }
 }

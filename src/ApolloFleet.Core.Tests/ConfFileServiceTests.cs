@@ -37,4 +37,16 @@ public class ConfFileServiceTests
         Assert.Contains("virtual_sink = dev123", merged);
         Assert.Contains("audio_sink = dev123", merged);
     }
+
+    [Fact]
+    public void DesiredMap_PointsTlsMaterialIntoFleetDirectory()
+    {
+        var instance = new FleetInstance { Id = "a1", Name = "A", Port = 100 };
+        var paths = new PathOptions { FleetConfigDirectory = @"C:\fleet" };
+
+        var desired = _sut.BuildDesiredMap(instance, paths);
+
+        Assert.Equal(@"C:\fleet\fleet-a1-cacert.pem", desired["cert"]);
+        Assert.Equal(@"C:\fleet\fleet-a1-cakey.pem", desired["pkey"]);
+    }
 }

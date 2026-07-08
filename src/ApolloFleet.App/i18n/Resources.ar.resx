@@ -48,6 +48,7 @@
   <data name="AutoStartCheckBox" xml:space="preserve"><value>تشغيل الأسطول تلقائيا</value></data>
   <data name="SyncVolumeCheckBox" xml:space="preserve"><value>مزامنة مستوى صوت التشغيل</value></data>
   <data name="RemoveOnDisconnectCheckBox" xml:space="preserve"><value>إزالة عند قطع الاتصال</value></data>
+  <data name="StartMinimizedCheckBox" xml:space="preserve"><value>البدء مصغرا</value></data>
   <data name="Group_Fleet_Header" xml:space="preserve"><value>إعداد الأسطول</value></data>
   <data name="Group_FleetOptions_Header" xml:space="preserve"><value>الإعدادات</value></data>
   <data name="Settings_Language" xml:space="preserve"><value>اللغة</value></data>

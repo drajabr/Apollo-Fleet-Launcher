@@ -59,6 +59,10 @@ public sealed class FleetInstance : INotifyPropertyChanged
 
     public string StateFileName => $"state-{Id}.json";
 
+    public string CertFileName => $"fleet-{Id}-cacert.pem";
+
+    public string KeyFileName => $"fleet-{Id}-cakey.pem";
+
     public string GetAutoCaptureSinkValue() =>
         string.IsNullOrWhiteSpace(AudioDeviceId) ? "enabled" : "disabled";
 
