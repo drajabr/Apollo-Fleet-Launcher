@@ -2,6 +2,11 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
+    <!-- Declared so `dotnet restore` emits a net8.0-windows/win-x64 target in
+         project.assets.json; CI publishes with `-r win-x64` and without this
+         the publish fails with NETSDK1047 (missing RID target). -->
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <Platforms>AnyCPU;x64</Platforms>
     <RootNamespace>ApolloFleet.App</RootNamespace>
     <AssemblyName>ApolloFleet.App</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
@@ -34,16 +39,33 @@
     <EmbeddedResource Remove="i18n\Resources*.resx" />
   </ItemGroup>
 
+  <!--
+    The four Resources*.resx files ship as loose XML that Strings.cs reads from
+    <appdir>\i18n at runtime, so they must land in i18n\ for BOTH build output
+    ($(OutDir)) and publish output ($(PublishDir)). $(PublishDir) is only set
+    during `dotnet publish`; guarding on it lets the same target serve both.
+    Without the publish branch the published artifact has no i18n\ folder and
+    the UI renders raw resource keys.
+  -->
   <Target Name="OrganizeI18nOutput" AfterTargets="Build;Publish">
     <ItemGroup>
       <_I18nResx Include="i18n\Resources*.resx" />
     </ItemGroup>
 
-    <MakeDir Directories="$(OutDir)i18n" />
-    <Copy SourceFiles="@(_I18nResx)"
+    <MakeDir Condition="'$(OutDir)' != ''" Directories="$(OutDir)i18n" />
+    <Copy Condition="'$(OutDir)' != ''"
+          SourceFiles="@(_I18nResx)"
           DestinationFiles="@(_I18nResx->'$(OutDir)i18n\%(Filename)%(Extension)')"
           SkipUnchangedFiles="true" />
+    <Exec Condition="'$(OutDir)' != ''"
+          Command="powershell -NoProfile -ExecutionPolicy Bypass -Command &quot;$root='$(OutDir)'; $i18n=Join-Path $root 'i18n'; New-Item -ItemType Directory -Force -Path $i18n | Out-Null; Get-ChildItem -Path $root -Directory | Where-Object { $_.Name -match '^[a-z]{2}(-[A-Za-z0-9]{2,8})?$' -and $_.Name -ne 'i18n' } | ForEach-Object { $dst=Join-Path $i18n $_.Name; if (Test-Path $dst) { Remove-Item -Recurse -Force $dst }; Move-Item -Path $_.FullName -Destination $dst }&quot;" />
 
-    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -Command &quot;$root='$(OutDir)'; $i18n=Join-Path $root 'i18n'; New-Item -ItemType Directory -Force -Path $i18n | Out-Null; Get-ChildItem -Path $root -Directory | Where-Object { $_.Name -match '^[a-z]{2}(-[A-Za-z0-9]{2,8})?$' -and $_.Name -ne 'i18n' } | ForEach-Object { $dst=Join-Path $i18n $_.Name; if (Test-Path $dst) { Remove-Item -Recurse -Force $dst }; Move-Item -Path $_.FullName -Destination $dst }&quot;" />
+    <MakeDir Condition="'$(PublishDir)' != ''" Directories="$(PublishDir)i18n" />
+    <Copy Condition="'$(PublishDir)' != ''"
+          SourceFiles="@(_I18nResx)"
+          DestinationFiles="@(_I18nResx->'$(PublishDir)i18n\%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+    <Exec Condition="'$(PublishDir)' != ''"
+          Command="powershell -NoProfile -ExecutionPolicy Bypass -Command &quot;$root='$(PublishDir)'; $i18n=Join-Path $root 'i18n'; New-Item -ItemType Directory -Force -Path $i18n | Out-Null; Get-ChildItem -Path $root -Directory | Where-Object { $_.Name -match '^[a-z]{2}(-[A-Za-z0-9]{2,8})?$' -and $_.Name -ne 'i18n' } | ForEach-Object { $dst=Join-Path $i18n $_.Name; if (Test-Path $dst) { Remove-Item -Recurse -Force $dst }; Move-Item -Path $_.FullName -Destination $dst }&quot;" />
   </Target>
 </Project>
