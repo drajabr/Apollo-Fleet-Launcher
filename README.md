@@ -34,6 +34,7 @@ https://github.com/user-attachments/assets/72a3909f-b1c7-4aa2-bd78-3a70d3acbc61
 > If you find any issue please don't hesitate to open an issue in the repo, your feedback "and pull requests" are very welcomed.
 
 ## Changelog
+* v0.4.0 Claude finishing the job, native UI, experimental release
 * v0.3.3 Bug fixes
   * FIX: Run with powershell full path to avoid errors if not defined in PATH for some reason
   * FIX: Reset window area if one monitor disconnected
