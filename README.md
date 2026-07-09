@@ -6,11 +6,12 @@ A simple tool to configure multiple instances of [@ClassicOldSong/Apollo](https:
 
 A newer **.NET 8 + WinUI 3** implementation lives under [`src/ApolloFleet.sln`](src/ApolloFleet.sln): multi-instance Apollo hosting, lock/apply settings flow, tray, English + Arabic (RTL) + Spanish + French, scheduled logon task (`ApolloFleet`) with optional cooperation with `ApolloService`, and GitHub Actions **WinUI CI / WinUI Release** workflows.
 
-- **Run:** build `ApolloFleet.App` (x64), install [Windows App Runtime 1.5+](https://learn.microsoft.com/windows/apps/windows-app-sdk/) and .NET 8 desktop runtime if needed, then run `ApolloFleet.App.exe`.
-- **Single EXE publish:** run `./build.ps1 -Configuration Release -Publish` to create one file at `dist/Release/win-x64/ApolloFleet.App.exe`.
+- **Install (recommended):** download `ApolloFleet-Setup-vX.Y.Z-win-x64.exe` from the [latest release](https://github.com/drajabr/Apollo-Fleet-Launcher/releases/latest) and run it. It is self-contained (no .NET runtime needed), installs per-user (no admin prompt), and adds a Start Menu entry and uninstaller.
+- **Portable:** download `ApolloFleet-vX.Y.Z-win-x64.zip` instead; it is framework-dependent, so install the [.NET 8 desktop runtime](https://dotnet.microsoft.com/download/dotnet/8.0) first, then run `ApolloFleet.App.exe`.
+- **Build from source:** run `./build.ps1 -Configuration Release -Publish` to create a single-file exe at `dist/Release/win-x64/ApolloFleet.App.exe`.
 - **Settings / state:** `%LocalAppData%\ApolloFleet\settings.json` and `state.json`.
 - **SmartScreen:** CI builds are **unsigned**; Windows SmartScreen may warn until you trust the app or apply a code signature.
-- **Uninstall:** exit the app (tray **Exit**), delete the install folder, remove the scheduled task **ApolloFleet** if you enabled auto-start (`Task Scheduler` → `Task Scheduler Library`), and optionally delete `%LocalAppData%\ApolloFleet\`.
+- **Uninstall:** exit the app (tray **Exit**), then — if installed via the setup — use *Settings → Apps* (or the Start Menu uninstaller), which also removes the **ApolloFleet** scheduled task and config. For the portable zip, just delete the folder and remove the scheduled task from `Task Scheduler` if you enabled auto-start.
 - **Elevation / PaExec:** see [`docs/elevation.md`](docs/elevation.md).
 - **Minimum tested Apollo:** use a current stable [Apollo release](https://github.com/ClassicOldSong/Apollo/releases); Web UI URL logic uses **HTTPS on streaming port + 1** (same as the legacy AHK launcher).
 
@@ -37,6 +38,7 @@ https://github.com/user-attachments/assets/72a3909f-b1c7-4aa2-bd78-3a70d3acbc61
 > If you find any issue please don't hesitate to open an issue in the repo, your feedback "and pull requests" are very welcomed.
 
 ## Changelog
+* v0.4.1 Self-contained Windows installer (.exe) — no runtime prerequisite; portable zip still available
 * v0.4.0 Claude finishing the job, native UI, experimental release
 * v0.3.3 Bug fixes
   * FIX: Run with powershell full path to avoid errors if not defined in PATH for some reason

@@ -65,21 +65,38 @@ jobs:
           dotnet build src/ApolloFleet.Core.Tests/ApolloFleet.Core.Tests.csproj -c Release --no-restore
           dotnet test src/ApolloFleet.Core.Tests/ApolloFleet.Core.Tests.csproj -c Release --no-build --verbosity normal
 
-      # -r win-x64 on build must match the publish RID so the --no-build publish
-      # reads the same bin\x64\Release\net8.0-windows\win-x64 output.
-      - name: Publish (folder, framework-dependent x64)
+      # Portable build: framework-dependent (small; needs the .NET 8 desktop runtime).
+      - name: Publish portable (framework-dependent, x64)
         if: steps.guard.outputs.skip == 'false'
-        run: |
-          dotnet build src/ApolloFleet.App/ApolloFleet.App.csproj -c Release --no-restore -r win-x64 -p:Platform=x64
-          dotnet publish src/ApolloFleet.App/ApolloFleet.App.csproj -c Release --no-build -r win-x64 --self-contained false -p:Platform=x64 -o "${{ github.workspace }}/publish/ApolloFleet"
+        run: dotnet publish src/ApolloFleet.App/ApolloFleet.App.csproj -c Release -r win-x64 --self-contained false -p:Platform=x64 -o "${{ github.workspace }}/publish/portable"
 
-      - name: Zip folder
+      # Installer payload: self-contained (bundles the runtime; no prerequisites).
+      - name: Publish self-contained (installer payload, x64)
+        if: steps.guard.outputs.skip == 'false'
+        run: dotnet publish src/ApolloFleet.App/ApolloFleet.App.csproj -c Release -r win-x64 --self-contained true -p:Platform=x64 -o "${{ github.workspace }}/publish/selfcontained"
+
+      - name: Zip portable
         if: steps.guard.outputs.skip == 'false'
         shell: pwsh
         run: |
           $zip = "ApolloFleet-${{ steps.ver.outputs.tag }}-win-x64.zip"
-          Compress-Archive -Path "publish/ApolloFleet/*" -DestinationPath $zip
+          Compress-Archive -Path "publish/portable/*" -DestinationPath $zip
           "ZIP_NAME=$zip" >> $env:GITHUB_ENV
+
+      - name: Install Inno Setup
+        if: steps.guard.outputs.skip == 'false'
+        run: choco install innosetup --no-progress -y
+
+      - name: Build installer
+        if: steps.guard.outputs.skip == 'false'
+        shell: pwsh
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" `
+            "/DAppVersion=${{ steps.ver.outputs.version }}" `
+            "/DPublishDir=${{ github.workspace }}\publish\selfcontained" `
+            "/O${{ github.workspace }}\installer\Output" `
+            "installer\ApolloFleet.iss"
+          if ($LASTEXITCODE -ne 0) { throw "ISCC failed ($LASTEXITCODE)" }
 
       - name: Create GitHub Release
         if: steps.guard.outputs.skip == 'false'
@@ -88,5 +105,7 @@ jobs:
           tag_name: ${{ steps.ver.outputs.tag }}
           name: ${{ steps.ver.outputs.tag }}
           target_commitish: ${{ github.sha }}
-          files: ${{ env.ZIP_NAME }}
+          files: |
+            installer/Output/ApolloFleet-Setup-${{ steps.ver.outputs.tag }}-win-x64.exe
+            ${{ env.ZIP_NAME }}
           generate_release_notes: true
