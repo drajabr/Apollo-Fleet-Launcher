@@ -52,4 +52,5 @@
   <data name="Group_Fleet_Header" xml:space="preserve"><value>機群設定</value></data>
   <data name="Group_FleetOptions_Header" xml:space="preserve"><value>設定</value></data>
   <data name="Settings_Language" xml:space="preserve"><value>語言</value></data>
+  <data name="PortValidation_TooClose" xml:space="preserve"><value>執行個體連接埠太接近，其 Apollo 連接埠範圍重疊。請至少間隔 100。</value></data>
 </root>

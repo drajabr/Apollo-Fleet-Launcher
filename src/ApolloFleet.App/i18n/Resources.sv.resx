@@ -52,4 +52,5 @@
   <data name="Group_Fleet_Header" xml:space="preserve"><value>Flottinställning</value></data>
   <data name="Group_FleetOptions_Header" xml:space="preserve"><value>Inställningar</value></data>
   <data name="Settings_Language" xml:space="preserve"><value>Språk</value></data>
+  <data name="PortValidation_TooClose" xml:space="preserve"><value>Instansernas portar ligger för nära och deras Apollo-portintervall överlappar. Håll minst 100 i mellanrum.</value></data>
 </root>

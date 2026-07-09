@@ -53,18 +53,71 @@ public sealed class SettingsStore : ISettingsStore
         await AtomicFileWriter.WriteTextAsync(AppStoragePaths.SettingsPath, json, cancellationToken).ConfigureAwait(false);
     }
 
+    // Serializes all runtime-state file access (reads, writes, and read-modify-write)
+    // so the supervisor's timers and the UI can't corrupt or clobber state.json.
+    private readonly SemaphoreSlim _stateGate = new(1, 1);
+
     public async Task<AppState> LoadStateAsync(CancellationToken cancellationToken = default)
+    {
+        await _stateGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            return await LoadStateNoLockAsync(cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            _stateGate.Release();
+        }
+    }
+
+    public async Task SaveStateAsync(AppState state, CancellationToken cancellationToken = default)
+    {
+        await _stateGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await SaveStateNoLockAsync(state, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            _stateGate.Release();
+        }
+    }
+
+    public async Task UpdateStateAsync(Action<AppState> mutate, CancellationToken cancellationToken = default)
+    {
+        await _stateGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var state = await LoadStateNoLockAsync(cancellationToken).ConfigureAwait(false);
+            mutate(state);
+            await SaveStateNoLockAsync(state, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            _stateGate.Release();
+        }
+    }
+
+    private static async Task<AppState> LoadStateNoLockAsync(CancellationToken cancellationToken)
     {
         var path = AppStoragePaths.StatePath;
         if (!File.Exists(path))
             return new AppState();
 
-        await using var fs = File.OpenRead(path);
-        var st = await JsonSerializer.DeserializeAsync<AppState>(fs, SettingsJson.Options, cancellationToken).ConfigureAwait(false);
-        return st ?? new AppState();
+        try
+        {
+            await using var fs = File.OpenRead(path);
+            var st = await JsonSerializer.DeserializeAsync<AppState>(fs, SettingsJson.Options, cancellationToken).ConfigureAwait(false);
+            return st ?? new AppState();
+        }
+        catch (IOException)
+        {
+            // A concurrent replace can briefly lock the file; treat as empty rather than throw.
+            return new AppState();
+        }
     }
 
-    public async Task SaveStateAsync(AppState state, CancellationToken cancellationToken = default)
+    private static async Task SaveStateNoLockAsync(AppState state, CancellationToken cancellationToken)
     {
         var json = JsonSerializer.Serialize(state, SettingsJson.Options);
         await AtomicFileWriter.WriteTextAsync(AppStoragePaths.StatePath, json, cancellationToken).ConfigureAwait(false);

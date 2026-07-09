@@ -52,4 +52,5 @@
   <data name="Group_Fleet_Header" xml:space="preserve"><value>Configuración de flota</value></data>
   <data name="Group_FleetOptions_Header" xml:space="preserve"><value>Configuración</value></data>
   <data name="Settings_Language" xml:space="preserve"><value>Idioma</value></data>
+  <data name="PortValidation_TooClose" xml:space="preserve"><value>Los puertos de las instancias están demasiado cerca y sus rangos de puertos de Apollo se solapan. Sepáralos al menos 100.</value></data>
 </root>

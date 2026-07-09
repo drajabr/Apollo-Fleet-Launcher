@@ -52,4 +52,5 @@
   <data name="Group_Fleet_Header" xml:space="preserve"><value>Configuration de la flotte</value></data>
   <data name="Group_FleetOptions_Header" xml:space="preserve"><value>Parametres</value></data>
   <data name="Settings_Language" xml:space="preserve"><value>Langue</value></data>
+  <data name="PortValidation_TooClose" xml:space="preserve"><value>Les ports des instances sont trop proches et leurs plages de ports Apollo se chevauchent. Espacez-les d'au moins 100.</value></data>
 </root>

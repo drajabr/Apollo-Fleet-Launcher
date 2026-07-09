@@ -14,8 +14,11 @@ public sealed class InstanceHealthComputer : IInstanceHealthComputer
         try
         {
             using var p = Process.GetProcessById(pid.Value);
-            _ = p.ProcessName;
-            return InstanceRunState.Running;
+            // Confirm the PID is actually sunshine — PIDs are recycled, so a dead
+            // instance's PID may now belong to an unrelated process.
+            return string.Equals(p.ProcessName, "sunshine", StringComparison.OrdinalIgnoreCase)
+                ? InstanceRunState.Running
+                : InstanceRunState.Stopped;
         }
         catch
         {

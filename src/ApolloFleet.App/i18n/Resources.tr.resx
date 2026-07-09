@@ -52,4 +52,5 @@
   <data name="Group_Fleet_Header" xml:space="preserve"><value>Filo kurulumu</value></data>
   <data name="Group_FleetOptions_Header" xml:space="preserve"><value>Ayarlar</value></data>
   <data name="Settings_Language" xml:space="preserve"><value>Dil</value></data>
+  <data name="PortValidation_TooClose" xml:space="preserve"><value>Örnek bağlantı noktaları birbirine çok yakın ve Apollo bağlantı noktası aralıkları çakışıyor. En az 100 aralık bırakın.</value></data>
 </root>

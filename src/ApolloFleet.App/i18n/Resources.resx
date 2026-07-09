@@ -52,4 +52,5 @@
   <data name="Settings_Language" xml:space="preserve"><value>Language</value></data>
   <data name="Group_Fleet_Header" xml:space="preserve"><value>Fleet Setup</value></data>
   <data name="Group_FleetOptions_Header" xml:space="preserve"><value>Settings</value></data>
+  <data name="PortValidation_TooClose" xml:space="preserve"><value>Instance ports are too close and their Apollo port ranges overlap. Space them at least 100 apart.</value></data>
 </root>

@@ -52,4 +52,5 @@
   <data name="Group_Fleet_Header" xml:space="preserve"><value>إعداد الأسطول</value></data>
   <data name="Group_FleetOptions_Header" xml:space="preserve"><value>الإعدادات</value></data>
   <data name="Settings_Language" xml:space="preserve"><value>اللغة</value></data>
+  <data name="PortValidation_TooClose" xml:space="preserve"><value>منافذ المثيلات متقاربة جدًا وتتداخل نطاقات منافذ Apollo. باعد بينها بمقدار 100 على الأقل.</value></data>
 </root>

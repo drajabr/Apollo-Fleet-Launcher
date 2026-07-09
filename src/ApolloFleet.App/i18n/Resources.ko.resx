@@ -52,4 +52,5 @@
   <data name="Group_Fleet_Header" xml:space="preserve"><value>플릿 설정</value></data>
   <data name="Group_FleetOptions_Header" xml:space="preserve"><value>설정</value></data>
   <data name="Settings_Language" xml:space="preserve"><value>언어</value></data>
+  <data name="PortValidation_TooClose" xml:space="preserve"><value>인스턴스 포트가 너무 가까워 Apollo 포트 범위가 겹칩니다. 최소 100 이상 간격을 두세요.</value></data>
 </root>

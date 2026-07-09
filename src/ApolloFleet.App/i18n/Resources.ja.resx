@@ -52,4 +52,5 @@
   <data name="Group_Fleet_Header" xml:space="preserve"><value>フリート設定</value></data>
   <data name="Group_FleetOptions_Header" xml:space="preserve"><value>設定</value></data>
   <data name="Settings_Language" xml:space="preserve"><value>言語</value></data>
+  <data name="PortValidation_TooClose" xml:space="preserve"><value>インスタンスのポートが近すぎて、Apollo のポート範囲が重複しています。100 以上離してください。</value></data>
 </root>

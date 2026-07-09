@@ -52,4 +52,5 @@
   <data name="Group_Fleet_Header" xml:space="preserve"><value>Configurazione flotta</value></data>
   <data name="Group_FleetOptions_Header" xml:space="preserve"><value>Impostazioni</value></data>
   <data name="Settings_Language" xml:space="preserve"><value>Lingua</value></data>
+  <data name="PortValidation_TooClose" xml:space="preserve"><value>Le porte delle istanze sono troppo vicine e i loro intervalli di porte Apollo si sovrappongono. Distanziale di almeno 100.</value></data>
 </root>

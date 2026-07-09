@@ -52,4 +52,5 @@
   <data name="Group_Fleet_Header" xml:space="preserve"><value>机群设置</value></data>
   <data name="Group_FleetOptions_Header" xml:space="preserve"><value>设置</value></data>
   <data name="Settings_Language" xml:space="preserve"><value>语言</value></data>
+  <data name="PortValidation_TooClose" xml:space="preserve"><value>实例端口过于接近，其 Apollo 端口范围发生重叠。请至少间隔 100。</value></data>
 </root>

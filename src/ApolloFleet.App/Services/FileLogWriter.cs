@@ -9,7 +9,9 @@ namespace ApolloFleet.App.Services;
 public sealed class FileLogWriter
 {
     private const int MaxLines = 500;
+    private const long MaxFileBytes = 2 * 1024 * 1024; // rotate the on-disk log at 2 MB
     private readonly object _gate = new();
+    private readonly object _fileGate = new();
     private readonly LinkedList<string> _buffer = new();
 
     public event EventHandler? LogChanged;
@@ -29,19 +31,45 @@ public sealed class FileLogWriter
         }
         _ = Task.Run(() =>
         {
-            try
+            // Serialize disk writes: concurrent AppendAllText from the supervisor's
+            // timers otherwise throws sharing violations (and would drop lines).
+            lock (_fileGate)
             {
-                Directory.CreateDirectory(AppStoragePaths.LogsDirectory);
-                File.AppendAllText(
-                    AppStoragePaths.SupervisorLogPath,
-                    $"{DateTimeOffset.Now:O}\t[{level}]\t{message}{Environment.NewLine}");
-            }
-            catch
-            {
-                /* ignore */
+                try
+                {
+                    Directory.CreateDirectory(AppStoragePaths.LogsDirectory);
+                    var path = AppStoragePaths.SupervisorLogPath;
+                    RotateIfLarge(path);
+                    File.AppendAllText(
+                        path,
+                        $"{DateTimeOffset.Now:O}\t[{level}]\t{message}{Environment.NewLine}");
+                }
+                catch
+                {
+                    /* ignore */
+                }
             }
         });
         LogChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    // Caller holds _fileGate.
+    private static void RotateIfLarge(string path)
+    {
+        try
+        {
+            var fi = new FileInfo(path);
+            if (!fi.Exists || fi.Length < MaxFileBytes)
+                return;
+            var old = path + ".old";
+            if (File.Exists(old))
+                File.Delete(old);
+            File.Move(path, old);
+        }
+        catch
+        {
+            /* if rotation fails, keep appending to the current file */
+        }
     }
 
     public string Snapshot()

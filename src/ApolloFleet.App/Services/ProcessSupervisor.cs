@@ -29,6 +29,7 @@ public sealed class ProcessSupervisor : IDisposable
     private Timer? _volume;
     private volatile AppSettings? _settings;
     private volatile bool _syncVolume;
+    private volatile bool _stopping;
 
     private const int MaxRestartAttempts = 8;
     private static readonly TimeSpan StableUptime = TimeSpan.FromSeconds(60);
@@ -68,10 +69,12 @@ public sealed class ProcessSupervisor : IDisposable
             var settings = _settings ?? await _store.LoadSettingsAsync(cancellationToken).ConfigureAwait(false);
             var state = await _store.LoadStateAsync(cancellationToken).ConfigureAwait(false);
             await StopEnabledInstancesAsync(settings, state, cancellationToken).ConfigureAwait(false);
-            foreach (var id in settings.Instances.Select(i => i.Id))
-                state.InstanceProcessIds[id] = 0;
-            await _store.SaveStateAsync(state, cancellationToken).ConfigureAwait(false);
-            await StaggerStartAsync(settings, state, cancellationToken).ConfigureAwait(false);
+            await _store.UpdateStateAsync(st =>
+            {
+                foreach (var id in settings.Instances.Select(i => i.Id))
+                    st.InstanceProcessIds[id] = 0;
+            }, cancellationToken).ConfigureAwait(false);
+            await StaggerStartAsync(settings, cancellationToken).ConfigureAwait(false);
         }
         finally
         {
@@ -121,7 +124,7 @@ public sealed class ProcessSupervisor : IDisposable
         }
     }
 
-    private async Task StaggerStartAsync(AppSettings settings, AppState state, CancellationToken ct)
+    private async Task StaggerStartAsync(AppSettings settings, CancellationToken ct)
     {
         var sunshine = settings.Paths.SunshineExePath;
         if (string.IsNullOrEmpty(sunshine) || !File.Exists(sunshine))
@@ -144,22 +147,22 @@ public sealed class ProcessSupervisor : IDisposable
                 .ConfigureAwait(false);
             if (pid is int p && p > 0)
             {
-                state.InstanceProcessIds[inst.Id] = p;
                 _restartAttempts[inst.Id] = 0;
                 _lastStartUtc[inst.Id] = DateTime.UtcNow;
+                await _store.UpdateStateAsync(st => st.InstanceProcessIds[inst.Id] = p, ct).ConfigureAwait(false);
                 _log.Info($"Started instance {inst.Name} pid={p}");
             }
             else
             {
                 _log.Info($"Failed to start instance {inst.Name} (no pid).");
             }
-
-            await _store.SaveStateAsync(state, ct).ConfigureAwait(false);
         }
     }
 
     private async Task MaintainTickAsync()
     {
+        if (_stopping)
+            return;
         if (!await _mutex.WaitAsync(0).ConfigureAwait(false))
             return; // a maintain/cleanup/restart pass is already running
 
@@ -208,7 +211,7 @@ public sealed class ProcessSupervisor : IDisposable
                     state.InstanceProcessIds[inst.Id] = p;
                     _lastStartUtc[inst.Id] = DateTime.UtcNow;
                     _log.Info($"Supervisor restarted {inst.Name} pid={p} (attempt {n})");
-                    await _store.SaveStateAsync(state).ConfigureAwait(false);
+                    await _store.UpdateStateAsync(st => st.InstanceProcessIds[inst.Id] = p).ConfigureAwait(false);
                 }
             }
         }
@@ -224,6 +227,8 @@ public sealed class ProcessSupervisor : IDisposable
 
     private async Task CleanupTickAsync()
     {
+        if (_stopping)
+            return;
         var settings = _settings;
         if (settings is null)
             return;
@@ -327,6 +332,37 @@ public sealed class ProcessSupervisor : IDisposable
 
             _audio.SyncPlaybackToSessions(pids);
         });
+    }
+
+    /// <summary>
+    /// Stops the timers and all enabled fleet instances. Called on a real app exit
+    /// (tray Exit) — NOT on a reload, where instances are intentionally left running
+    /// for the incoming process to adopt.
+    /// </summary>
+    public async Task StopAllInstancesAsync(CancellationToken cancellationToken = default)
+    {
+        _stopping = true;
+        _maintain?.Dispose(); _maintain = null;
+        _cleanup?.Dispose(); _cleanup = null;
+        _volume?.Dispose(); _volume = null;
+
+        await _mutex.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var settings = _settings ?? await _store.LoadSettingsAsync(cancellationToken).ConfigureAwait(false);
+            var state = await _store.LoadStateAsync(cancellationToken).ConfigureAwait(false);
+            await StopEnabledInstancesAsync(settings, state, cancellationToken).ConfigureAwait(false);
+            await _store.UpdateStateAsync(st =>
+            {
+                foreach (var id in settings.Instances.Select(i => i.Id))
+                    st.InstanceProcessIds[id] = 0;
+            }, cancellationToken).ConfigureAwait(false);
+            _log.Info("Fleet stopped on exit.");
+        }
+        finally
+        {
+            _mutex.Release();
+        }
     }
 
     public void Dispose()

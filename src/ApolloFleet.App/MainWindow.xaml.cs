@@ -96,10 +96,17 @@ public partial class MainWindow : FluentWindow
             Hide();
     }
 
-    public void ShutdownReal()
+    public async void ShutdownReal(bool stopFleet = true)
     {
         _shuttingDown = true;
         _refreshTimer.Stop();
+        // On a genuine exit, stop the fleet; on a reload handoff (stopFleet=false)
+        // leave instances running for the incoming process to adopt.
+        if (stopFleet)
+        {
+            try { await _vm.StopFleetAsync(); }
+            catch { /* best effort */ }
+        }
         _tray.Dispose();
         Application.Current.Shutdown();
     }

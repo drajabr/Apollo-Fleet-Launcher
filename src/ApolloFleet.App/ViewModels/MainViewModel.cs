@@ -439,7 +439,7 @@ public partial class MainViewModel : ObservableObject
     {
         var nextPort = Draft.Instances.Count == 0
             ? 47990
-            : Draft.Instances.Max(i => i.Port) + 10;
+            : Draft.Instances.Max(i => i.Port) + 100;
         var inst = new FleetInstance { Name = $"Instance {Draft.Instances.Count + 1}", Port = nextPort, Enabled = true };
         HookInstance(inst);
         Draft.Instances.Add(inst);
@@ -476,19 +476,23 @@ public partial class MainViewModel : ObservableObject
     {
         LogPaneOpen = !LogPaneOpen;
         _log.Info(LogPaneOpen ? "Log pane shown." : "Log pane hidden.");
-        var st = await _store.LoadStateAsync().ConfigureAwait(true);
-        st.LogPaneOpen = LogPaneOpen;
-        await _store.SaveStateAsync(st).ConfigureAwait(true);
+        // Read-modify-write under the store lock so we don't clobber the
+        // supervisor's InstanceProcessIds with a stale snapshot.
+        var open = LogPaneOpen;
+        await _store.UpdateStateAsync(st => st.LogPaneOpen = open).ConfigureAwait(true);
     }
+
+    public Task StopFleetAsync() => _supervisor.StopAllInstancesAsync();
 
     public async Task SaveWindowPlacementAsync(double x, double y, double w, double h)
     {
-        var st = await _store.LoadStateAsync().ConfigureAwait(true);
-        st.WindowX = x;
-        st.WindowY = y;
-        st.WindowWidth = w;
-        st.WindowHeight = h;
-        await _store.SaveStateAsync(st).ConfigureAwait(true);
+        await _store.UpdateStateAsync(st =>
+        {
+            st.WindowX = x;
+            st.WindowY = y;
+            st.WindowWidth = w;
+            st.WindowHeight = h;
+        }).ConfigureAwait(true);
     }
 
     public async Task RefreshStateAsync()
@@ -544,6 +548,7 @@ public partial class MainViewModel : ObservableObject
         {
             PortValidationKind.OutOfRange => Strings.Get("PortValidation_OutOfRange"),
             PortValidationKind.Duplicate => Strings.Get("PortValidation_Duplicate"),
+            PortValidationKind.TooClose => Strings.Get("PortValidation_TooClose"),
             _ => ""
         };
         if (!string.IsNullOrEmpty(PortStatusMessage))
@@ -555,8 +560,10 @@ public partial class MainViewModel : ObservableObject
         var path = Environment.ProcessPath;
         if (!string.IsNullOrEmpty(path))
             Process.Start(new ProcessStartInfo { FileName = path, UseShellExecute = true });
+        // Reload hands off to a fresh process; leave the fleet running so the
+        // incoming instance adopts it (don't stop instances here).
         if (Application.Current.MainWindow is MainWindow mw)
-            mw.ShutdownReal();
+            mw.ShutdownReal(stopFleet: false);
         else
             Application.Current.Shutdown();
     }

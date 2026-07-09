@@ -52,4 +52,5 @@
   <data name="Group_Fleet_Header" xml:space="preserve"><value>Настройка флота</value></data>
   <data name="Group_FleetOptions_Header" xml:space="preserve"><value>Настройки</value></data>
   <data name="Settings_Language" xml:space="preserve"><value>Язык</value></data>
+  <data name="PortValidation_TooClose" xml:space="preserve"><value>Порты экземпляров расположены слишком близко, и диапазоны портов Apollo перекрываются. Разнесите их не менее чем на 100.</value></data>
 </root>

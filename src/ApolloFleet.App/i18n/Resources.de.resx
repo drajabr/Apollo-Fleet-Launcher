@@ -52,4 +52,5 @@
   <data name="Group_Fleet_Header" xml:space="preserve"><value>Flotten-Einrichtung</value></data>
   <data name="Group_FleetOptions_Header" xml:space="preserve"><value>Einstellungen</value></data>
   <data name="Settings_Language" xml:space="preserve"><value>Sprache</value></data>
+  <data name="PortValidation_TooClose" xml:space="preserve"><value>Die Instanz-Ports liegen zu nah beieinander und ihre Apollo-Portbereiche überschneiden sich. Halten Sie mindestens 100 Abstand.</value></data>
 </root>

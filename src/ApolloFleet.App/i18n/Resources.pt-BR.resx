@@ -52,4 +52,5 @@
   <data name="Group_Fleet_Header" xml:space="preserve"><value>Configuração da frota</value></data>
   <data name="Group_FleetOptions_Header" xml:space="preserve"><value>Configurações</value></data>
   <data name="Settings_Language" xml:space="preserve"><value>Idioma</value></data>
+  <data name="PortValidation_TooClose" xml:space="preserve"><value>As portas das instâncias estão muito próximas e seus intervalos de portas do Apollo se sobrepõem. Separe-as em pelo menos 100.</value></data>
 </root>

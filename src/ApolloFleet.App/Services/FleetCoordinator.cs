@@ -35,6 +35,8 @@ public sealed class FleetCoordinator
             throw new InvalidOperationException("PortValidation_OutOfRange");
         if (pv == PortValidationKind.Duplicate)
             throw new InvalidOperationException("PortValidation_Duplicate");
+        if (pv == PortValidationKind.TooClose)
+            throw new InvalidOperationException("PortValidation_TooClose");
 
         await _store.SaveSettingsAsync(settings, false, cancellationToken).ConfigureAwait(false);
         await _applier.ApplyAsync(settings, cancellationToken).ConfigureAwait(false);
