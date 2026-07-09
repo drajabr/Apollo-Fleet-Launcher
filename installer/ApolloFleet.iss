@@ -61,7 +61,11 @@ Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExe}"
 Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\{#AppExe}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: nowait postinstall skipifsilent
+; shellexec (ShellExecuteEx) is required: the app is requireAdministrator, and a
+; plain CreateProcess launch from Setup fails with "requires elevation" (740).
+; ShellExecuteEx honors the manifest; since Setup is already elevated the app
+; starts elevated with no extra UAC prompt.
+Filename: "{app}\{#AppExe}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: nowait postinstall skipifsilent shellexec
 
 [UninstallRun]
 ; Remove the logon scheduled task the app may have created for auto-start.
