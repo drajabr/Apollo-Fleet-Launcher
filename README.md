@@ -20,7 +20,7 @@ This is the same concept of my old [Multi-streaming-setup](https://github.com/dr
 > The `.NET` port replaces the original AutoHotkey app and **drops the Android helper features** (reverse tethering, ADB, scrcpy mic/cam, bundled platform-tools). If you need those, use a `v0.3.x` release from the AHK era.
 
 ## Preview
-<img width="582" height="230" alt="image" src="https://github.com/user-attachments/assets/2bfe3efe-21ab-494b-a790-5a0133e1b18d" />
+<img width="740" height="390" alt="image" src="https://github.com/user-attachments/assets/9b21cba5-f1d3-49d5-8bd1-0e01a0ffc136" />
 
 
 ## How to use
