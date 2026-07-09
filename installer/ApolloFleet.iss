@@ -1,9 +1,10 @@
 ; Inno Setup script for Apollo Fleet Launcher (WinUI/WPF .NET port).
 ;
-; Per-user install (no elevation): the app keeps its settings/state/logs in a
-; `config` folder NEXT TO the exe (see ApolloFleet.Core/AppStoragePaths.cs), so
-; it must live somewhere the running user can write. Installing under
-; %LocalAppData%\Programs keeps that portable-config model working without UAC.
+; All-users install to Program Files (requires admin): the app always runs
+; elevated (requireAdministrator), so it can write its `config` folder next to
+; the exe there (see ApolloFleet.Core/AppStoragePaths.cs). There is deliberately
+; no per-user "just for me" option — an unelevated install would be useless
+; because the app cannot function without elevation.
 ;
 ; Expects a self-contained publish so no separate .NET runtime is required.
 ; Version and the payload folder are passed in from CI:
@@ -32,9 +33,8 @@ AppSupportURL={#AppUrl}/issues
 DefaultDirName={autopf}\{#AppName}
 DefaultGroupName={#AppName}
 DisableProgramGroupPage=yes
-; Per-user install: no admin prompt, installs under %LocalAppData%\Programs.
-PrivilegesRequired=lowest
-PrivilegesRequiredOverridesAllowed=dialog
+; All-users install; the app requires elevation to run, so require it to install too.
+PrivilegesRequired=admin
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 OutputBaseFilename=ApolloFleet-Setup-v{#AppVersion}-win-x64
@@ -49,7 +49,8 @@ WizardStyle=modern
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
-Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+; Desktop icon checked by default.
+Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
 
 [Files]
 ; Recursively package the entire self-contained publish output.
@@ -57,7 +58,7 @@ Source: "{#PublishDir}\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubd
 
 [Icons]
 Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExe}"
-Name: "{userdesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: desktopicon
+Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: desktopicon
 
 [Run]
 Filename: "{app}\{#AppExe}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: nowait postinstall skipifsilent

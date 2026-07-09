@@ -131,6 +131,14 @@ public partial class MainViewModel : ObservableObject
             Draft.Paths.FleetConfigDirectory = AppStoragePaths.FleetDirectory;
             try { Directory.CreateDirectory(Draft.Paths.FleetConfigDirectory); } catch { /* ignore */ }
         }
+        // Auto-detect an existing Apollo install when the path is unset or stale,
+        // so a fresh launcher clears the "Apollo missing" warning without browsing.
+        if (string.IsNullOrWhiteSpace(Draft.Paths.ApolloRoot) || !File.Exists(Draft.Paths.SunshineExePath))
+        {
+            var detected = ApolloLocator.TryFindApolloRoot();
+            if (!string.IsNullOrEmpty(detected))
+                Draft.Paths.ApolloRoot = detected;
+        }
         RuntimeState = st;
         LogPaneOpen = st.LogPaneOpen;
         CaptureSnapshot();

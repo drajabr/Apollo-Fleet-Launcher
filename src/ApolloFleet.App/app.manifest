@@ -4,7 +4,12 @@
   <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
     <security>
       <requestedPrivileges>
-        <requestedExecutionLevel level="asInvoker" uiAccess="false" />
+        <!-- Apollo/sunshine management (service control, session-correct capture,
+             elevated instances) is impossible without admin, so the launcher
+             always runs elevated. One UAC prompt at manual launch; the Highest-
+             privilege logon task starts it elevated with no prompt. Everything
+             downstream then runs in-process elevated with no further prompts. -->
+        <requestedExecutionLevel level="requireAdministrator" uiAccess="false" />
       </requestedPrivileges>
     </security>
   </trustInfo>

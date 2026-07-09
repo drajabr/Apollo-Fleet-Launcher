@@ -5,12 +5,14 @@ namespace ApolloFleet.Core.Models;
 
 public sealed class ManagerOptions : INotifyPropertyChanged
 {
-    private bool _autoStart;
-    private bool _syncVolume;
+    // Features default ON: a fresh install runs the fleet at logon, syncs
+    // volume, removes the virtual display on disconnect, and starts to tray.
+    private bool _autoStart = true;
+    private bool _syncVolume = true;
     private bool _removeOnDisconnect = true;
     private string _theme = "Default";
     private bool _showErrors = true;
-    private bool _startMinimized;
+    private bool _startMinimized = true;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 

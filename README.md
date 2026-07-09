@@ -6,13 +6,12 @@ A simple tool to configure multiple instances of [@ClassicOldSong/Apollo](https:
 
 A newer **.NET 8 + WinUI 3** implementation lives under [`src/ApolloFleet.sln`](src/ApolloFleet.sln): multi-instance Apollo hosting, lock/apply settings flow, tray, English + Arabic (RTL) + Spanish + French, scheduled logon task (`ApolloFleet`) with optional cooperation with `ApolloService`, and GitHub Actions **WinUI CI / WinUI Release** workflows.
 
-- **Install (recommended):** download `ApolloFleet-Setup-vX.Y.Z-win-x64.exe` from the [latest release](https://github.com/drajabr/Apollo-Fleet-Launcher/releases/latest) and run it. It is self-contained (no .NET runtime needed), installs per-user (no admin prompt), and adds a Start Menu entry and uninstaller.
-- **Portable:** download `ApolloFleet-vX.Y.Z-win-x64.zip` instead; it is framework-dependent, so install the [.NET 8 desktop runtime](https://dotnet.microsoft.com/download/dotnet/8.0) first, then run `ApolloFleet.App.exe`.
+- **Install:** download `ApolloFleet-Setup-vX.Y.Z-win-x64.exe` from the [latest release](https://github.com/drajabr/Apollo-Fleet-Launcher/releases/latest) and run it. It is self-contained (no .NET runtime needed) and installs for all users under `Program Files`, adding a Start Menu entry, desktop icon, and uninstaller.
+- **Elevation:** the app **requires administrator** — managing Apollo is impossible without it. Manual launch shows one UAC prompt; the auto-start logon task runs it elevated with no prompt. See [`docs/elevation.md`](docs/elevation.md).
 - **Build from source:** run `./build.ps1 -Configuration Release -Publish` to create a single-file exe at `dist/Release/win-x64/ApolloFleet.App.exe`.
-- **Settings / state:** `%LocalAppData%\ApolloFleet\settings.json` and `state.json`.
+- **Settings / state:** stored in a `config\` folder next to the app (under the install directory); the elevated app manages it for you.
 - **SmartScreen:** CI builds are **unsigned**; Windows SmartScreen may warn until you trust the app or apply a code signature.
-- **Uninstall:** exit the app (tray **Exit**), then — if installed via the setup — use *Settings → Apps* (or the Start Menu uninstaller), which also removes the **ApolloFleet** scheduled task and config. For the portable zip, just delete the folder and remove the scheduled task from `Task Scheduler` if you enabled auto-start.
-- **Elevation / PaExec:** see [`docs/elevation.md`](docs/elevation.md).
+- **Uninstall:** exit the app (tray **Exit**), then use *Settings → Apps* or the Start Menu uninstaller — it also removes the **ApolloFleet** scheduled task and the config.
 - **Minimum tested Apollo:** use a current stable [Apollo release](https://github.com/ClassicOldSong/Apollo/releases); Web UI URL logic uses **HTTPS on streaming port + 1** (same as the legacy AHK launcher).
 
 This is the same concept of my old [Multi-streaming-setup](https://github.com/drajabr/My-Sunshine-setup) scripts, with ease of GUI and Auto Configuration.
@@ -38,6 +37,7 @@ https://github.com/user-attachments/assets/72a3909f-b1c7-4aa2-bd78-3a70d3acbc61
 > If you find any issue please don't hesitate to open an issue in the repo, your feedback "and pull requests" are very welcomed.
 
 ## Changelog
+* v0.4.2 Auto-detect Apollo install, features on by default, elevated launch without extra UAC prompts, installer-only release
 * v0.4.1 Self-contained Windows installer (.exe) — no runtime prerequisite; portable zip still available
 * v0.4.0 Claude finishing the job, native UI, experimental release
 * v0.3.3 Bug fixes

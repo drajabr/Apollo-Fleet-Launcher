@@ -10,27 +10,30 @@ Apollo (`sunshine.exe`) must run in the **interactive user session** with access
 
 - `IProcessLauncher.StartSunshineAsync(sunshineExePath, configPath, instanceId, helperExePath, ...)`
 
-### 1. Direct start (default)
+### 1. Direct start (default, always used unless a helper is configured)
 
-If **no** helper executable is configured, the app uses `Process.Start` with `UseShellExecute = false` and `CreateNoWindow = true` (sunshine.exe is a console-subsystem binary — without `CREATE_NO_WINDOW` every instance pops a visible console), passing the config file as the argument. The new process runs in the same security context as ApolloFleet (standard user, interactive session).
+The app uses `Process.Start` with `UseShellExecute = false` and `CreateNoWindow = true` (sunshine.exe is a console-subsystem binary — without `CREATE_NO_WINDOW` every instance pops a visible console), passing the config file as the argument. The child **inherits the launcher's token and session**:
 
-Because instances run unelevated, each instance's `.conf` points `cert` / `pkey` (TLS material) into the user-writable fleet directory; Sunshine generates them on first launch. Leaving those at their defaults makes Sunshine resolve them against its install directory and die with `use_certificate_chain_file: Access is denied` when ApolloFleet is not elevated.
+- Launcher runs **unelevated** → Sunshine runs unelevated.
+- Launcher runs **elevated** (via "Run as administrator" or the Highest-privilege logon task) → Sunshine runs **elevated too, with no additional UAC prompt** and no helper service.
 
-**Use when:** You run ApolloFleet at logon as your user and Sunshine does not need a different token.
+This is why the launcher does **not** auto-probe a bundled PaExec: doing so spun up a service and could surface extra consent / AV prompts even when the launcher was already elevated. A direct child start inherits elevation silently, which is what we want.
 
-### 2. PaExec-compatible helper (optional)
+Because unelevated instances can't write into the Apollo install dir, each instance's `.conf` points `cert` / `pkey` (TLS material) into the user-writable fleet directory; Sunshine generates them on first launch. Leaving those at their defaults makes Sunshine resolve them against its install directory and die with `use_certificate_chain_file: Access is denied` when ApolloFleet is not elevated.
 
-If the user sets **Optional PaExec-compatible helper** in the UI (e.g. path to `paexec.exe`), ApolloFleet starts Sunshine the same way the legacy AHK launcher did: helper runs PowerShell in the **active console session** (`WTSGetActiveConsoleSessionId`) to `Start-Process` Sunshine hidden, and writes the PID to a temp file.
+### 2. PaExec-compatible helper (optional, explicit only)
 
-Bundled helper locations are auto-probed **only when ApolloFleet itself is elevated** — PaExec-style session launch fails without administrator rights (the legacy AHK build ran with `requireAdministrator`). If a helper attempt yields no PID, the launcher **falls back to direct start** instead of reporting failure.
+If — and only if — the user sets an **Optional PaExec-compatible helper** path in settings (e.g. `paexec.exe`), ApolloFleet starts Sunshine the way the legacy AHK launcher did: the helper runs PowerShell in the **active console session** (`WTSGetActiveConsoleSessionId`) to `Start-Process` Sunshine hidden and writes the PID to a temp file. If the helper yields no PID, the launcher **falls back to direct start**.
 
-**Use when:** Direct start fails because Sunshine must be elevated or session-placed in a way that only the helper provides.
+**Use when:** the launcher runs from a true session-0 service context and Sunshine must be placed into the interactive session — a case the direct child start above does not cover.
 
-**Caveats:** Third-party helpers can trigger **defender / AV heuristics**. Prefer **code signing** for production distribution when budget allows. Document the helper path in your own runbooks; ApolloFleet does not ship PaExec.
+**Caveats:** Third-party helpers can trigger **defender / AV heuristics**. ApolloFleet no longer ships PaExec; supply your own path.
 
 ## Privileges and UAC
 
-- ApolloFleet itself runs **asInvoker** (see `app.manifest`).
+- ApolloFleet is manifested **requireAdministrator** (see `app.manifest`): it **always** runs elevated, because managing Apollo (service control, session-correct capture, elevated instances) is impossible otherwise.
+- Manual launch shows **one** UAC prompt. After that, everything downstream — Sunshine instances, service control, task registration — runs elevated **in-process with no further prompts**. Relaunches (reload / language change) started from the already-elevated process do not prompt again.
+- The auto-start **logon task** is registered with `TaskRunLevel.Highest`, so at logon it starts ApolloFleet elevated with **no** prompt at all.
 - Sunshine may still request elevation via its own manifest; that is independent of ApolloFleet.
 - If UAC prompts appear per instance, consider adjusting Sunshine install rights or using the helper path documented above.
 
