@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Window_Title" xml:space="preserve"><value>Apollo Fleet マネージャー</value></data>
+  <data name="Group_Actions_Header" xml:space="preserve"><value>操作</value></data>
+  <data name="Label_ApolloFolder" xml:space="preserve"><value>Apollo フォルダー:</value></data>
+  <data name="Placeholder_ApolloFolder" xml:space="preserve"><value>C:\Program Files\Apollo</value></data>
+  <data name="Tooltip_BrowseApolloFolder" xml:space="preserve"><value>Apollo フォルダーを参照</value></data>
+  <data name="InstanceNameLabel" xml:space="preserve"><value>名前:</value></data>
+  <data name="Placeholder_InstanceName" xml:space="preserve"><value>インスタンス名</value></data>
+  <data name="InstancePortLabel" xml:space="preserve"><value>ポート:</value></data>
+  <data name="InstanceAudioLabel" xml:space="preserve"><value>オーディオ:</value></data>
+  <data name="InstanceHeadlessLabel" xml:space="preserve"><value>ヘッドレスモードを強制</value></data>
+  <data name="InstanceEnabledLabel" xml:space="preserve"><value>有効</value></data>
+  <data name="Tooltip_EnableInstance" xml:space="preserve"><value>このインスタンスを有効にする</value></data>
+  <data name="Label_WebUi" xml:space="preserve"><value>WebUI: </value></data>
+  <data name="Tooltip_RemoveSelectedInstance" xml:space="preserve"><value>選択したインスタンスを削除</value></data>
+  <data name="AddInstanceButton" xml:space="preserve"><value>インスタンスを追加</value></data>
+  <data name="Tooltip_AddInstance" xml:space="preserve"><value>新しいインスタンスを追加</value></data>
+  <data name="Tooltip_MinimizeToTray" xml:space="preserve"><value>トレイに最小化</value></data>
+  <data name="UI_HideLogs" xml:space="preserve"><value>ログを非表示</value></data>
+  <data name="UI_ShowLogs" xml:space="preserve"><value>ログを表示</value></data>
+  <data name="Status_ApolloFound" xml:space="preserve"><value>Apollo フォルダーが見つかりました。</value></data>
+  <data name="Status_ApolloMissing" xml:space="preserve"><value>Apollo フォルダーが見つかりません。</value></data>
+  <data name="UI_Apply" xml:space="preserve"><value>適用</value></data>
+  <data name="UI_Unlock" xml:space="preserve"><value>ロック解除</value></data>
+  <data name="UI_Reload" xml:space="preserve"><value>再読み込み</value></data>
+  <data name="UI_Cancel" xml:space="preserve"><value>キャンセル</value></data>
+  <data name="Status_Applied" xml:space="preserve"><value>設定を適用しました。</value></data>
+  <data name="Error_Title" xml:space="preserve"><value>エラー</value></data>
+  <data name="Error_Close" xml:space="preserve"><value>閉じる</value></data>
+  <data name="Confirm_RemoveInstance_Title" xml:space="preserve"><value>インスタンスを削除</value></data>
+  <data name="Confirm_RemoveInstance_Body" xml:space="preserve"><value>選択したインスタンスを削除しますか？</value></data>
+  <data name="UI_Remove" xml:space="preserve"><value>削除</value></data>
+  <data name="Status_Placeholder" xml:space="preserve"><value>準備完了。</value></data>
+  <data name="Status_NoEnabledInstances" xml:space="preserve"><value>有効なインスタンスがありません。</value></data>
+  <data name="Status_RunningFmt" xml:space="preserve"><value>{0}/{1} インスタンスを実行中</value></data>
+  <data name="PortValidation_OutOfRange" xml:space="preserve"><value>ポートは 1 ～ 65535 の範囲で指定してください。</value></data>
+  <data name="PortValidation_Duplicate" xml:space="preserve"><value>ポートが重複しています。</value></data>
+  <data name="Audio_Unset" xml:space="preserve"><value>未設定</value></data>
+  <data name="Tray_Tooltip" xml:space="preserve"><value>Apollo Fleet マネージャー</value></data>
+  <data name="Tray_Open" xml:space="preserve"><value>開く</value></data>
+  <data name="Tray_Exit" xml:space="preserve"><value>終了</value></data>
+  <data name="Tray_TooltipFmt" xml:space="preserve"><value>{0} ({1}/{2})</value></data>
+  <data name="AutoStartCheckBox" xml:space="preserve"><value>フリートを自動起動</value></data>
+  <data name="SyncVolumeCheckBox" xml:space="preserve"><value>再生音量を同期</value></data>
+  <data name="RemoveOnDisconnectCheckBox" xml:space="preserve"><value>切断時に削除</value></data>
+  <data name="StartMinimizedCheckBox" xml:space="preserve"><value>最小化して起動</value></data>
+  <data name="Group_Fleet_Header" xml:space="preserve"><value>フリート設定</value></data>
+  <data name="Group_FleetOptions_Header" xml:space="preserve"><value>設定</value></data>
+  <data name="Settings_Language" xml:space="preserve"><value>言語</value></data>
+</root>

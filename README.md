@@ -4,7 +4,7 @@ A simple tool to configure multiple instances of [@ClassicOldSong/Apollo](https:
 
 ## WinUI 3 manager (`src/`)
 
-A newer **.NET 8 + WinUI 3** implementation lives under [`src/ApolloFleet.sln`](src/ApolloFleet.sln): multi-instance Apollo hosting, lock/apply settings flow, tray, English + Arabic (RTL) + Spanish + French, scheduled logon task (`ApolloFleet`) with optional cooperation with `ApolloService`, and GitHub Actions **WinUI CI / WinUI Release** workflows.
+A newer **.NET 8 + WinUI 3** implementation lives under [`src/ApolloFleet.sln`](src/ApolloFleet.sln): multi-instance Apollo hosting, lock/apply settings flow, tray, a fully localized UI (English, Arabic + RTL, Spanish, French, German, Italian, Japanese, Korean, Polish, Portuguese (BR), Russian, Swedish, Turkish, Czech, and Simplified/Traditional Chinese), scheduled logon task (`ApolloFleet`) with optional cooperation with `ApolloService`, and GitHub Actions **WinUI CI / WinUI Release** workflows.
 
 - **Install:** download `ApolloFleet-Setup-vX.Y.Z-win-x64.exe` from the [latest release](https://github.com/drajabr/Apollo-Fleet-Launcher/releases/latest) and run it. It is self-contained (no .NET runtime needed) and installs for all users under `Program Files`, adding a Start Menu entry, desktop icon, and uninstaller.
 - **Elevation:** the app **requires administrator** — managing Apollo is impossible without it. Manual launch shows one UAC prompt; the auto-start logon task runs it elevated with no prompt. See [`docs/elevation.md`](docs/elevation.md).
@@ -37,6 +37,7 @@ https://github.com/user-attachments/assets/72a3909f-b1c7-4aa2-bd78-3a70d3acbc61
 > If you find any issue please don't hesitate to open an issue in the repo, your feedback "and pull requests" are very welcomed.
 
 ## Changelog
+* v0.4.3 Full UI translations for every offered language (cs, de, it, ja, ko, pl, pt-BR, ru, sv, tr, zh-CN, zh-Hans, zh-Hant) — no more English fallback
 * v0.4.2 Auto-detect Apollo install, features on by default, elevated launch without extra UAC prompts, installer-only release
 * v0.4.1 Self-contained Windows installer (.exe) — no runtime prerequisite; portable zip still available
 * v0.4.0 Claude finishing the job, native UI, experimental release

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Window_Title" xml:space="preserve"><value>Gerenciador do Apollo Fleet</value></data>
+  <data name="Group_Actions_Header" xml:space="preserve"><value>Ações</value></data>
+  <data name="Label_ApolloFolder" xml:space="preserve"><value>Pasta do Apollo:</value></data>
+  <data name="Placeholder_ApolloFolder" xml:space="preserve"><value>C:\Program Files\Apollo</value></data>
+  <data name="Tooltip_BrowseApolloFolder" xml:space="preserve"><value>Procurar a pasta do Apollo</value></data>
+  <data name="InstanceNameLabel" xml:space="preserve"><value>Nome:</value></data>
+  <data name="Placeholder_InstanceName" xml:space="preserve"><value>Nome da instância</value></data>
+  <data name="InstancePortLabel" xml:space="preserve"><value>Porta:</value></data>
+  <data name="InstanceAudioLabel" xml:space="preserve"><value>Áudio:</value></data>
+  <data name="InstanceHeadlessLabel" xml:space="preserve"><value>Forçar modo headless</value></data>
+  <data name="InstanceEnabledLabel" xml:space="preserve"><value>Ativada</value></data>
+  <data name="Tooltip_EnableInstance" xml:space="preserve"><value>Ativar esta instância</value></data>
+  <data name="Label_WebUi" xml:space="preserve"><value>WebUI: </value></data>
+  <data name="Tooltip_RemoveSelectedInstance" xml:space="preserve"><value>Remover a instância selecionada</value></data>
+  <data name="AddInstanceButton" xml:space="preserve"><value>Adicionar instância</value></data>
+  <data name="Tooltip_AddInstance" xml:space="preserve"><value>Adicionar uma nova instância</value></data>
+  <data name="Tooltip_MinimizeToTray" xml:space="preserve"><value>Minimizar para a bandeja</value></data>
+  <data name="UI_HideLogs" xml:space="preserve"><value>Ocultar logs</value></data>
+  <data name="UI_ShowLogs" xml:space="preserve"><value>Mostrar logs</value></data>
+  <data name="Status_ApolloFound" xml:space="preserve"><value>Pasta do Apollo encontrada.</value></data>
+  <data name="Status_ApolloMissing" xml:space="preserve"><value>Pasta do Apollo não encontrada.</value></data>
+  <data name="UI_Apply" xml:space="preserve"><value>Aplicar</value></data>
+  <data name="UI_Unlock" xml:space="preserve"><value>Desbloquear</value></data>
+  <data name="UI_Reload" xml:space="preserve"><value>Recarregar</value></data>
+  <data name="UI_Cancel" xml:space="preserve"><value>Cancelar</value></data>
+  <data name="Status_Applied" xml:space="preserve"><value>Configurações aplicadas.</value></data>
+  <data name="Error_Title" xml:space="preserve"><value>Erro</value></data>
+  <data name="Error_Close" xml:space="preserve"><value>Fechar</value></data>
+  <data name="Confirm_RemoveInstance_Title" xml:space="preserve"><value>Remover instância</value></data>
+  <data name="Confirm_RemoveInstance_Body" xml:space="preserve"><value>Remover a instância selecionada?</value></data>
+  <data name="UI_Remove" xml:space="preserve"><value>Remover</value></data>
+  <data name="Status_Placeholder" xml:space="preserve"><value>Pronto.</value></data>
+  <data name="Status_NoEnabledInstances" xml:space="preserve"><value>Nenhuma instância ativada.</value></data>
+  <data name="Status_RunningFmt" xml:space="preserve"><value>{0}/{1} instâncias em execução</value></data>
+  <data name="PortValidation_OutOfRange" xml:space="preserve"><value>A porta deve estar entre 1 e 65535.</value></data>
+  <data name="PortValidation_Duplicate" xml:space="preserve"><value>Porta duplicada detectada.</value></data>
+  <data name="Audio_Unset" xml:space="preserve"><value>Não definido</value></data>
+  <data name="Tray_Tooltip" xml:space="preserve"><value>Gerenciador do Apollo Fleet</value></data>
+  <data name="Tray_Open" xml:space="preserve"><value>Abrir</value></data>
+  <data name="Tray_Exit" xml:space="preserve"><value>Sair</value></data>
+  <data name="Tray_TooltipFmt" xml:space="preserve"><value>{0} ({1}/{2})</value></data>
+  <data name="AutoStartCheckBox" xml:space="preserve"><value>Iniciar frota automaticamente</value></data>
+  <data name="SyncVolumeCheckBox" xml:space="preserve"><value>Sincronizar volume de reprodução</value></data>
+  <data name="RemoveOnDisconnectCheckBox" xml:space="preserve"><value>Remover ao desconectar</value></data>
+  <data name="StartMinimizedCheckBox" xml:space="preserve"><value>Iniciar minimizado</value></data>
+  <data name="Group_Fleet_Header" xml:space="preserve"><value>Configuração da frota</value></data>
+  <data name="Group_FleetOptions_Header" xml:space="preserve"><value>Configurações</value></data>
+  <data name="Settings_Language" xml:space="preserve"><value>Idioma</value></data>
+</root>

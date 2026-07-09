@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Window_Title" xml:space="preserve"><value>Apollo Fleet 管理員</value></data>
+  <data name="Group_Actions_Header" xml:space="preserve"><value>操作</value></data>
+  <data name="Label_ApolloFolder" xml:space="preserve"><value>Apollo 資料夾：</value></data>
+  <data name="Placeholder_ApolloFolder" xml:space="preserve"><value>C:\Program Files\Apollo</value></data>
+  <data name="Tooltip_BrowseApolloFolder" xml:space="preserve"><value>瀏覽 Apollo 資料夾</value></data>
+  <data name="InstanceNameLabel" xml:space="preserve"><value>名稱：</value></data>
+  <data name="Placeholder_InstanceName" xml:space="preserve"><value>執行個體名稱</value></data>
+  <data name="InstancePortLabel" xml:space="preserve"><value>連接埠：</value></data>
+  <data name="InstanceAudioLabel" xml:space="preserve"><value>音訊：</value></data>
+  <data name="InstanceHeadlessLabel" xml:space="preserve"><value>強制無頭模式</value></data>
+  <data name="InstanceEnabledLabel" xml:space="preserve"><value>已啟用</value></data>
+  <data name="Tooltip_EnableInstance" xml:space="preserve"><value>啟用此執行個體</value></data>
+  <data name="Label_WebUi" xml:space="preserve"><value>WebUI: </value></data>
+  <data name="Tooltip_RemoveSelectedInstance" xml:space="preserve"><value>移除所選執行個體</value></data>
+  <data name="AddInstanceButton" xml:space="preserve"><value>新增執行個體</value></data>
+  <data name="Tooltip_AddInstance" xml:space="preserve"><value>新增執行個體</value></data>
+  <data name="Tooltip_MinimizeToTray" xml:space="preserve"><value>最小化到系統匣</value></data>
+  <data name="UI_HideLogs" xml:space="preserve"><value>隱藏記錄</value></data>
+  <data name="UI_ShowLogs" xml:space="preserve"><value>顯示記錄</value></data>
+  <data name="Status_ApolloFound" xml:space="preserve"><value>已找到 Apollo 資料夾。</value></data>
+  <data name="Status_ApolloMissing" xml:space="preserve"><value>找不到 Apollo 資料夾。</value></data>
+  <data name="UI_Apply" xml:space="preserve"><value>套用</value></data>
+  <data name="UI_Unlock" xml:space="preserve"><value>解鎖</value></data>
+  <data name="UI_Reload" xml:space="preserve"><value>重新載入</value></data>
+  <data name="UI_Cancel" xml:space="preserve"><value>取消</value></data>
+  <data name="Status_Applied" xml:space="preserve"><value>設定已套用。</value></data>
+  <data name="Error_Title" xml:space="preserve"><value>錯誤</value></data>
+  <data name="Error_Close" xml:space="preserve"><value>關閉</value></data>
+  <data name="Confirm_RemoveInstance_Title" xml:space="preserve"><value>移除執行個體</value></data>
+  <data name="Confirm_RemoveInstance_Body" xml:space="preserve"><value>要移除所選執行個體嗎？</value></data>
+  <data name="UI_Remove" xml:space="preserve"><value>移除</value></data>
+  <data name="Status_Placeholder" xml:space="preserve"><value>就緒。</value></data>
+  <data name="Status_NoEnabledInstances" xml:space="preserve"><value>沒有已啟用的執行個體。</value></data>
+  <data name="Status_RunningFmt" xml:space="preserve"><value>{0}/{1} 個執行個體執行中</value></data>
+  <data name="PortValidation_OutOfRange" xml:space="preserve"><value>連接埠必須介於 1 到 65535 之間。</value></data>
+  <data name="PortValidation_Duplicate" xml:space="preserve"><value>偵測到重複的連接埠。</value></data>
+  <data name="Audio_Unset" xml:space="preserve"><value>未設定</value></data>
+  <data name="Tray_Tooltip" xml:space="preserve"><value>Apollo Fleet 管理員</value></data>
+  <data name="Tray_Open" xml:space="preserve"><value>開啟</value></data>
+  <data name="Tray_Exit" xml:space="preserve"><value>結束</value></data>
+  <data name="Tray_TooltipFmt" xml:space="preserve"><value>{0} ({1}/{2})</value></data>
+  <data name="AutoStartCheckBox" xml:space="preserve"><value>自動執行機群</value></data>
+  <data name="SyncVolumeCheckBox" xml:space="preserve"><value>同步播放音量</value></data>
+  <data name="RemoveOnDisconnectCheckBox" xml:space="preserve"><value>中斷連線時移除</value></data>
+  <data name="StartMinimizedCheckBox" xml:space="preserve"><value>啟動時最小化</value></data>
+  <data name="Group_Fleet_Header" xml:space="preserve"><value>機群設定</value></data>
+  <data name="Group_FleetOptions_Header" xml:space="preserve"><value>設定</value></data>
+  <data name="Settings_Language" xml:space="preserve"><value>語言</value></data>
+</root>

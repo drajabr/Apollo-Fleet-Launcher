@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Window_Title" xml:space="preserve"><value>Správce Apollo Fleet</value></data>
+  <data name="Group_Actions_Header" xml:space="preserve"><value>Akce</value></data>
+  <data name="Label_ApolloFolder" xml:space="preserve"><value>Složka Apollo:</value></data>
+  <data name="Placeholder_ApolloFolder" xml:space="preserve"><value>C:\Program Files\Apollo</value></data>
+  <data name="Tooltip_BrowseApolloFolder" xml:space="preserve"><value>Procházet složku Apollo</value></data>
+  <data name="InstanceNameLabel" xml:space="preserve"><value>Název:</value></data>
+  <data name="Placeholder_InstanceName" xml:space="preserve"><value>Název instance</value></data>
+  <data name="InstancePortLabel" xml:space="preserve"><value>Port:</value></data>
+  <data name="InstanceAudioLabel" xml:space="preserve"><value>Zvuk:</value></data>
+  <data name="InstanceHeadlessLabel" xml:space="preserve"><value>Vynutit režim bez zobrazení</value></data>
+  <data name="InstanceEnabledLabel" xml:space="preserve"><value>Povoleno</value></data>
+  <data name="Tooltip_EnableInstance" xml:space="preserve"><value>Povolit tuto instanci</value></data>
+  <data name="Label_WebUi" xml:space="preserve"><value>WebUI: </value></data>
+  <data name="Tooltip_RemoveSelectedInstance" xml:space="preserve"><value>Odebrat vybranou instanci</value></data>
+  <data name="AddInstanceButton" xml:space="preserve"><value>Přidat instanci</value></data>
+  <data name="Tooltip_AddInstance" xml:space="preserve"><value>Přidat novou instanci</value></data>
+  <data name="Tooltip_MinimizeToTray" xml:space="preserve"><value>Minimalizovat do oznamovací oblasti</value></data>
+  <data name="UI_HideLogs" xml:space="preserve"><value>Skrýt protokoly</value></data>
+  <data name="UI_ShowLogs" xml:space="preserve"><value>Zobrazit protokoly</value></data>
+  <data name="Status_ApolloFound" xml:space="preserve"><value>Složka Apollo nalezena.</value></data>
+  <data name="Status_ApolloMissing" xml:space="preserve"><value>Složka Apollo nenalezena.</value></data>
+  <data name="UI_Apply" xml:space="preserve"><value>Použít</value></data>
+  <data name="UI_Unlock" xml:space="preserve"><value>Odemknout</value></data>
+  <data name="UI_Reload" xml:space="preserve"><value>Znovu načíst</value></data>
+  <data name="UI_Cancel" xml:space="preserve"><value>Zrušit</value></data>
+  <data name="Status_Applied" xml:space="preserve"><value>Nastavení použito.</value></data>
+  <data name="Error_Title" xml:space="preserve"><value>Chyba</value></data>
+  <data name="Error_Close" xml:space="preserve"><value>Zavřít</value></data>
+  <data name="Confirm_RemoveInstance_Title" xml:space="preserve"><value>Odebrat instanci</value></data>
+  <data name="Confirm_RemoveInstance_Body" xml:space="preserve"><value>Odebrat vybranou instanci?</value></data>
+  <data name="UI_Remove" xml:space="preserve"><value>Odebrat</value></data>
+  <data name="Status_Placeholder" xml:space="preserve"><value>Připraveno.</value></data>
+  <data name="Status_NoEnabledInstances" xml:space="preserve"><value>Žádné povolené instance.</value></data>
+  <data name="Status_RunningFmt" xml:space="preserve"><value>Spuštěno instancí: {0}/{1}</value></data>
+  <data name="PortValidation_OutOfRange" xml:space="preserve"><value>Port musí být mezi 1 a 65535.</value></data>
+  <data name="PortValidation_Duplicate" xml:space="preserve"><value>Zjištěn duplicitní port.</value></data>
+  <data name="Audio_Unset" xml:space="preserve"><value>Nenastaveno</value></data>
+  <data name="Tray_Tooltip" xml:space="preserve"><value>Správce Apollo Fleet</value></data>
+  <data name="Tray_Open" xml:space="preserve"><value>Otevřít</value></data>
+  <data name="Tray_Exit" xml:space="preserve"><value>Ukončit</value></data>
+  <data name="Tray_TooltipFmt" xml:space="preserve"><value>{0} ({1}/{2})</value></data>
+  <data name="AutoStartCheckBox" xml:space="preserve"><value>Automaticky spustit flotilu</value></data>
+  <data name="SyncVolumeCheckBox" xml:space="preserve"><value>Synchronizovat hlasitost přehrávání</value></data>
+  <data name="RemoveOnDisconnectCheckBox" xml:space="preserve"><value>Odebrat při odpojení</value></data>
+  <data name="StartMinimizedCheckBox" xml:space="preserve"><value>Spustit minimalizované</value></data>
+  <data name="Group_Fleet_Header" xml:space="preserve"><value>Nastavení flotily</value></data>
+  <data name="Group_FleetOptions_Header" xml:space="preserve"><value>Nastavení</value></data>
+  <data name="Settings_Language" xml:space="preserve"><value>Jazyk</value></data>
+</root>
