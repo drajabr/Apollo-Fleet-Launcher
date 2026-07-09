@@ -146,6 +146,10 @@ public partial class MainViewModel : ObservableObject
         RefreshLabels();
         _supervisor.UpdateRuntimeOptions(Draft, Draft.Manager.SyncVolume);
         _supervisor.Start();
+        // Enforce the stock-service policy off the UI thread (stopping a service
+        // can block for seconds); snapshot the current draft to avoid races.
+        var startupSettings = Draft;
+        _ = Task.Run(() => _coordinator.EnforceStockServiceState(startupSettings));
         StatusMessage = "";
         SelectedInstance = Draft.Instances.FirstOrDefault();
         _log.Info($"Application started. Loaded {Draft.Instances.Count} instance(s). Apollo path: {(string.IsNullOrEmpty(Draft.Paths.ApolloRoot) ? "<unset>" : Draft.Paths.ApolloRoot)}");

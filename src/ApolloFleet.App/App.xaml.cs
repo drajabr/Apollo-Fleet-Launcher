@@ -17,17 +17,31 @@ public partial class App : Application
 {
     public static IServiceProvider Services { get; private set; } = null!;
 
+    // Held for the process lifetime to enforce a single running instance.
+    private static Mutex? _singleInstance;
+
     private async void OnStartup(object sender, StartupEventArgs e)
     {
         AppDomain.CurrentDomain.UnhandledException += (_, args) => LogFatal(args.ExceptionObject as Exception);
         DispatcherUnhandledException += (_, args) => { LogFatal(args.Exception); args.Handled = true; };
         TaskScheduler.UnobservedTaskException += (_, args) => { LogFatal(args.Exception); args.SetObserved(); };
 
+        // Only one instance may drive the fleet: the logon task and a manual
+        // launch (or a reload handing off to a fresh process) must not run two
+        // supervisors fighting over state.json / spawning duplicate sunshines.
+        // A short wait lets a reload's outgoing instance exit and release first.
+        if (!TryAcquireSingleInstance())
+        {
+            Shutdown(0);
+            return;
+        }
+
         try
         {
             Services = ServiceBootstrapper.Create();
 
             var store = Services.GetRequiredService<ISettingsStore>();
+            var firstRun = !System.IO.File.Exists(ApolloFleet.Core.AppStoragePaths.SettingsPath);
             var settings = await store.LoadSettingsAsync().ConfigureAwait(true);
 
             ApplyCulture(settings.Locale);
@@ -43,7 +57,9 @@ public partial class App : Application
             MainWindow = window;
             // Tray-first start: showing minimized triggers the existing
             // StateChanged handler which hides the window to the tray.
-            if (settings.Manager.StartMinimized)
+            // Never start hidden on first run — the user needs to see it to
+            // configure it (no settings file exists yet).
+            if (settings.Manager.StartMinimized && !firstRun)
                 window.WindowState = WindowState.Minimized;
             window.Show();
         }
@@ -52,6 +68,37 @@ public partial class App : Application
             LogFatal(ex);
             System.Windows.MessageBox.Show("Startup failed:\n\n" + ex, "Apollo Fleet Launcher");
             Shutdown(1);
+        }
+    }
+
+    /// <summary>
+    /// Acquires a machine-wide single-instance mutex. Returns false only if another
+    /// instance is still running after a short grace period (so a reload handoff,
+    /// where the outgoing process exits within ~1s, succeeds).
+    /// </summary>
+    private static bool TryAcquireSingleInstance()
+    {
+        try
+        {
+            _singleInstance = new Mutex(initiallyOwned: false, @"Global\ApolloFleetLauncher_SingleInstance");
+        }
+        catch
+        {
+            return true; // if the mutex can't be created, don't block startup
+        }
+
+        try
+        {
+            return _singleInstance.WaitOne(TimeSpan.FromSeconds(5));
+        }
+        catch (AbandonedMutexException)
+        {
+            // Previous owner exited without releasing; ownership passes to us.
+            return true;
+        }
+        catch
+        {
+            return true;
         }
     }
 

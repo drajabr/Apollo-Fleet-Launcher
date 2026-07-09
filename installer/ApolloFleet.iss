@@ -72,5 +72,5 @@ Filename: "{app}\{#AppExe}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags
 Filename: "{sys}\schtasks.exe"; Parameters: "/Delete /TN ""{#TaskName}"" /F"; Flags: runhidden; RunOnceId: "DelApolloFleetTask"
 
 [UninstallDelete]
-; Clean up the runtime-created portable config next to the exe.
-Type: filesandordirs; Name: "{app}\config"
+; Clean up the machine-wide config/state/logs the app creates at runtime.
+Type: filesandordirs; Name: "{commonappdata}\ApolloFleet"

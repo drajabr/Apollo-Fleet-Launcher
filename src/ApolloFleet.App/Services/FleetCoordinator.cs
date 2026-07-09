@@ -44,6 +44,28 @@ public sealed class FleetCoordinator
         _log.Info("Apply completed.");
     }
 
+    /// <summary>
+    /// At startup, ensure the stock ApolloService is stopped/disabled when Auto Run
+    /// is enabled. Apply already does this, but the service can be re-enabled out of
+    /// band (e.g. an Apollo update); if it runs it keeps respawning its own sunshine
+    /// that the fleet supervisor then kills, causing a restart loop.
+    /// </summary>
+    public void EnforceStockServiceState(AppSettings settings)
+    {
+        try
+        {
+            if (settings.Manager.AutoStart && _windowsSvc.IsApolloServiceInstalled())
+            {
+                _windowsSvc.DisableAndStopApolloService();
+                _log.Info("Auto Run enabled: ensured the stock ApolloService is disabled.");
+            }
+        }
+        catch (Exception ex)
+        {
+            _log.Info($"Stock service enforcement failed: {ex.Message}");
+        }
+    }
+
     private void ApplyAutostart(AppSettings settings)
     {
         var exe = Environment.ProcessPath ?? "";

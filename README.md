@@ -13,7 +13,7 @@ A simple tool to configure multiple instances of [@ClassicOldSong/Apollo](https:
 - **Install:** download `ApolloFleet-Setup-vX.Y.Z-win-x64.exe` from the [latest release](https://github.com/drajabr/Apollo-Fleet-Launcher/releases/latest). Unlike the old version, this is a self-contained Installer.
 - **Elevation:** the app **requires administrator** — Manual launch shows one UAC prompt; the auto-start logon task runs it elevated with no prompt. See [`docs/elevation.md`](docs/elevation.md).
 - **Build from source:** run `./build.ps1 -Configuration Release -Publish` to create a single-file exe at `dist/Release/win-x64/ApolloFleet.App.exe`.
-- **Settings / state:** stored in a `config\` folder next to the app (under the install directory); the elevated app manages it for you.
+- **Settings / state:** stored machine-wide under `%ProgramData%\ApolloFleet` (settings, runtime state, logs, and per-instance fleet configs).
 - **SmartScreen:** CI builds are **unsigned**; Windows SmartScreen may warn until you trust the app or apply a code signature.
 - **Minimum tested Apollo:** use a current stable [Apollo release](https://github.com/ClassicOldSong/Apollo/releases); Web UI URL logic uses **HTTPS on streaming port + 1**.
 
