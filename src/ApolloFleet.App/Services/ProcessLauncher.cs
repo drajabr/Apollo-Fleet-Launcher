@@ -8,11 +8,13 @@ using System.Threading.Tasks;
 namespace ApolloFleet.App.Services;
 
 /// <summary>
-/// Starts sunshine as a direct child of the launcher so it inherits the launcher's
-/// token and session: when the launcher runs elevated (via "Run as administrator" or
-/// the Highest-privilege logon task) sunshine is elevated too, with NO additional UAC
-/// prompt and no helper service. A PaExec-style session helper is used ONLY when the
-/// user explicitly configures one (see docs/elevation.md).
+/// Starts sunshine as SYSTEM in the active console session via a bundled PaExec
+/// (<c>-s -i &lt;session&gt;</c>). This is REQUIRED for Apollo to capture the UAC secure
+/// desktop: an elevated-admin process cannot grab the secure desktop — only SYSTEM
+/// in the interactive session can (the stock ApolloService does the same via its
+/// SYSTEM service wrapper). If no helper is available it falls back to a direct
+/// elevated-admin start, which works for normal capture but not the UAC prompt.
+/// A user can override the helper path in settings. See docs/elevation.md.
 /// </summary>
 public sealed class ProcessLauncher : IProcessLauncher
 {
@@ -25,19 +27,41 @@ public sealed class ProcessLauncher : IProcessLauncher
         if (string.IsNullOrEmpty(workDir))
             workDir = Environment.CurrentDirectory;
 
-        // Only an explicitly-configured helper is used. Auto-probing a bundled
-        // PaExec was removed: it spun up a service and could surface extra
-        // consent/AV prompts even when the launcher was already elevated. A
-        // direct child start inherits elevation silently, which is what we want.
-        if (!string.IsNullOrWhiteSpace(helperExePath) && File.Exists(helperExePath))
+        var helper = ResolveHelper(helperExePath);
+        if (!string.IsNullOrWhiteSpace(helper))
         {
-            var pid = await StartViaHelperAsync(helperExePath, sunshineExePath, configPath, workDir, instanceId, cancellationToken).ConfigureAwait(false);
+            var pid = await StartViaHelperAsync(helper, sunshineExePath, configPath, workDir, instanceId, cancellationToken).ConfigureAwait(false);
             if (pid is > 0)
                 return pid;
-            // Helper could not produce a pid — fall back to direct start.
+            // Helper could not produce a pid — fall back to a direct elevated start.
         }
 
         return StartDirect(sunshineExePath, configPath, workDir);
+    }
+
+    /// <summary>Explicit helper wins; otherwise probe for the bundled paexec.exe.</summary>
+    private static string? ResolveHelper(string? configured)
+    {
+        if (!string.IsNullOrWhiteSpace(configured) && File.Exists(configured))
+            return configured;
+
+        var appDir = AppContext.BaseDirectory;
+        var candidates = new[]
+        {
+            Path.Combine(appDir, "paexec.exe"),
+            Path.Combine(appDir, "PAExec", "paexec.exe"),
+            Path.Combine(appDir, "bin", "PAExec", "paexec.exe"),
+        };
+        foreach (var c in candidates)
+        {
+            try
+            {
+                if (File.Exists(c))
+                    return c;
+            }
+            catch { /* ignore */ }
+        }
+        return null;
     }
 
     private static int? StartDirect(string exe, string configPath, string workDir)

@@ -46,6 +46,12 @@
     <Resource Include="app.ico" />
   </ItemGroup>
   <ItemGroup>
+    <!-- Bundle PaExec next to the exe. The launcher uses it to start sunshine as
+         SYSTEM in the interactive session so Apollo can capture the UAC secure
+         desktop (an elevated-admin process cannot). -->
+    <None Include="..\..\bin\PAExec\paexec.exe" Link="paexec.exe" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
     <EmbeddedResource Remove="i18n\Resources*.resx" />
   </ItemGroup>
 

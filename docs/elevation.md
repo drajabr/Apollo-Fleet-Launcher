@@ -2,7 +2,7 @@
 
 ## Goal
 
-Apollo (`sunshine.exe`) must run in the **interactive user session** with access to the desktop, audio devices, and GPU stack. Starting it as a child of a normal WinUI process usually satisfies this. Some setups still require launching via a **session-aware helper** (legacy AutoHotkey builds used PaExec-style tools).
+Apollo (`sunshine.exe`) must run in the **interactive console session** *and as SYSTEM* to be fully useful: capturing the **UAC secure desktop** (the dimmed elevation prompt) is only possible for a process running as **SYSTEM in the interactive session**. An elevated-*admin* process cannot grab the secure desktop — this is a hard Windows restriction, and it's why the stock `ApolloService` runs Sunshine through a SYSTEM service wrapper (`sunshinesvc.exe`).
 
 ## Chosen approach
 
@@ -10,24 +10,19 @@ Apollo (`sunshine.exe`) must run in the **interactive user session** with access
 
 - `IProcessLauncher.StartSunshineAsync(sunshineExePath, configPath, instanceId, helperExePath, ...)`
 
-### 1. Direct start (default, always used unless a helper is configured)
+### 1. SYSTEM launch via bundled PaExec (default)
 
-The app uses `Process.Start` with `UseShellExecute = false` and `CreateNoWindow = true` (sunshine.exe is a console-subsystem binary — without `CREATE_NO_WINDOW` every instance pops a visible console), passing the config file as the argument. The child **inherits the launcher's token and session**:
+ApolloFleet ships `paexec.exe` next to the app and, because it is always elevated (`requireAdministrator`), uses it to start each instance as **SYSTEM in the active console session**: `paexec -accepteula -i <WTSGetActiveConsoleSessionId> -s powershell.exe -Command "Start-Process -WindowStyle Hidden sunshine <conf>"`. The PID is written to a temp file and read back (with a fallback that detects the newly-spawned `sunshine` process). Running as SYSTEM in the interactive session is what lets Apollo capture the UAC secure desktop, matching the stock service's behavior.
 
-- Launcher runs **unelevated** → Sunshine runs unelevated.
-- Launcher runs **elevated** (via "Run as administrator" or the Highest-privilege logon task) → Sunshine runs **elevated too, with no additional UAC prompt** and no helper service.
+A user may override the helper with their own path in settings; an explicit path wins over the bundled one.
 
-This is why the launcher does **not** auto-probe a bundled PaExec: doing so spun up a service and could surface extra consent / AV prompts even when the launcher was already elevated. A direct child start inherits elevation silently, which is what we want.
+Each instance's `.conf` points `cert` / `pkey` (TLS material) and all state into the machine-wide fleet directory (`%ProgramData%\ApolloFleet\fleet`), which SYSTEM can write; Sunshine generates them on first launch. Leaving those at their defaults makes Sunshine resolve them against its install directory and die with `use_certificate_chain_file: Access is denied`.
 
-Because unelevated instances can't write into the Apollo install dir, each instance's `.conf` points `cert` / `pkey` (TLS material) into the user-writable fleet directory; Sunshine generates them on first launch. Leaving those at their defaults makes Sunshine resolve them against its install directory and die with `use_certificate_chain_file: Access is denied` when ApolloFleet is not elevated.
+### 2. Direct elevated start (fallback)
 
-### 2. PaExec-compatible helper (optional, explicit only)
+If no helper is found (or it fails to yield a PID), the app falls back to `Process.Start` with `UseShellExecute = false` and `CreateNoWindow = true`, inheriting the launcher's elevated-admin token. This works for normal desktop/audio/GPU capture **but cannot capture the UAC secure desktop** — restore `paexec.exe` next to the app (or set a helper path) to get that back.
 
-If — and only if — the user sets an **Optional PaExec-compatible helper** path in settings (e.g. `paexec.exe`), ApolloFleet starts Sunshine the way the legacy AHK launcher did: the helper runs PowerShell in the **active console session** (`WTSGetActiveConsoleSessionId`) to `Start-Process` Sunshine hidden and writes the PID to a temp file. If the helper yields no PID, the launcher **falls back to direct start**.
-
-**Use when:** the launcher runs from a true session-0 service context and Sunshine must be placed into the interactive session — a case the direct child start above does not cover.
-
-**Caveats:** Third-party helpers can trigger **defender / AV heuristics**. ApolloFleet no longer ships PaExec; supply your own path.
+**Caveats:** PaExec is a third-party tool and can trip **Defender / AV heuristics**; you may need an exclusion. It briefly installs a per-launch service to obtain the SYSTEM token.
 
 ## Privileges and UAC
 

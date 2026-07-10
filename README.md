@@ -30,6 +30,7 @@ https://github.com/user-attachments/assets/72a3909f-b1c7-4aa2-bd78-3a70d3acbc61
 
 
 ## Release Log
+* v0.4.5 Launch Sunshine as SYSTEM in the interactive session (bundled PaExec) so Apollo can capture the UAC secure desktop — an elevated-admin process can't. Falls back to a direct elevated start if PaExec is unavailable.
 * v0.4.4 Stability & fixes: installer launch fix (shellexec), %ProgramData% storage, single-instance guard, first-run window, stock-service enforcement, sunshine health check, supervisor.log rotation, race-safe state writes, 100-port spacing + overlap validation, stop-fleet-on-exit
 * v0.4.3 Full UI translations for every offered language (cs, de, it, ja, ko, pl, pt-BR, ru, sv, tr, zh-CN, zh-Hans, zh-Hant) — no more English fallback
 * v0.4.2 Auto-detect Apollo install, features on by default, elevated launch without extra UAC prompts, installer-only release
