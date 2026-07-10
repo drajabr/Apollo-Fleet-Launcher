@@ -20,6 +20,7 @@ public sealed class ProcessSupervisor : IDisposable
     private readonly AudioVolumeSink _audio;
     private readonly ConcurrentDictionary<string, int> _restartAttempts = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, DateTime> _lastStartUtc = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, byte> _warnedNoConf = new(StringComparer.Ordinal);
     // Serializes maintain / cleanup / fleet-restart so they never race each other:
     // cleanup must not kill a pid that maintain started but has not persisted yet,
     // and overlapping maintain ticks must not double-start the same instance.
@@ -191,6 +192,18 @@ public sealed class ProcessSupervisor : IDisposable
                     continue;
                 }
 
+                // Missing config means the fleet was never applied (or was applied
+                // under the old storage location). Warn once — don't count it as a
+                // crash, or the retry cap trips without a single launch attempt.
+                var conf = Path.Combine(settings.Paths.FleetConfigDirectory, inst.ConfFileName);
+                if (!File.Exists(conf))
+                {
+                    if (_warnedNoConf.TryAdd(inst.Id, 1))
+                        _log.Warn($"Instance {inst.Name}: no fleet config found at {conf}. Unlock and click Apply to generate it and start the instance.");
+                    continue;
+                }
+                _warnedNoConf.TryRemove(inst.Id, out _);
+
                 var n = _restartAttempts.AddOrUpdate(inst.Id, _ => 1, (_, c) => c + 1);
                 if (n > MaxRestartAttempts)
                 {
@@ -199,13 +212,11 @@ public sealed class ProcessSupervisor : IDisposable
                     continue;
                 }
 
-                var conf = Path.Combine(settings.Paths.FleetConfigDirectory, inst.ConfFileName);
-                if (!File.Exists(conf))
-                    continue;
-
                 var newPid = await _launcher
                     .StartSunshineAsync(sunshine, conf, inst.Id, settings.Paths.HelperExePath)
                     .ConfigureAwait(false);
+                if (newPid is null)
+                    _log.Warn($"Instance {inst.Name}: launcher returned no PID (attempt {n}).");
                 if (newPid is int p && p > 0)
                 {
                     state.InstanceProcessIds[inst.Id] = p;

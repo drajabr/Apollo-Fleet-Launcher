@@ -21,6 +21,10 @@ public sealed class ProcessLauncher : IProcessLauncher
     [DllImport("kernel32.dll")]
     private static extern uint WTSGetActiveConsoleSessionId();
 
+    private readonly FileLogWriter _log;
+
+    public ProcessLauncher(FileLogWriter log) => _log = log;
+
     public async Task<int?> StartSunshineAsync(string sunshineExePath, string configPath, string instanceId, string? helperExePath, CancellationToken cancellationToken = default)
     {
         var workDir = Path.GetDirectoryName(sunshineExePath);
@@ -30,13 +34,38 @@ public sealed class ProcessLauncher : IProcessLauncher
         var helper = ResolveHelper(helperExePath);
         if (!string.IsNullOrWhiteSpace(helper))
         {
-            var pid = await StartViaHelperAsync(helper, sunshineExePath, configPath, workDir, instanceId, cancellationToken).ConfigureAwait(false);
-            if (pid is > 0)
-                return pid;
-            // Helper could not produce a pid — fall back to a direct elevated start.
+            // Never let a helper failure bubble up — the supervisor's tick swallows
+            // exceptions, which would silently prevent the direct-start fallback.
+            try
+            {
+                var pid = await StartViaHelperAsync(helper, sunshineExePath, configPath, workDir, instanceId, cancellationToken).ConfigureAwait(false);
+                if (pid is > 0)
+                    return pid;
+                _log.Warn("SYSTEM launch via PaExec produced no PID; falling back to a direct elevated start (UAC secure-desktop capture unavailable).");
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _log.Warn($"SYSTEM launch via PaExec failed ({ex.Message}); falling back to a direct elevated start. If this persists it's usually AV blocking paexec.exe — add an exclusion.");
+            }
+        }
+        else
+        {
+            _log.Warn("paexec.exe not found next to the app; starting sunshine as elevated admin (cannot capture the UAC secure desktop).");
         }
 
-        return StartDirect(sunshineExePath, configPath, workDir);
+        try
+        {
+            return StartDirect(sunshineExePath, configPath, workDir);
+        }
+        catch (Exception ex)
+        {
+            _log.Error($"Direct start of sunshine failed: {ex.Message}");
+            return null;
+        }
     }
 
     /// <summary>Explicit helper wins; otherwise probe for the bundled paexec.exe.</summary>

@@ -1,4 +1,7 @@
-﻿using ApolloFleet.Core;
+﻿using System;
+using System.IO;
+using System.Linq;
+using ApolloFleet.Core;
 using ApolloFleet.Core.Models;
 
 namespace ApolloFleet.App.Services;
@@ -44,6 +47,39 @@ public sealed class FleetCoordinator
         await _supervisor.RestartFleetAsync(cancellationToken).ConfigureAwait(false);
         ApplyAutostart(settings);
         _log.Info("Apply completed.");
+    }
+
+    /// <summary>
+    /// Generate the per-instance fleet config (.conf/apps/state/cert paths) when it's
+    /// missing, so the supervisor can start instances on a fresh install without a
+    /// manual Apply. The applier merges into any existing files, so this is idempotent
+    /// and preserves user edits; it only runs when a config is actually absent.
+    /// </summary>
+    public async Task EnsureFleetConfigAsync(AppSettings settings, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var sunshine = settings.Paths.SunshineExePath;
+            if (string.IsNullOrEmpty(sunshine) || !File.Exists(sunshine))
+                return;
+
+            var dir = settings.Paths.FleetConfigDirectory;
+            if (string.IsNullOrWhiteSpace(dir))
+                return;
+
+            var anyMissing = settings.Instances
+                .Where(i => i.Enabled)
+                .Any(i => !File.Exists(Path.Combine(dir, i.ConfFileName)));
+            if (!anyMissing)
+                return;
+
+            await _applier.ApplyAsync(settings, cancellationToken).ConfigureAwait(false);
+            _log.Info("Generated missing fleet configuration so instances can start.");
+        }
+        catch (Exception ex)
+        {
+            _log.Info($"Ensure fleet config failed: {ex.Message}");
+        }
     }
 
     /// <summary>

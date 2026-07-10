@@ -144,6 +144,9 @@ public partial class MainViewModel : ObservableObject
         CaptureSnapshot();
         RefreshApolloFound();
         RefreshLabels();
+        // Generate the fleet config if it's missing (fresh install / never applied)
+        // so the supervisor has .conf files to launch from. Do it before Start().
+        await Task.Run(() => _coordinator.EnsureFleetConfigAsync(Draft)).ConfigureAwait(true);
         _supervisor.UpdateRuntimeOptions(Draft, Draft.Manager.SyncVolume);
         _supervisor.Start();
         // Enforce the stock-service policy off the UI thread (stopping a service
