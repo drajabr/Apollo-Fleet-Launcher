@@ -153,13 +153,26 @@
                         <Border Grid.Column="0"
                                 BorderThickness="1"
                                 BorderBrush="{DynamicResource ControlStrokeColorSecondaryBrush}"
-                                CornerRadius="4">
+                                CornerRadius="4"
+                                VerticalAlignment="Top"
+                                Height="{Binding ActualHeight, ElementName=EditorPanel}">
                             <ListBox x:Name="FleetListBox"
                                      BorderThickness="0"
                                      ItemsSource="{Binding Draft.Instances}"
                                      DisplayMemberPath="Name"
                                      SelectedItem="{Binding SelectedInstance}"
                                      IsEnabled="True">
+                                <ListBox.Style>
+                                    <Style TargetType="ListBox" BasedOn="{StaticResource {x:Type ListBox}}">
+                                        <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Hidden"/>
+                                        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
+                                        <Style.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ListBox.Style>
                                 <ListBox.ItemContainerStyle>
                                     <Style TargetType="ListBoxItem">
                                         <Setter Property="Margin" Value="4,2"/>
@@ -196,7 +209,7 @@
                             </ListBox>
                         </Border>
 
-                        <Grid Grid.Column="1" Margin="12,0,0,0">
+                        <Grid Grid.Column="1" x:Name="EditorPanel" Margin="12,0,0,0">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
