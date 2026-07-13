@@ -18,9 +18,13 @@ public sealed class ProcessSupervisor : IDisposable
     private readonly IInstanceHealthComputer _health;
     private readonly FileLogWriter _log;
     private readonly AudioVolumeSink _audio;
+    private readonly WindowsServiceFacade _windowsSvc;
     private readonly ConcurrentDictionary<string, int> _restartAttempts = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, DateTime> _lastStartUtc = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, byte> _warnedNoConf = new(StringComparer.Ordinal);
+    // 0 = not warned, 1 = warned; lets us log the "stock service active, skipping kill"
+    // notice once per active spell rather than every 10s cleanup tick.
+    private int _warnedStockActive;
     // Serializes maintain / cleanup / fleet-restart so they never race each other:
     // cleanup must not kill a pid that maintain started but has not persisted yet,
     // and overlapping maintain ticks must not double-start the same instance.
@@ -40,13 +44,15 @@ public sealed class ProcessSupervisor : IDisposable
         IProcessLauncher launcher,
         IInstanceHealthComputer health,
         FileLogWriter log,
-        AudioVolumeSink audio)
+        AudioVolumeSink audio,
+        WindowsServiceFacade windowsSvc)
     {
         _store = store;
         _launcher = launcher;
         _health = health;
         _log = log;
         _audio = audio;
+        _windowsSvc = windowsSvc;
     }
 
     public void UpdateRuntimeOptions(AppSettings settings, bool syncVolume)
@@ -75,7 +81,7 @@ public sealed class ProcessSupervisor : IDisposable
                 foreach (var id in settings.Instances.Select(i => i.Id))
                     st.InstanceProcessIds[id] = 0;
             }, cancellationToken).ConfigureAwait(false);
-            await StaggerStartAsync(settings, cancellationToken).ConfigureAwait(false);
+            await StartEnabledInstancesAsync(settings, cancellationToken).ConfigureAwait(false);
         }
         finally
         {
@@ -125,23 +131,29 @@ public sealed class ProcessSupervisor : IDisposable
         }
     }
 
-    private async Task StaggerStartAsync(AppSettings settings, CancellationToken ct)
+    private async Task StartEnabledInstancesAsync(AppSettings settings, CancellationToken ct)
     {
         var sunshine = settings.Paths.SunshineExePath;
         if (string.IsNullOrEmpty(sunshine) || !File.Exists(sunshine))
             return;
 
-        var idx = 0;
-        foreach (var inst in settings.Instances.Where(i => i.Enabled))
-        {
-            var delay = TimeSpan.FromMilliseconds(800 * idx++);
-            if (delay > TimeSpan.Zero)
-                await Task.Delay(delay, ct).ConfigureAwait(false);
+        var fleetDir = settings.Paths.FleetConfigDirectory;
 
-            var fleetDir = settings.Paths.FleetConfigDirectory;
+        // Launch every enabled instance at once. This is safe for PID tracking:
+        // each launch writes to its own per-instance pid file, and state writes go
+        // through UpdateStateAsync, which serializes read-modify-write behind a
+        // semaphore so concurrent PID updates can't clobber each other.
+        var starts = settings.Instances
+            .Where(i => i.Enabled)
+            .Select(inst => StartOneAsync(inst))
+            .ToArray();
+        await Task.WhenAll(starts).ConfigureAwait(false);
+
+        async Task StartOneAsync(FleetInstance inst)
+        {
             var conf = Path.Combine(fleetDir, inst.ConfFileName);
             if (!File.Exists(conf))
-                continue;
+                return;
 
             var pid = await _launcher
                 .StartSunshineAsync(sunshine, conf, inst.Id, settings.Paths.HelperExePath, ct)
@@ -257,20 +269,35 @@ public sealed class ProcessSupervisor : IDisposable
                     keep.Add(pid);
             }
 
-            foreach (var p in Process.GetProcessesByName("sunshine"))
+            // If the stock ApolloService is still running, it owns its own sunshine.exe
+            // and will respawn any we kill — force-killing untracked sunshines here just
+            // starts an endless kill/restart loop (the "infinite taskbar icons" bug).
+            // Only sweep untracked sunshines when the stock service is confirmed stopped
+            // (i.e. it was disabled gracefully). File pruning below is always safe.
+            var stockServiceActive = _windowsSvc.IsApolloServiceRunning();
+            if (stockServiceActive)
             {
-                try
+                if (Interlocked.Exchange(ref _warnedStockActive, 1) == 0)
+                    _log.Warn("Stock ApolloService is running; skipping sunshine cleanup so it isn't fought in a restart loop. Disable Apollo's stock service (or enable Auto Run) to let the fleet manage sunshine.");
+            }
+            else
+            {
+                Interlocked.Exchange(ref _warnedStockActive, 0);
+                foreach (var p in Process.GetProcessesByName("sunshine"))
                 {
-                    if (!keep.Contains(p.Id))
-                        p.Kill(entireProcessTree: true);
-                }
-                catch
-                {
-                    /* ignore */
-                }
-                finally
-                {
-                    p.Dispose();
+                    try
+                    {
+                        if (!keep.Contains(p.Id))
+                            p.Kill(entireProcessTree: true);
+                    }
+                    catch
+                    {
+                        /* ignore */
+                    }
+                    finally
+                    {
+                        p.Dispose();
+                    }
                 }
             }
 

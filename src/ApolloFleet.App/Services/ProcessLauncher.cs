@@ -129,7 +129,10 @@ public sealed class ProcessLauncher : IProcessLauncher
         var safeTmp = tmp.Replace("'", "''");
         // Mirror legacy AHK launch sequence exactly: Start-Process + shell redirection to pid file.
         var ps = $"$p=Start-Process -WindowStyle Hidden -FilePath '{safeExe}' -ArgumentList '{safeCfg}' -PassThru;$p.Id>'{safeTmp}'";
-        var args = $"-accepteula -i {session} -w \"{workDir}\" -s \"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\" -Command \"{ps}\"";
+        // -WindowStyle Hidden keeps powershell's own console off the interactive
+        // desktop; without it every instance flashes a black SYSTEM console window
+        // (paexec runs powershell in session 1, so our CreateNoWindow can't cover it).
+        var args = $"-accepteula -i {session} -w \"{workDir}\" -s \"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\" -NoProfile -NonInteractive -WindowStyle Hidden -Command \"{ps}\"";
         var psi = new ProcessStartInfo
         {
             FileName = helper,
@@ -155,21 +158,24 @@ public sealed class ProcessLauncher : IProcessLauncher
             await Task.Delay(10, ct).ConfigureAwait(false);
         }
 
-        // Fallback: if pid file could not be read, detect newly spawned sunshine process.
+        // Fallback: if the pid file could not be read, detect the newly spawned
+        // sunshine process. Only claim when EXACTLY ONE new sunshine exists — during
+        // a simultaneous fleet start several launches run at once, and guessing among
+        // multiple new processes would attribute the wrong PID to this instance.
         for (var i = 0; i < 30; i++)
         {
             ct.ThrowIfCancellationRequested();
-            foreach (var p in Process.GetProcessesByName("sunshine"))
+            var all = Process.GetProcessesByName("sunshine");
+            try
             {
-                try
-                {
-                    if (!preExisting.Contains(p.Id))
-                        return p.Id;
-                }
-                finally
-                {
+                var fresh = all.Select(p => p.Id).Where(id => !preExisting.Contains(id)).ToList();
+                if (fresh.Count == 1)
+                    return fresh[0];
+            }
+            finally
+            {
+                foreach (var p in all)
                     p.Dispose();
-                }
             }
 
             await Task.Delay(50, ct).ConfigureAwait(false);

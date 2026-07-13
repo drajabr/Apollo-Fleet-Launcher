@@ -6,4 +6,7 @@
     <RootNamespace>ApolloFleet.Core</RootNamespace>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="ApolloFleet.Core.Tests" />
+  </ItemGroup>
 </Project>

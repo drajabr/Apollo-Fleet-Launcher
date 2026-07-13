@@ -40,6 +40,15 @@ public partial class App : Application
         {
             Services = ServiceBootstrapper.Create();
 
+            // Bring pre-v0.4.4 config (<exeDir>\config) forward to %ProgramData%\ApolloFleet
+            // BEFORE the first load, so upgraders keep their instances and device pairings
+            // instead of getting a fresh single-instance default. Runs at most once.
+            if (LegacyConfigMigrator.TryMigrate(out var migrationMessage))
+            {
+                try { Services.GetRequiredService<FileLogWriter>().Info(migrationMessage); }
+                catch { /* logging must never block startup */ }
+            }
+
             var store = Services.GetRequiredService<ISettingsStore>();
             var firstRun = !System.IO.File.Exists(ApolloFleet.Core.AppStoragePaths.SettingsPath);
             var settings = await store.LoadSettingsAsync().ConfigureAwait(true);

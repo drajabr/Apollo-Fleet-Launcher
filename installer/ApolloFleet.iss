@@ -1,10 +1,10 @@
 ; Inno Setup script for Apollo Fleet Launcher (WinUI/WPF .NET port).
 ;
 ; All-users install to Program Files (requires admin): the app always runs
-; elevated (requireAdministrator), so it can write its `config` folder next to
-; the exe there (see ApolloFleet.Core/AppStoragePaths.cs). There is deliberately
-; no per-user "just for me" option — an unelevated install would be useless
-; because the app cannot function without elevation.
+; elevated (requireAdministrator). It stores its settings/state/fleet config under
+; %ProgramData%\ApolloFleet (see ApolloFleet.Core/AppStoragePaths.cs), NOT next to
+; the exe. There is deliberately no per-user "just for me" option — an unelevated
+; install would be useless because the app cannot function without elevation.
 ;
 ; Expects a self-contained publish so no separate .NET runtime is required.
 ; Version and the payload folder are passed in from CI:
@@ -72,5 +72,9 @@ Filename: "{app}\{#AppExe}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags
 Filename: "{sys}\schtasks.exe"; Parameters: "/Delete /TN ""{#TaskName}"" /F"; Flags: runhidden; RunOnceId: "DelApolloFleetTask"
 
 [UninstallDelete]
-; Clean up the machine-wide config/state/logs the app creates at runtime.
-Type: filesandordirs; Name: "{commonappdata}\ApolloFleet"
+; Only remove volatile logs on uninstall. User settings, fleet config and device
+; pairings (%ProgramData%\ApolloFleet\settings.json + fleet\) are intentionally
+; PRESERVED so an uninstall-then-reinstall style update never wipes the user's
+; setup or forces them to re-pair (GitHub #27). Delete that folder by hand for a
+; full clean removal.
+Type: filesandordirs; Name: "{commonappdata}\ApolloFleet\logs"

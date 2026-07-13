@@ -94,8 +94,10 @@ public sealed class FleetCoordinator
         {
             if (settings.Manager.AutoStart && _windowsSvc.IsApolloServiceInstalled())
             {
-                _windowsSvc.DisableAndStopApolloService();
-                _log.Info("Auto Run enabled: ensured the stock ApolloService is disabled.");
+                if (_windowsSvc.DisableAndStopApolloService())
+                    _log.Info("Auto Run enabled: ensured the stock ApolloService is disabled.");
+                else
+                    _log.Warn("Auto Run enabled but the stock ApolloService could not be stopped/disabled gracefully; the fleet will not force-kill its sunshine to avoid a restart loop.");
             }
         }
         catch (Exception ex)
@@ -114,8 +116,8 @@ public sealed class FleetCoordinator
         {
             if (settings.Manager.AutoStart)
             {
-                if (_windowsSvc.IsApolloServiceInstalled())
-                    _windowsSvc.DisableAndStopApolloService();
+                if (_windowsSvc.IsApolloServiceInstalled() && !_windowsSvc.DisableAndStopApolloService())
+                    _log.Warn("Could not stop/disable the stock ApolloService gracefully; leaving its sunshine alone to avoid a restart loop.");
                 _tasks.Sync(true, exe);
             }
             else
