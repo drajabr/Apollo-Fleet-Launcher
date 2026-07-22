@@ -32,11 +32,19 @@ public sealed class FleetConfigurationApplier : IFleetConfigurationApplier
             AtomicFileWriter.WriteText(appsPath, appsText);
 
             // Apollo expects credentials_file / file_state to be openable on launch.
-            // Seed an empty JSON object so sunshine.exe doesn't terminate with boost::system_error
-            // ("File ... doesn't exist") on a fresh fleet before the WebUI has written credentials.
+            // Seed the state so sunshine.exe doesn't terminate with boost::system_error
+            // ("File ... doesn't exist") on a fresh fleet. Crucially, seed the persistent
+            // uuid when we have one so a regenerated state file keeps the SAME host id and
+            // Moonlight doesn't show a new duplicate host. Only seed when absent — an
+            // existing state file (with its paired clients) is never overwritten.
             var statePath = Path.Combine(fleetDir, instance.StateFileName);
             if (!File.Exists(statePath))
-                AtomicFileWriter.WriteText(statePath, "{}\n");
+            {
+                var seed = string.IsNullOrWhiteSpace(instance.Uuid)
+                    ? "{}\n"
+                    : $"{{\"root\":{{\"uniqueid\":\"{instance.Uuid}\"}}}}\n";
+                AtomicFileWriter.WriteText(statePath, seed);
+            }
         }
 
         return Task.CompletedTask;

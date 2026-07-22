@@ -30,6 +30,7 @@ https://github.com/user-attachments/assets/72a3909f-b1c7-4aa2-bd78-3a70d3acbc61
 
 
 ## Release Log
+* v0.4.7 Persist each instance's Apollo host id (uuid) in settings and re-seed it into a regenerated state file, so Moonlight keeps a single host entry per instance instead of a new duplicate after resets. Existing paired hosts keep their identity (adopted from the current state file).
 * v0.4.6 Fix instances not starting on a fresh install: auto-generate the fleet config on startup (no manual Apply needed), fall back to a direct elevated start if PaExec fails instead of silently doing nothing, and log why an instance didn't start (missing config, PaExec/AV failure, no PID)
 * v0.4.5 Launch Sunshine as SYSTEM in the interactive session (bundled PaExec) so Apollo can capture the UAC secure desktop — an elevated-admin process can't. Falls back to a direct elevated start if PaExec is unavailable.
 * v0.4.4 Stability & fixes: installer launch fix (shellexec), %ProgramData% storage, single-instance guard, first-run window, stock-service enforcement, sunshine health check, supervisor.log rotation, race-safe state writes, 100-port spacing + overlap validation, stop-fleet-on-exit

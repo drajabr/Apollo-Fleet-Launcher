@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using ApolloFleet.Core;
 using ApolloFleet.Core.Models;
 
@@ -47,6 +48,66 @@ public sealed class FleetCoordinator
         await _supervisor.RestartFleetAsync(cancellationToken).ConfigureAwait(false);
         ApplyAutostart(settings);
         _log.Info("Apply completed.");
+    }
+
+    /// <summary>
+    /// Ensure every instance has a persistent host id (Uuid). Adopt the uniqueid from an
+    /// existing state file first — so an already-paired host keeps the identity Moonlight
+    /// knows — otherwise generate a fresh one. Persists settings if anything changed. This
+    /// is what makes the host id survive future state-file regeneration instead of Moonlight
+    /// seeing a new duplicate host each time.
+    /// </summary>
+    public async Task EnsureInstanceUuidsAsync(AppSettings settings, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var dir = settings.Paths.FleetConfigDirectory;
+            var changed = false;
+
+            foreach (var inst in settings.Instances)
+            {
+                if (!string.IsNullOrWhiteSpace(inst.Uuid))
+                    continue;
+
+                string? adopted = null;
+                try
+                {
+                    if (!string.IsNullOrWhiteSpace(dir))
+                    {
+                        var sp = Path.Combine(dir, inst.StateFileName);
+                        if (File.Exists(sp))
+                        {
+                            using var doc = JsonDocument.Parse(File.ReadAllText(sp));
+                            if (doc.RootElement.TryGetProperty("root", out var root)
+                                && root.TryGetProperty("uniqueid", out var uid)
+                                && uid.ValueKind == JsonValueKind.String)
+                            {
+                                var v = uid.GetString();
+                                if (!string.IsNullOrWhiteSpace(v))
+                                    adopted = v;
+                            }
+                        }
+                    }
+                }
+                catch
+                {
+                    /* malformed state — fall through to a generated id */
+                }
+
+                inst.Uuid = adopted ?? Guid.NewGuid().ToString().ToUpperInvariant();
+                changed = true;
+            }
+
+            if (changed)
+            {
+                await _store.SaveSettingsAsync(settings, false, cancellationToken).ConfigureAwait(false);
+                _log.Info("Assigned persistent host id(s) to fleet instance(s) so Moonlight keeps one entry per instance.");
+            }
+        }
+        catch (Exception ex)
+        {
+            _log.Info($"Ensure instance uuids failed: {ex.Message}");
+        }
     }
 
     /// <summary>

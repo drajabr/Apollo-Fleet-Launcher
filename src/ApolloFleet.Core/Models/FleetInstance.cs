@@ -11,6 +11,7 @@ public sealed class FleetInstance : INotifyPropertyChanged
     private bool _enabled = true;
     private string? _audioDeviceId;
     private bool _headless;
+    private string _uuid = "";
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -18,6 +19,18 @@ public sealed class FleetInstance : INotifyPropertyChanged
     {
         get => _id;
         set => SetField(ref _id, value);
+    }
+
+    /// <summary>
+    /// The persistent Apollo/Sunshine host id (state <c>root.uniqueid</c>) that Moonlight
+    /// uses to identify this host. Stored here so it survives regeneration of the fleet
+    /// state file — otherwise each regeneration mints a new id and Moonlight shows a
+    /// duplicate host. Empty until adopted from an existing state file or generated.
+    /// </summary>
+    public string Uuid
+    {
+        get => _uuid;
+        set => SetField(ref _uuid, value);
     }
 
     public string Name

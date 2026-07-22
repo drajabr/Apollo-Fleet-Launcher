@@ -139,6 +139,9 @@ public partial class MainViewModel : ObservableObject
             if (!string.IsNullOrEmpty(detected))
                 Draft.Paths.ApolloRoot = detected;
         }
+        // Assign/adopt a persistent host id per instance before snapshotting, so a
+        // regenerated state file keeps the same Moonlight identity (no duplicates).
+        await Task.Run(() => _coordinator.EnsureInstanceUuidsAsync(Draft)).ConfigureAwait(true);
         RuntimeState = st;
         LogPaneOpen = st.LogPaneOpen;
         CaptureSnapshot();
