@@ -30,4 +30,8 @@ public static class AppStoragePaths
 
     /// <summary>Default fleet config directory (sunshine .conf / apps / state files).</summary>
     public static string FleetDirectory => Path.Combine(RootDirectory, "fleet");
+
+    /// <summary>Downloaded self-update installers. Not under Program Files, so the
+    /// running app can write here and the installer can replace itself safely.</summary>
+    public static string UpdatesDirectory => Path.Combine(RootDirectory, "updates");
 }

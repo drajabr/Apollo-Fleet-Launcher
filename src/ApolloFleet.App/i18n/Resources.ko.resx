@@ -53,4 +53,17 @@
   <data name="Group_FleetOptions_Header" xml:space="preserve"><value>설정</value></data>
   <data name="Settings_Language" xml:space="preserve"><value>언어</value></data>
   <data name="PortValidation_TooClose" xml:space="preserve"><value>인스턴스 포트가 너무 가까워 Apollo 포트 범위가 겹칩니다. 최소 100 이상 간격을 두세요.</value></data>
+  <data name="Update_Tooltip_Check" xml:space="preserve"><value>업데이트 확인</value></data>
+  <data name="Update_Tooltip_Checking" xml:space="preserve"><value>업데이트 확인 중...</value></data>
+  <data name="Update_Tooltip_UpToDate" xml:space="preserve"><value>최신 버전입니다 ({0})</value></data>
+  <data name="Update_Label_Available" xml:space="preserve"><value>업데이트 {0}</value></data>
+  <data name="Update_Tooltip_Available" xml:space="preserve"><value>업데이트 {0} 사용 가능 - 클릭하여 다운로드</value></data>
+  <data name="Update_Tooltip_Downloading" xml:space="preserve"><value>업데이트 다운로드 중... {0}%</value></data>
+  <data name="Update_Label_Install" xml:space="preserve"><value>설치</value></data>
+  <data name="Update_Tooltip_Install" xml:space="preserve"><value>업데이트를 설치하고 다시 시작</value></data>
+  <data name="Update_Tooltip_Error" xml:space="preserve"><value>업데이트 실패: {0}</value></data>
+  <data name="Tooltip_ToggleTheme" xml:space="preserve"><value>테마: {0} (클릭하여 변경)</value></data>
+  <data name="Theme_Light" xml:space="preserve"><value>밝게</value></data>
+  <data name="Theme_Dark" xml:space="preserve"><value>어둡게</value></data>
+  <data name="Theme_Auto" xml:space="preserve"><value>자동</value></data>
 </root>

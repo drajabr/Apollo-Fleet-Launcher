@@ -53,4 +53,17 @@
   <data name="Group_FleetOptions_Header" xml:space="preserve"><value>Einstellungen</value></data>
   <data name="Settings_Language" xml:space="preserve"><value>Sprache</value></data>
   <data name="PortValidation_TooClose" xml:space="preserve"><value>Die Instanz-Ports liegen zu nah beieinander und ihre Apollo-Portbereiche überschneiden sich. Halten Sie mindestens 100 Abstand.</value></data>
+  <data name="Update_Tooltip_Check" xml:space="preserve"><value>Nach Updates suchen</value></data>
+  <data name="Update_Tooltip_Checking" xml:space="preserve"><value>Suche nach Updates...</value></data>
+  <data name="Update_Tooltip_UpToDate" xml:space="preserve"><value>Sie sind auf dem neuesten Stand ({0})</value></data>
+  <data name="Update_Label_Available" xml:space="preserve"><value>Update {0}</value></data>
+  <data name="Update_Tooltip_Available" xml:space="preserve"><value>Update {0} verfügbar - zum Herunterladen klicken</value></data>
+  <data name="Update_Tooltip_Downloading" xml:space="preserve"><value>Update wird heruntergeladen... {0}%</value></data>
+  <data name="Update_Label_Install" xml:space="preserve"><value>Installieren</value></data>
+  <data name="Update_Tooltip_Install" xml:space="preserve"><value>Update installieren und neu starten</value></data>
+  <data name="Update_Tooltip_Error" xml:space="preserve"><value>Update fehlgeschlagen: {0}</value></data>
+  <data name="Tooltip_ToggleTheme" xml:space="preserve"><value>Design: {0} (zum Ändern klicken)</value></data>
+  <data name="Theme_Light" xml:space="preserve"><value>Hell</value></data>
+  <data name="Theme_Dark" xml:space="preserve"><value>Dunkel</value></data>
+  <data name="Theme_Auto" xml:space="preserve"><value>Automatisch</value></data>
 </root>

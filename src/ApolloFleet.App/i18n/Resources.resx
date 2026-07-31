@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
   <resheader name="version"><value>2.0</value></resheader>
@@ -53,4 +53,17 @@
   <data name="Group_Fleet_Header" xml:space="preserve"><value>Fleet Setup</value></data>
   <data name="Group_FleetOptions_Header" xml:space="preserve"><value>Settings</value></data>
   <data name="PortValidation_TooClose" xml:space="preserve"><value>Instance ports are too close and their Apollo port ranges overlap. Space them at least 100 apart.</value></data>
+  <data name="Update_Tooltip_Check" xml:space="preserve"><value>Check for updates</value></data>
+  <data name="Update_Tooltip_Checking" xml:space="preserve"><value>Checking for updates...</value></data>
+  <data name="Update_Tooltip_UpToDate" xml:space="preserve"><value>You are up to date ({0})</value></data>
+  <data name="Update_Label_Available" xml:space="preserve"><value>Update {0}</value></data>
+  <data name="Update_Tooltip_Available" xml:space="preserve"><value>Update {0} is available - click to download</value></data>
+  <data name="Update_Tooltip_Downloading" xml:space="preserve"><value>Downloading update... {0}%</value></data>
+  <data name="Update_Label_Install" xml:space="preserve"><value>Install</value></data>
+  <data name="Update_Tooltip_Install" xml:space="preserve"><value>Install the update and restart</value></data>
+  <data name="Update_Tooltip_Error" xml:space="preserve"><value>Update failed: {0}</value></data>
+  <data name="Tooltip_ToggleTheme" xml:space="preserve"><value>Theme: {0} (click to change)</value></data>
+  <data name="Theme_Light" xml:space="preserve"><value>Light</value></data>
+  <data name="Theme_Dark" xml:space="preserve"><value>Dark</value></data>
+  <data name="Theme_Auto" xml:space="preserve"><value>Auto</value></data>
 </root>

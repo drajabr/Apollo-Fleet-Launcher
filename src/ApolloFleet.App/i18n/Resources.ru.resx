@@ -53,4 +53,17 @@
   <data name="Group_FleetOptions_Header" xml:space="preserve"><value>Настройки</value></data>
   <data name="Settings_Language" xml:space="preserve"><value>Язык</value></data>
   <data name="PortValidation_TooClose" xml:space="preserve"><value>Порты экземпляров расположены слишком близко, и диапазоны портов Apollo перекрываются. Разнесите их не менее чем на 100.</value></data>
+  <data name="Update_Tooltip_Check" xml:space="preserve"><value>Проверить обновления</value></data>
+  <data name="Update_Tooltip_Checking" xml:space="preserve"><value>Проверка обновлений...</value></data>
+  <data name="Update_Tooltip_UpToDate" xml:space="preserve"><value>У вас последняя версия ({0})</value></data>
+  <data name="Update_Label_Available" xml:space="preserve"><value>Обновить {0}</value></data>
+  <data name="Update_Tooltip_Available" xml:space="preserve"><value>Доступно обновление {0} - нажмите для загрузки</value></data>
+  <data name="Update_Tooltip_Downloading" xml:space="preserve"><value>Загрузка обновления... {0}%</value></data>
+  <data name="Update_Label_Install" xml:space="preserve"><value>Установить</value></data>
+  <data name="Update_Tooltip_Install" xml:space="preserve"><value>Установить обновление и перезапустить</value></data>
+  <data name="Update_Tooltip_Error" xml:space="preserve"><value>Ошибка обновления: {0}</value></data>
+  <data name="Tooltip_ToggleTheme" xml:space="preserve"><value>Тема: {0} (нажмите, чтобы изменить)</value></data>
+  <data name="Theme_Light" xml:space="preserve"><value>Светлая</value></data>
+  <data name="Theme_Dark" xml:space="preserve"><value>Тёмная</value></data>
+  <data name="Theme_Auto" xml:space="preserve"><value>Авто</value></data>
 </root>

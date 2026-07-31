@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
   <resheader name="version"><value>2.0</value></resheader>
@@ -53,4 +53,17 @@
   <data name="Group_FleetOptions_Header" xml:space="preserve"><value>Configuración</value></data>
   <data name="Settings_Language" xml:space="preserve"><value>Idioma</value></data>
   <data name="PortValidation_TooClose" xml:space="preserve"><value>Los puertos de las instancias están demasiado cerca y sus rangos de puertos de Apollo se solapan. Sepáralos al menos 100.</value></data>
+  <data name="Update_Tooltip_Check" xml:space="preserve"><value>Buscar actualizaciones</value></data>
+  <data name="Update_Tooltip_Checking" xml:space="preserve"><value>Buscando actualizaciones...</value></data>
+  <data name="Update_Tooltip_UpToDate" xml:space="preserve"><value>Está actualizado ({0})</value></data>
+  <data name="Update_Label_Available" xml:space="preserve"><value>Actualizar {0}</value></data>
+  <data name="Update_Tooltip_Available" xml:space="preserve"><value>La actualización {0} está disponible: haga clic para descargar</value></data>
+  <data name="Update_Tooltip_Downloading" xml:space="preserve"><value>Descargando actualización... {0}%</value></data>
+  <data name="Update_Label_Install" xml:space="preserve"><value>Instalar</value></data>
+  <data name="Update_Tooltip_Install" xml:space="preserve"><value>Instalar la actualización y reiniciar</value></data>
+  <data name="Update_Tooltip_Error" xml:space="preserve"><value>Error de actualización: {0}</value></data>
+  <data name="Tooltip_ToggleTheme" xml:space="preserve"><value>Tema: {0} (haga clic para cambiar)</value></data>
+  <data name="Theme_Light" xml:space="preserve"><value>Claro</value></data>
+  <data name="Theme_Dark" xml:space="preserve"><value>Oscuro</value></data>
+  <data name="Theme_Auto" xml:space="preserve"><value>Automático</value></data>
 </root>

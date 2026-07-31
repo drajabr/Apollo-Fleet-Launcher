@@ -33,6 +33,9 @@ public partial class MainWindow : FluentWindow
         _vm = App.Services.GetRequiredService<MainViewModel>();
         _vm.AttachWindow(this);
         DataContext = _vm;
+        // The TitleBar binds its own Title; set the Window one too so the taskbar
+        // and Alt-Tab show the version as well.
+        Title = _vm.WindowTitleWithVersion;
 
         _tray = new TrayController(this, _vm);
 
@@ -80,6 +83,8 @@ public partial class MainWindow : FluentWindow
         OnSelectionChanged();
         AdjustLogHeight();
         _refreshTimer.Start();
+        // Non-blocking: the update button reflects the result whenever it lands.
+        _ = _vm.CheckForUpdatesAtStartupAsync();
     }
 
     private void OnClosing(object? sender, System.ComponentModel.CancelEventArgs e)

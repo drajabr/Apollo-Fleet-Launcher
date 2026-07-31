@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
@@ -62,8 +63,10 @@ public sealed class FleetCoordinator
         try
         {
             var dir = settings.Paths.FleetConfigDirectory;
-            var changed = false;
 
+            // Phase 1 (any thread): read the state files and work out the ids. Reading
+            // instance properties is safe off the UI thread; only writing them isn't.
+            var pending = new List<(FleetInstance Instance, string Uuid)>();
             foreach (var inst in settings.Instances)
             {
                 if (!string.IsNullOrWhiteSpace(inst.Uuid))
@@ -94,20 +97,46 @@ public sealed class FleetCoordinator
                     /* malformed state — fall through to a generated id */
                 }
 
-                inst.Uuid = adopted ?? Guid.NewGuid().ToString().ToUpperInvariant();
-                changed = true;
+                pending.Add((inst, adopted ?? Guid.NewGuid().ToString().ToUpperInvariant()));
             }
 
-            if (changed)
+            if (pending.Count == 0)
+                return;
+
+            // Phase 2 (UI thread): FleetInstance is data-bound, so assigning Uuid raises
+            // PropertyChanged. Doing that from the caller's background thread threw
+            // "The calling thread cannot access this object..." — the catch below swallowed
+            // it, so ids were never assigned and Moonlight kept seeing duplicate hosts.
+            await OnUiThreadAsync(() =>
             {
-                await _store.SaveSettingsAsync(settings, false, cancellationToken).ConfigureAwait(false);
-                _log.Info("Assigned persistent host id(s) to fleet instance(s) so Moonlight keeps one entry per instance.");
-            }
+                foreach (var (instance, uuid) in pending)
+                    instance.Uuid = uuid;
+            }).ConfigureAwait(false);
+
+            await _store.SaveSettingsAsync(settings, false, cancellationToken).ConfigureAwait(false);
+            _log.Info($"Assigned persistent host id(s) to {pending.Count} fleet instance(s) so Moonlight keeps one entry per instance.");
         }
         catch (Exception ex)
         {
-            _log.Info($"Ensure instance uuids failed: {ex.Message}");
+            // Warn, not Info: this failing silently is what hid the cross-thread bug above.
+            _log.Warn($"Ensure instance uuids failed: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// Runs <paramref name="action"/> on the UI thread, or inline when there is no
+    /// WPF Application (tests / headless) or we are already on it.
+    /// </summary>
+    private static async Task OnUiThreadAsync(Action action)
+    {
+        var dispatcher = System.Windows.Application.Current?.Dispatcher;
+        if (dispatcher is null || dispatcher.CheckAccess())
+        {
+            action();
+            return;
+        }
+
+        await dispatcher.InvokeAsync(action);
     }
 
     /// <summary>

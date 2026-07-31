@@ -54,13 +54,7 @@ public partial class App : Application
             var settings = await store.LoadSettingsAsync().ConfigureAwait(true);
 
             ApplyCulture(settings.Locale);
-            var theme = settings.Manager.Theme switch
-            {
-                "Light" => ApplicationTheme.Light,
-                "Dark" => ApplicationTheme.Dark,
-                _ => IsSystemDark() ? ApplicationTheme.Dark : ApplicationTheme.Light
-            };
-            ApplicationThemeManager.Apply(theme, WindowBackdropType.Mica);
+            ApplyTheme(settings.Manager.Theme);
 
             var window = new MainWindow();
             MainWindow = window;
@@ -144,6 +138,22 @@ public partial class App : Application
         {
             /* fall back to default */
         }
+    }
+
+    /// <summary>
+    /// Applies a stored theme preference ("Light" / "Dark" / anything else = follow the
+    /// system). Safe to call at any time — WPF-UI swaps the merged dictionaries live, so
+    /// the theme toggle needs no restart (unlike a language change).
+    /// </summary>
+    public static void ApplyTheme(string? preference)
+    {
+        var theme = preference switch
+        {
+            "Light" => ApplicationTheme.Light,
+            "Dark" => ApplicationTheme.Dark,
+            _ => IsSystemDark() ? ApplicationTheme.Dark : ApplicationTheme.Light
+        };
+        ApplicationThemeManager.Apply(theme, WindowBackdropType.Mica);
     }
 
     private static bool IsSystemDark()

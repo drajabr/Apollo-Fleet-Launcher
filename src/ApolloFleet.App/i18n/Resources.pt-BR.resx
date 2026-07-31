@@ -53,4 +53,17 @@
   <data name="Group_FleetOptions_Header" xml:space="preserve"><value>Configurações</value></data>
   <data name="Settings_Language" xml:space="preserve"><value>Idioma</value></data>
   <data name="PortValidation_TooClose" xml:space="preserve"><value>As portas das instâncias estão muito próximas e seus intervalos de portas do Apollo se sobrepõem. Separe-as em pelo menos 100.</value></data>
+  <data name="Update_Tooltip_Check" xml:space="preserve"><value>Verificar atualizações</value></data>
+  <data name="Update_Tooltip_Checking" xml:space="preserve"><value>Verificando atualizações...</value></data>
+  <data name="Update_Tooltip_UpToDate" xml:space="preserve"><value>Você está atualizado ({0})</value></data>
+  <data name="Update_Label_Available" xml:space="preserve"><value>Atualizar {0}</value></data>
+  <data name="Update_Tooltip_Available" xml:space="preserve"><value>Atualização {0} disponível - clique para baixar</value></data>
+  <data name="Update_Tooltip_Downloading" xml:space="preserve"><value>Baixando atualização... {0}%</value></data>
+  <data name="Update_Label_Install" xml:space="preserve"><value>Instalar</value></data>
+  <data name="Update_Tooltip_Install" xml:space="preserve"><value>Instalar a atualização e reiniciar</value></data>
+  <data name="Update_Tooltip_Error" xml:space="preserve"><value>Falha na atualização: {0}</value></data>
+  <data name="Tooltip_ToggleTheme" xml:space="preserve"><value>Tema: {0} (clique para alterar)</value></data>
+  <data name="Theme_Light" xml:space="preserve"><value>Claro</value></data>
+  <data name="Theme_Dark" xml:space="preserve"><value>Escuro</value></data>
+  <data name="Theme_Auto" xml:space="preserve"><value>Automático</value></data>
 </root>

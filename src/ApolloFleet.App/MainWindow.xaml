@@ -30,8 +30,9 @@
     </shell:WindowChrome.WindowChrome>
 
     <ui:FluentWindow.Resources>
+        <!-- Theme-aware: a hard-coded White here rendered invisible in light mode. -->
         <Style TargetType="TextBlock">
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
         </Style>
 
         <Style x:Key="SectionCard" TargetType="HeaderedContentControl">
@@ -50,7 +51,7 @@
                                            FontSize="12"
                                            FontWeight="SemiBold"
                                            Margin="0,0,0,6"
-                                           Foreground="White"/>
+                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
                                 <ContentPresenter/>
                             </DockPanel>
                         </Border>
@@ -87,10 +88,67 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <ui:TitleBar Grid.Row="0" Title="{local:LocString Key=Window_Title}" ShowMaximize="False">
+        <ui:TitleBar Grid.Row="0" Title="{Binding WindowTitleWithVersion}" ShowMaximize="False">
             <ui:TitleBar.Icon>
                 <ui:ImageIcon Source="pack://application:,,,/app.ico"/>
             </ui:TitleBar.Icon>
+            <!-- Header sits right-aligned, immediately left of the caption buttons.
+                 IsHitTestVisibleInChrome must be set on EACH button, not just the
+                 panel: WPF's chrome hit-test checks the element it hits and does not
+                 inherit the flag from ancestors, so a panel-only flag leaves the 34px
+                 caption drag area swallowing every click. -->
+            <ui:TitleBar.Header>
+                <StackPanel Orientation="Horizontal"
+                            VerticalAlignment="Center"
+                            Margin="0,0,8,0"
+                            shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                    <ui:Button x:Name="UpdateButton"
+                               shell:WindowChrome.IsHitTestVisibleInChrome="True"
+                               Height="26"
+                               Padding="8,0"
+                               MinWidth="30"
+                               FontSize="12"
+                               VerticalAlignment="Center"
+                               VerticalContentAlignment="Center"
+                               HorizontalContentAlignment="Center"
+                               Appearance="Secondary"
+                               CornerRadius="6"
+                               Content="{Binding UpdateButtonLabel}"
+                               ToolTip="{Binding UpdateButtonTooltip}"
+                               Command="{Binding UpdateActionCommand}"/>
+                    <ui:Button x:Name="ThemeButton"
+                               shell:WindowChrome.IsHitTestVisibleInChrome="True"
+                               Height="26"
+                               Width="30"
+                               Padding="0"
+                               Margin="6,0,0,0"
+                               FontSize="13"
+                               VerticalAlignment="Center"
+                               VerticalContentAlignment="Center"
+                               HorizontalContentAlignment="Center"
+                               Appearance="Secondary"
+                               CornerRadius="6"
+                               Content="{Binding CurrentThemeGlyph}"
+                               ToolTip="{Binding ThemeTooltip}"
+                               Command="{Binding ToggleThemeCommand}"/>
+                    <ui:Button x:Name="LanguageButton"
+                               shell:WindowChrome.IsHitTestVisibleInChrome="True"
+                               Height="26"
+                               Width="34"
+                               Padding="0"
+                               Margin="6,0,0,0"
+                               FontSize="12"
+                               FontWeight="SemiBold"
+                               VerticalAlignment="Center"
+                               VerticalContentAlignment="Center"
+                               HorizontalContentAlignment="Center"
+                               Appearance="Secondary"
+                               CornerRadius="6"
+                               Content="{Binding CurrentLanguageSymbol}"
+                               ToolTip="{local:LocString Key=Settings_Language}"
+                               Click="LanguageButton_Click"/>
+                </StackPanel>
+            </ui:TitleBar.Header>
         </ui:TitleBar>
 
         <Grid Grid.Row="1" Margin="14,8,14,12">
@@ -328,7 +386,7 @@
                                    Margin="14,0,0,0"
                                    VerticalAlignment="Center"
                                    TextTrimming="CharacterEllipsis"
-                                   Foreground="White"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                                    FontSize="13"
                                    Text="{Binding StatusMessage}"/>
                     </Grid>
@@ -341,8 +399,8 @@
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
-                <Grid Grid.Row="0" Margin="0,0,0,5">
-                    <HeaderedContentControl Style="{StaticResource SectionCard}" Header="{local:LocString Key=Group_FleetOptions_Header}">
+                <HeaderedContentControl Grid.Row="0" Margin="0,0,0,5"
+                                        Style="{StaticResource SectionCard}" Header="{local:LocString Key=Group_FleetOptions_Header}">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="*"/>
@@ -364,22 +422,7 @@
                                       IsChecked="{Binding Draft.Manager.StartMinimized}"
                                       IsEnabled="{Binding IsEditorEnabled}"/>
                         </Grid>
-                    </HeaderedContentControl>
-
-                    <ui:Button x:Name="LanguageButton"
-                               Width="40"
-                               Height="40"
-                               HorizontalAlignment="Right"
-                               VerticalAlignment="Top"
-                               Margin="0,4,4,0"
-                               Appearance="Secondary"
-                               CornerRadius="8"
-                               FontWeight="SemiBold"
-                               Content="{Binding CurrentLanguageSymbol}"
-                               ToolTip="{local:LocString Key=Settings_Language}"
-                               Click="LanguageButton_Click"
-                               Panel.ZIndex="10"/>
-                </Grid>
+                </HeaderedContentControl>
 
                     <HeaderedContentControl Grid.Row="1" Style="{StaticResource SectionCard}" Header="{local:LocString Key=Group_Actions_Header}"
                                         Margin="0,5,0,0">

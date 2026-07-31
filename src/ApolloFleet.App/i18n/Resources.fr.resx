@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
   <resheader name="version"><value>2.0</value></resheader>
@@ -53,4 +53,17 @@
   <data name="Group_FleetOptions_Header" xml:space="preserve"><value>Parametres</value></data>
   <data name="Settings_Language" xml:space="preserve"><value>Langue</value></data>
   <data name="PortValidation_TooClose" xml:space="preserve"><value>Les ports des instances sont trop proches et leurs plages de ports Apollo se chevauchent. Espacez-les d'au moins 100.</value></data>
+  <data name="Update_Tooltip_Check" xml:space="preserve"><value>Rechercher des mises à jour</value></data>
+  <data name="Update_Tooltip_Checking" xml:space="preserve"><value>Recherche de mises à jour...</value></data>
+  <data name="Update_Tooltip_UpToDate" xml:space="preserve"><value>Vous êtes à jour ({0})</value></data>
+  <data name="Update_Label_Available" xml:space="preserve"><value>Mettre à jour {0}</value></data>
+  <data name="Update_Tooltip_Available" xml:space="preserve"><value>La mise à jour {0} est disponible - cliquez pour télécharger</value></data>
+  <data name="Update_Tooltip_Downloading" xml:space="preserve"><value>Téléchargement de la mise à jour... {0}%</value></data>
+  <data name="Update_Label_Install" xml:space="preserve"><value>Installer</value></data>
+  <data name="Update_Tooltip_Install" xml:space="preserve"><value>Installer la mise à jour et redémarrer</value></data>
+  <data name="Update_Tooltip_Error" xml:space="preserve"><value>Échec de la mise à jour : {0}</value></data>
+  <data name="Tooltip_ToggleTheme" xml:space="preserve"><value>Thème : {0} (cliquez pour changer)</value></data>
+  <data name="Theme_Light" xml:space="preserve"><value>Clair</value></data>
+  <data name="Theme_Dark" xml:space="preserve"><value>Sombre</value></data>
+  <data name="Theme_Auto" xml:space="preserve"><value>Automatique</value></data>
 </root>

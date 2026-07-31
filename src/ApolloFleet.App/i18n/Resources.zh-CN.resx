@@ -53,4 +53,17 @@
   <data name="Group_FleetOptions_Header" xml:space="preserve"><value>设置</value></data>
   <data name="Settings_Language" xml:space="preserve"><value>语言</value></data>
   <data name="PortValidation_TooClose" xml:space="preserve"><value>实例端口过于接近，其 Apollo 端口范围发生重叠。请至少间隔 100。</value></data>
+  <data name="Update_Tooltip_Check" xml:space="preserve"><value>检查更新</value></data>
+  <data name="Update_Tooltip_Checking" xml:space="preserve"><value>正在检查更新...</value></data>
+  <data name="Update_Tooltip_UpToDate" xml:space="preserve"><value>已是最新版本 ({0})</value></data>
+  <data name="Update_Label_Available" xml:space="preserve"><value>更新 {0}</value></data>
+  <data name="Update_Tooltip_Available" xml:space="preserve"><value>有可用更新 {0} - 单击下载</value></data>
+  <data name="Update_Tooltip_Downloading" xml:space="preserve"><value>正在下载更新... {0}%</value></data>
+  <data name="Update_Label_Install" xml:space="preserve"><value>安装</value></data>
+  <data name="Update_Tooltip_Install" xml:space="preserve"><value>安装更新并重启</value></data>
+  <data name="Update_Tooltip_Error" xml:space="preserve"><value>更新失败: {0}</value></data>
+  <data name="Tooltip_ToggleTheme" xml:space="preserve"><value>主题: {0} (单击更改)</value></data>
+  <data name="Theme_Light" xml:space="preserve"><value>浅色</value></data>
+  <data name="Theme_Dark" xml:space="preserve"><value>深色</value></data>
+  <data name="Theme_Auto" xml:space="preserve"><value>自动</value></data>
 </root>

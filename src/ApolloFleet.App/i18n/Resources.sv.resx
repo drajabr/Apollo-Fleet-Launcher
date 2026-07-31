@@ -53,4 +53,17 @@
   <data name="Group_FleetOptions_Header" xml:space="preserve"><value>Inställningar</value></data>
   <data name="Settings_Language" xml:space="preserve"><value>Språk</value></data>
   <data name="PortValidation_TooClose" xml:space="preserve"><value>Instansernas portar ligger för nära och deras Apollo-portintervall överlappar. Håll minst 100 i mellanrum.</value></data>
+  <data name="Update_Tooltip_Check" xml:space="preserve"><value>Sök efter uppdateringar</value></data>
+  <data name="Update_Tooltip_Checking" xml:space="preserve"><value>Söker efter uppdateringar...</value></data>
+  <data name="Update_Tooltip_UpToDate" xml:space="preserve"><value>Du har den senaste versionen ({0})</value></data>
+  <data name="Update_Label_Available" xml:space="preserve"><value>Uppdatera {0}</value></data>
+  <data name="Update_Tooltip_Available" xml:space="preserve"><value>Uppdatering {0} finns - klicka för att ladda ner</value></data>
+  <data name="Update_Tooltip_Downloading" xml:space="preserve"><value>Laddar ner uppdatering... {0}%</value></data>
+  <data name="Update_Label_Install" xml:space="preserve"><value>Installera</value></data>
+  <data name="Update_Tooltip_Install" xml:space="preserve"><value>Installera uppdateringen och starta om</value></data>
+  <data name="Update_Tooltip_Error" xml:space="preserve"><value>Uppdateringen misslyckades: {0}</value></data>
+  <data name="Tooltip_ToggleTheme" xml:space="preserve"><value>Tema: {0} (klicka för att ändra)</value></data>
+  <data name="Theme_Light" xml:space="preserve"><value>Ljust</value></data>
+  <data name="Theme_Dark" xml:space="preserve"><value>Mörkt</value></data>
+  <data name="Theme_Auto" xml:space="preserve"><value>Automatiskt</value></data>
 </root>

@@ -53,4 +53,17 @@
   <data name="Group_FleetOptions_Header" xml:space="preserve"><value>Nastavení</value></data>
   <data name="Settings_Language" xml:space="preserve"><value>Jazyk</value></data>
   <data name="PortValidation_TooClose" xml:space="preserve"><value>Porty instancí jsou příliš blízko a jejich rozsahy portů Apollo se překrývají. Ponechte mezi nimi alespoň 100.</value></data>
+  <data name="Update_Tooltip_Check" xml:space="preserve"><value>Zkontrolovat aktualizace</value></data>
+  <data name="Update_Tooltip_Checking" xml:space="preserve"><value>Kontrola aktualizací...</value></data>
+  <data name="Update_Tooltip_UpToDate" xml:space="preserve"><value>Máte nejnovější verzi ({0})</value></data>
+  <data name="Update_Label_Available" xml:space="preserve"><value>Aktualizovat {0}</value></data>
+  <data name="Update_Tooltip_Available" xml:space="preserve"><value>Aktualizace {0} je k dispozici - kliknutím stáhnete</value></data>
+  <data name="Update_Tooltip_Downloading" xml:space="preserve"><value>Stahování aktualizace... {0}%</value></data>
+  <data name="Update_Label_Install" xml:space="preserve"><value>Instalovat</value></data>
+  <data name="Update_Tooltip_Install" xml:space="preserve"><value>Nainstalovat aktualizaci a restartovat</value></data>
+  <data name="Update_Tooltip_Error" xml:space="preserve"><value>Aktualizace selhala: {0}</value></data>
+  <data name="Tooltip_ToggleTheme" xml:space="preserve"><value>Motiv: {0} (kliknutím změníte)</value></data>
+  <data name="Theme_Light" xml:space="preserve"><value>Světlý</value></data>
+  <data name="Theme_Dark" xml:space="preserve"><value>Tmavý</value></data>
+  <data name="Theme_Auto" xml:space="preserve"><value>Automaticky</value></data>
 </root>

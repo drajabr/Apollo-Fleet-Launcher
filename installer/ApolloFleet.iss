@@ -66,6 +66,10 @@ Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: desktopico
 ; ShellExecuteEx honors the manifest; since Setup is already elevated the app
 ; starts elevated with no extra UAC prompt.
 Filename: "{app}\{#AppExe}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: nowait postinstall skipifsilent shellexec
+; Self-update relaunch. The entry above is `skipifsilent`, so it never fires for the
+; in-app updater's /VERYSILENT install; this one has no `postinstall` and is gated on
+; our own /RELAUNCH=1 switch, so only the updater triggers it.
+Filename: "{app}\{#AppExe}"; Flags: nowait shellexec; Check: ShouldRelaunch
 
 [UninstallRun]
 ; Remove the logon scheduled task the app may have created for auto-start.
@@ -78,3 +82,44 @@ Filename: "{sys}\schtasks.exe"; Parameters: "/Delete /TN ""{#TaskName}"" /F"; Fl
 ; setup or forces them to re-pair (GitHub #27). Delete that folder by hand for a
 ; full clean removal.
 Type: filesandordirs; Name: "{commonappdata}\ApolloFleet\logs"
+; Downloaded self-update installers are pure cache.
+Type: filesandordirs; Name: "{commonappdata}\ApolloFleet\updates"
+
+[Code]
+// Must match App.xaml.cs TryAcquireSingleInstance().
+const
+  SingleInstanceMutex = 'Global\ApolloFleetLauncher_SingleInstance';
+  MutexWaitMs = 15000;
+
+// The in-app updater passes /RELAUNCH=1. {param:} only matches NAME=VALUE
+// switches, which is why it is not a bare /RELAUNCH.
+function ShouldRelaunch(): Boolean;
+begin
+  Result := ExpandConstant('{param:RELAUNCH|0}') = '1';
+end;
+
+// Self-update only: the updater launches Setup and then exits, so wait (bounded)
+// for the app's single-instance mutex to disappear before replacing files under a
+// live process. Gated on /RELAUNCH=1 so a normal interactive install is completely
+// unaffected (no stall, Restart Manager behaves as before).
+// Deliberately NOT using AppMutex: under /VERYSILENT that aborts Setup rather than
+// waiting. If the app never exits, the file copy fails and Setup exits nonzero with
+// the previous install left intact.
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+var
+  Waited: Integer;
+begin
+  Result := '';
+  if not ShouldRelaunch() then
+    Exit;
+
+  Waited := 0;
+  while CheckForMutexes(SingleInstanceMutex) and (Waited < MutexWaitMs) do
+  begin
+    Sleep(250);
+    Waited := Waited + 250;
+  end;
+  // Handle close and file-lock release are not atomic.
+  if Waited > 0 then
+    Sleep(500);
+end;

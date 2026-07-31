@@ -21,6 +21,7 @@ public partial class MainViewModel : ObservableObject
     private readonly ProcessSupervisor _supervisor;
     private readonly IInstanceHealthComputer _health;
     private readonly FileLogWriter _log;
+    private readonly UpdateService _updates;
     private IReadOnlyList<LanguageOption> _availableLanguages = Array.Empty<LanguageOption>();
 
     private string _snapshotJson = "";
@@ -32,13 +33,16 @@ public partial class MainViewModel : ObservableObject
         FleetCoordinator coordinator,
         ProcessSupervisor supervisor,
         IInstanceHealthComputer health,
-        FileLogWriter log)
+        FileLogWriter log,
+        UpdateService updates)
     {
         _store = store;
         _coordinator = coordinator;
         _supervisor = supervisor;
         _health = health;
         _log = log;
+        _updates = updates;
+        _updates.StateChanged += OnUpdateStateChanged;
         WireDraft(_draft);
     }
 
@@ -97,6 +101,148 @@ public partial class MainViewModel : ObservableObject
         SelectedInstance is null ? null : WebUiPortResolver.GetWebUiUrl(SelectedInstance.Port);
 
     public string CurrentLanguageSymbol => GetLanguageSymbol(Draft.Locale);
+
+    // ---------------- Version + self-update ----------------
+
+    /// <summary>Window/taskbar title with the running version, e.g. "Apollo Fleet Manager v0.4.9".</summary>
+    public string WindowTitleWithVersion =>
+        $"{Strings.Get("Window_Title")} v{_updates.CurrentVersion.ToString(3)}";
+
+    /// <summary>Short label on the single update button; the phase drives everything.</summary>
+    public string UpdateButtonLabel => _updates.Phase switch
+    {
+        UpdatePhase.Checking => "…",
+        UpdatePhase.UpToDate => "✓",
+        UpdatePhase.UpdateAvailable => string.Format(
+            Strings.Get("Update_Label_Available"), "v" + (_updates.Available?.Version.ToString(3) ?? "")),
+        UpdatePhase.Downloading => $"{_updates.DownloadPercent}%",
+        UpdatePhase.ReadyToInstall => Strings.Get("Update_Label_Install"),
+        UpdatePhase.Installing => "…",
+        UpdatePhase.Error => "!",
+        _ => "⭮"
+    };
+
+    public string UpdateButtonTooltip => _updates.Phase switch
+    {
+        UpdatePhase.Checking => Strings.Get("Update_Tooltip_Checking"),
+        UpdatePhase.UpToDate => string.Format(
+            Strings.Get("Update_Tooltip_UpToDate"), "v" + _updates.CurrentVersion.ToString(3)),
+        UpdatePhase.UpdateAvailable => string.Format(
+            Strings.Get("Update_Tooltip_Available"), "v" + (_updates.Available?.Version.ToString(3) ?? "")),
+        UpdatePhase.Downloading => string.Format(
+            Strings.Get("Update_Tooltip_Downloading"), _updates.DownloadPercent),
+        UpdatePhase.ReadyToInstall => Strings.Get("Update_Tooltip_Install"),
+        UpdatePhase.Installing => Strings.Get("Update_Tooltip_Install"),
+        UpdatePhase.Error => string.Format(Strings.Get("Update_Tooltip_Error"), _updates.ErrorMessage ?? ""),
+        _ => Strings.Get("Update_Tooltip_Check")
+    };
+
+    /// <summary>Marshals updater state changes onto the UI thread and refreshes the button.</summary>
+    private void OnUpdateStateChanged()
+    {
+        var app = Application.Current;
+        if (app is null)
+            return;
+        app.Dispatcher.Invoke(() =>
+        {
+            OnPropertyChanged(nameof(UpdateButtonLabel));
+            OnPropertyChanged(nameof(UpdateButtonTooltip));
+            UpdateActionCommand.NotifyCanExecuteChanged();
+        });
+    }
+
+    private bool CanUpdateAction() => !_updates.IsBusy;
+
+    /// <summary>
+    /// The one update button: what it does depends on the phase — check, download,
+    /// or install &amp; restart.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanUpdateAction))]
+    private async Task UpdateActionAsync()
+    {
+        switch (_updates.Phase)
+        {
+            case UpdatePhase.UpdateAvailable:
+                await _updates.DownloadAsync().ConfigureAwait(true);
+                break;
+            case UpdatePhase.ReadyToInstall:
+                if (_updates.BeginInstall() && Application.Current.MainWindow is MainWindow mw)
+                {
+                    // Leave the fleet running: the freshly installed version adopts it,
+                    // exactly like a reload. Setup waits for our mutex before swapping files.
+                    mw.ShutdownReal(stopFleet: false);
+                }
+                break;
+            case UpdatePhase.Error when _updates.Available is not null:
+                // A failed download keeps the release, so retry the download, not the check.
+                await _updates.DownloadAsync().ConfigureAwait(true);
+                break;
+            default:
+                await _updates.CheckAsync().ConfigureAwait(true);
+                break;
+        }
+    }
+
+    /// <summary>Fire-and-forget startup check; never blocks or crashes startup.</summary>
+    public async Task CheckForUpdatesAtStartupAsync()
+    {
+        try
+        {
+            _updates.CleanUpdatesDirectory();
+            await _updates.CheckAsync().ConfigureAwait(true);
+        }
+        catch (Exception ex)
+        {
+            _log.Warn($"Startup update check failed: {ex.Message}");
+        }
+    }
+
+    // ---------------- Theme ----------------
+
+    /// <summary>Glyph for the current theme preference: Light / Dark / follow-system.</summary>
+    public string CurrentThemeGlyph => Draft.Manager.Theme switch
+    {
+        "Light" => "☀",
+        "Dark" => "☾",
+        _ => "◐"
+    };
+
+    public string ThemeTooltip => string.Format(
+        Strings.Get("Tooltip_ToggleTheme"),
+        Draft.Manager.Theme switch
+        {
+            "Light" => Strings.Get("Theme_Light"),
+            "Dark" => Strings.Get("Theme_Dark"),
+            _ => Strings.Get("Theme_Auto")
+        });
+
+    /// <summary>
+    /// Cycles Light → Dark → Auto and applies it live. Persisted immediately when the
+    /// user has no pending edits; otherwise it rides along with their next Apply (so we
+    /// never silently commit a half-finished fleet edit).
+    /// </summary>
+    [RelayCommand]
+    private async Task ToggleThemeAsync()
+    {
+        var next = Draft.Manager.Theme switch
+        {
+            "Light" => "Dark",
+            "Dark" => "Default",
+            _ => "Light"
+        };
+
+        var hadUnsavedEdits = HasUnsavedChanges;
+        Draft.Manager.Theme = next;
+        App.ApplyTheme(next);
+        RefreshThemeIndicators();
+
+        if (!hadUnsavedEdits)
+        {
+            await _store.SaveSettingsAsync(Draft).ConfigureAwait(true);
+            CaptureSnapshot();
+            RefreshCommands();
+        }
+    }
 
     public IReadOnlyList<LanguageOption> AvailableLanguages => _availableLanguages;
 
@@ -161,6 +307,7 @@ public partial class MainViewModel : ObservableObject
         _log.Info($"Application started. Loaded {Draft.Instances.Count} instance(s). Apollo path: {(string.IsNullOrEmpty(Draft.Paths.ApolloRoot) ? "<unset>" : Draft.Paths.ApolloRoot)}");
         GetAvailableLanguages();
         OnPropertyChanged(nameof(CurrentLanguageSymbol));
+        RefreshThemeIndicators();
     }
 
     private void UnwireDraft(AppSettings s)
@@ -188,6 +335,15 @@ public partial class MainViewModel : ObservableObject
         RefreshApolloFound();
         if (e.PropertyName == nameof(AppSettings.Locale))
             OnPropertyChanged(nameof(CurrentLanguageSymbol));
+        if (e.PropertyName == nameof(ManagerOptions.Theme))
+            RefreshThemeIndicators();
+    }
+
+    /// <summary>Re-reads the theme glyph/tooltip from the draft (startup, discard, toggle).</summary>
+    private void RefreshThemeIndicators()
+    {
+        OnPropertyChanged(nameof(CurrentThemeGlyph));
+        OnPropertyChanged(nameof(ThemeTooltip));
     }
 
     private void InstancesOnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)

@@ -17,6 +17,7 @@ public static class ServiceBootstrapper
         c.AddSingleton<WinUiScheduledTaskService>();
         c.AddSingleton<WindowsServiceFacade>();
         c.AddSingleton<AudioVolumeSink>();
+        c.AddSingleton<UpdateService>();
         c.AddSingleton<ProcessSupervisor>();
         c.AddSingleton<FleetCoordinator>();
         c.AddSingleton<MainViewModel>();

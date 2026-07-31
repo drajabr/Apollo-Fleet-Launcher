@@ -53,4 +53,17 @@
   <data name="Group_FleetOptions_Header" xml:space="preserve"><value>Ustawienia</value></data>
   <data name="Settings_Language" xml:space="preserve"><value>Język</value></data>
   <data name="PortValidation_TooClose" xml:space="preserve"><value>Porty instancji są zbyt blisko, a ich zakresy portów Apollo nakładają się. Rozdziel je o co najmniej 100.</value></data>
+  <data name="Update_Tooltip_Check" xml:space="preserve"><value>Sprawdź aktualizacje</value></data>
+  <data name="Update_Tooltip_Checking" xml:space="preserve"><value>Sprawdzanie aktualizacji...</value></data>
+  <data name="Update_Tooltip_UpToDate" xml:space="preserve"><value>Masz najnowszą wersję ({0})</value></data>
+  <data name="Update_Label_Available" xml:space="preserve"><value>Aktualizuj {0}</value></data>
+  <data name="Update_Tooltip_Available" xml:space="preserve"><value>Aktualizacja {0} jest dostępna - kliknij, aby pobrać</value></data>
+  <data name="Update_Tooltip_Downloading" xml:space="preserve"><value>Pobieranie aktualizacji... {0}%</value></data>
+  <data name="Update_Label_Install" xml:space="preserve"><value>Zainstaluj</value></data>
+  <data name="Update_Tooltip_Install" xml:space="preserve"><value>Zainstaluj aktualizację i uruchom ponownie</value></data>
+  <data name="Update_Tooltip_Error" xml:space="preserve"><value>Aktualizacja nie powiodła się: {0}</value></data>
+  <data name="Tooltip_ToggleTheme" xml:space="preserve"><value>Motyw: {0} (kliknij, aby zmienić)</value></data>
+  <data name="Theme_Light" xml:space="preserve"><value>Jasny</value></data>
+  <data name="Theme_Dark" xml:space="preserve"><value>Ciemny</value></data>
+  <data name="Theme_Auto" xml:space="preserve"><value>Automatyczny</value></data>
 </root>
