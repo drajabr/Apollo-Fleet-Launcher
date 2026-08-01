@@ -60,6 +60,30 @@
             </Setter>
         </Style>
 
+        <!--
+            App controls that sit in the title bar next to the app name (update /
+            theme / language). They live away from the minimize/close glyphs, so a
+            distinct chip look is deliberate here — it marks them as app controls
+            rather than window controls.
+            IsHitTestVisibleInChrome must be set on the button itself: WPF's chrome
+            hit-test checks the element it hits and does not inherit the flag from
+            ancestors, so setting it only on the parent panel leaves the caption drag
+            area swallowing every click.
+        -->
+        <Style x:Key="TitleChipButton" TargetType="{x:Type ui:Button}" BasedOn="{StaticResource {x:Type ui:Button}}">
+            <Setter Property="shell:WindowChrome.IsHitTestVisibleInChrome" Value="True"/>
+            <Setter Property="Height" Value="26"/>
+            <Setter Property="MinWidth" Value="30"/>
+            <Setter Property="Padding" Value="9,0"/>
+            <Setter Property="Margin" Value="6,0,0,0"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="Appearance" Value="Secondary"/>
+            <Setter Property="CornerRadius" Value="6"/>
+        </Style>
+
         <Style x:Key="LogTextBoxNoHover" TargetType="TextBox">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
@@ -88,62 +112,48 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <ui:TitleBar Grid.Row="0" Title="{Binding WindowTitleWithVersion}" ShowMaximize="False">
-            <ui:TitleBar.Icon>
-                <ui:ImageIcon Source="pack://application:,,,/app.ico"/>
-            </ui:TitleBar.Icon>
-            <!-- Header sits right-aligned, immediately left of the caption buttons.
-                 IsHitTestVisibleInChrome must be set on EACH button, not just the
-                 panel: WPF's chrome hit-test checks the element it hits and does not
-                 inherit the flag from ancestors, so a panel-only flag leaves the 34px
-                 caption drag area swallowing every click. -->
+        <!-- Everything lives in TitleBar.Header on purpose: content placed outside it
+             (e.g. overlaid on the TitleBar) is swallowed by the caption drag area no
+             matter where WindowChrome.IsHitTestVisibleInChrome is set — only the
+             header slot reliably receives clicks.
+             The header slot is right-aligned against the caption buttons, so the row
+             is given the full strip width and packs its children from the left. The
+             window is hard-fixed at 740px wide (MinWidth = MaxWidth), so subtracting
+             the 92px caption-button block is safe here. -->
+        <ui:TitleBar Grid.Row="0" Title="" ShowMaximize="False">
             <ui:TitleBar.Header>
                 <StackPanel Orientation="Horizontal"
+                            Width="648"
                             VerticalAlignment="Center"
-                            Margin="0,0,8,0"
+                            Margin="12,0,0,0"
                             shell:WindowChrome.IsHitTestVisibleInChrome="True">
-                    <ui:Button x:Name="UpdateButton"
-                               shell:WindowChrome.IsHitTestVisibleInChrome="True"
-                               Height="26"
-                               Padding="8,0"
-                               MinWidth="30"
-                               FontSize="12"
+                    <Image Source="pack://application:,,,/app.ico"
+                           Width="18" Height="18"
+                           VerticalAlignment="Center"
+                           RenderOptions.BitmapScalingMode="HighQuality"/>
+                    <TextBlock Text="{local:LocString Key=Window_Title}"
                                VerticalAlignment="Center"
-                               VerticalContentAlignment="Center"
-                               HorizontalContentAlignment="Center"
-                               Appearance="Secondary"
-                               CornerRadius="6"
+                               Margin="10,0,4,0"
+                               FontSize="16"
+                               FontWeight="SemiBold"/>
+
+                    <!-- Carries the version: "v0.5.0" when current, "Update v0.5.1"
+                         when one is waiting, "42%" mid-download, "Install" when ready. -->
+                    <ui:Button x:Name="UpdateButton"
+                               Style="{StaticResource TitleChipButton}"
+                               Margin="10,0,0,0"
                                Content="{Binding UpdateButtonLabel}"
                                ToolTip="{Binding UpdateButtonTooltip}"
                                Command="{Binding UpdateActionCommand}"/>
                     <ui:Button x:Name="ThemeButton"
-                               shell:WindowChrome.IsHitTestVisibleInChrome="True"
-                               Height="26"
-                               Width="30"
-                               Padding="0"
-                               Margin="6,0,0,0"
-                               FontSize="13"
-                               VerticalAlignment="Center"
-                               VerticalContentAlignment="Center"
-                               HorizontalContentAlignment="Center"
-                               Appearance="Secondary"
-                               CornerRadius="6"
+                               Style="{StaticResource TitleChipButton}"
+                               Width="30" Padding="0" FontSize="13"
                                Content="{Binding CurrentThemeGlyph}"
                                ToolTip="{Binding ThemeTooltip}"
                                Command="{Binding ToggleThemeCommand}"/>
                     <ui:Button x:Name="LanguageButton"
-                               shell:WindowChrome.IsHitTestVisibleInChrome="True"
-                               Height="26"
-                               Width="34"
-                               Padding="0"
-                               Margin="6,0,0,0"
-                               FontSize="12"
-                               FontWeight="SemiBold"
-                               VerticalAlignment="Center"
-                               VerticalContentAlignment="Center"
-                               HorizontalContentAlignment="Center"
-                               Appearance="Secondary"
-                               CornerRadius="6"
+                               Style="{StaticResource TitleChipButton}"
+                               Width="34" Padding="0" FontWeight="SemiBold"
                                Content="{Binding CurrentLanguageSymbol}"
                                ToolTip="{local:LocString Key=Settings_Language}"
                                Click="LanguageButton_Click"/>
@@ -290,12 +300,19 @@
                                         Text="{Binding SelectedInstance.Name, UpdateSourceTrigger=PropertyChanged}"
                                         IsEnabled="{Binding IsEditorEnabled}"/>
 
-                            <!-- Row 1: Port + Enable checkbox -->
+                            <!-- Row 1: Port, with Enable sitting directly beside it -->
                             <TextBlock Grid.Row="1" Grid.Column="0"
                                        Text="{local:LocString Key=InstancePortLabel}" VerticalAlignment="Center" Margin="0,0,6,6"/>
-                            <ui:TextBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,0,0,6"
+                            <ui:TextBox Grid.Row="1" Grid.Column="1" Margin="0,0,0,6"
                                         Text="{Binding SelectedInstance.Port, UpdateSourceTrigger=PropertyChanged}"
                                         IsEnabled="{Binding IsEditorEnabled}"/>
+                            <CheckBox Grid.Row="1" Grid.Column="2" Margin="10,0,0,6"
+                                      VerticalAlignment="Center"
+                                      HorizontalAlignment="Left"
+                                      Content="{local:LocString Key=InstanceEnabledLabel}"
+                                      ToolTip="{local:LocString Key=Tooltip_EnableInstance}"
+                                      IsChecked="{Binding SelectedInstance.Enabled}"
+                                      IsEnabled="{Binding IsEditorEnabled}"/>
 
                             <!-- Row 2: Audio -->
                             <TextBlock Grid.Row="2" Grid.Column="0"
@@ -313,17 +330,11 @@
                                 </ComboBox.ItemTemplate>
                             </ComboBox>
 
-                            <!-- Row 3: Force Headless + Enabled -->
-                            <CheckBox Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,2,12,4"
+                            <!-- Row 3: Force Headless, left edge flush with the input fields (column 1) -->
+                            <CheckBox Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,2,0,4"
+                                      HorizontalAlignment="Left"
                                       Content="{local:LocString Key=InstanceHeadlessLabel}"
                                       IsChecked="{Binding SelectedInstance.Headless}"
-                                      IsEnabled="{Binding IsEditorEnabled}"/>
-                            <CheckBox Grid.Row="3" Grid.Column="2" Margin="0,2,0,4"
-                                      VerticalAlignment="Center"
-                                      HorizontalAlignment="Left"
-                                      Content="{local:LocString Key=InstanceEnabledLabel}"
-                                      ToolTip="{local:LocString Key=Tooltip_EnableInstance}"
-                                      IsChecked="{Binding SelectedInstance.Enabled}"
                                       IsEnabled="{Binding IsEditorEnabled}"/>
 
                             <!-- Row 5: WebUI (pinned to bottom by * spacer in row 4) -->

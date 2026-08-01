@@ -109,6 +109,38 @@ public sealed class ProcessLauncher : IProcessLauncher
         return p?.Id;
     }
 
+    /// <summary>
+    /// Writes the VBScript that actually spawns sunshine, and returns its path.
+    /// Kept as a script rather than a direct paexec launch because we need the new
+    /// PID back: <c>Win32_Process.Create</c> hands it to us, whereas paexec cannot
+    /// report the PID of a detached child. Per-instance filename so simultaneous
+    /// fleet starts never share or truncate one another's script.
+    /// </summary>
+    private static string WriteLaunchScript(string instanceId)
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"apollo-fleet-launch-{instanceId}.vbs");
+        // Quotes are built with Chr(34) rather than VBScript's doubled-quote escaping
+        // so the source here contains no runs of quotes to fight with.
+        const string vbs = """
+            Set a = WScript.Arguments
+            q = Chr(34)
+            Set svc = GetObject("winmgmts:{impersonationLevel=impersonate}!\\.\root\cimv2")
+            Set si = svc.Get("Win32_ProcessStartup").SpawnInstance_
+            si.ShowWindow = 0
+            Set pc = svc.Get("Win32_Process")
+            cmd = q & a(0) & q & " " & q & a(1) & q
+            rc = pc.Create(cmd, a(3), si, pid)
+            If rc = 0 Then
+              Set fso = CreateObject("Scripting.FileSystemObject")
+              Set f = fso.CreateTextFile(a(2), True)
+              f.Write pid
+              f.Close
+            End If
+            """;
+        File.WriteAllText(path, vbs);
+        return path;
+    }
+
     private static async Task<int?> StartViaHelperAsync(string helper, string sunshineExe, string configPath, string workDir, string instanceId, CancellationToken ct)
     {
         var session = WTSGetActiveConsoleSessionId();
@@ -124,15 +156,17 @@ public sealed class ProcessLauncher : IProcessLauncher
             /* ignore */
         }
 
-        var safeExe = sunshineExe.Replace("'", "''");
-        var safeCfg = configPath.Replace("'", "''");
-        var safeTmp = tmp.Replace("'", "''");
-        // Mirror legacy AHK launch sequence exactly: Start-Process + shell redirection to pid file.
-        var ps = $"$p=Start-Process -WindowStyle Hidden -FilePath '{safeExe}' -ArgumentList '{safeCfg}' -PassThru;$p.Id>'{safeTmp}'";
-        // -WindowStyle Hidden keeps powershell's own console off the interactive
-        // desktop; without it every instance flashes a black SYSTEM console window
-        // (paexec runs powershell in session 1, so our CreateNoWindow can't cover it).
-        var args = $"-accepteula -i {session} -w \"{workDir}\" -s \"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\" -NoProfile -NonInteractive -WindowStyle Hidden -Command \"{ps}\"";
+        // The intermediate process paexec runs in session 1 is wscript.exe, NOT
+        // powershell.exe: wscript is a GUI-subsystem binary, so Windows never
+        // allocates a console for it. powershell is console-subsystem and gets its
+        // console the instant it starts — `-WindowStyle Hidden` only applies after
+        // that, which is why every instance start used to flash a black window on
+        // the interactive desktop. The script then creates sunshine through WMI with
+        // ShowWindow=SW_HIDE so the console-subsystem sunshine.exe stays hidden too.
+        var script = WriteLaunchScript(instanceId);
+        var args = $"-accepteula -i {session} -w \"{workDir}\" -s " +
+                   $"\"C:\\Windows\\System32\\wscript.exe\" //B //Nologo " +
+                   $"\"{script}\" \"{sunshineExe}\" \"{configPath}\" \"{tmp}\" \"{workDir}\"";
         var psi = new ProcessStartInfo
         {
             FileName = helper,

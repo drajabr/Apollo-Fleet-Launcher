@@ -108,19 +108,29 @@ public partial class MainViewModel : ObservableObject
     public string WindowTitleWithVersion =>
         $"{Strings.Get("Window_Title")} v{_updates.CurrentVersion.ToString(3)}";
 
-    /// <summary>Short label on the single update button; the phase drives everything.</summary>
-    public string UpdateButtonLabel => _updates.Phase switch
+    /// <summary>
+    /// Label on the single update button. It doubles as the version badge, so the
+    /// running version shows whenever there is nothing more urgent to say.
+    /// </summary>
+    public string UpdateButtonLabel
     {
-        UpdatePhase.Checking => "…",
-        UpdatePhase.UpToDate => "✓",
-        UpdatePhase.UpdateAvailable => string.Format(
-            Strings.Get("Update_Label_Available"), "v" + (_updates.Available?.Version.ToString(3) ?? "")),
-        UpdatePhase.Downloading => $"{_updates.DownloadPercent}%",
-        UpdatePhase.ReadyToInstall => Strings.Get("Update_Label_Install"),
-        UpdatePhase.Installing => "…",
-        UpdatePhase.Error => "!",
-        _ => "⭮"
-    };
+        get
+        {
+            var current = "v" + _updates.CurrentVersion.ToString(3);
+            return _updates.Phase switch
+            {
+                UpdatePhase.Checking => current + " …",
+                UpdatePhase.UpdateAvailable => string.Format(
+                    Strings.Get("Update_Label_Available"),
+                    "v" + (_updates.Available?.Version.ToString(3) ?? "")),
+                UpdatePhase.Downloading => $"{_updates.DownloadPercent}%",
+                UpdatePhase.ReadyToInstall => Strings.Get("Update_Label_Install"),
+                UpdatePhase.Installing => Strings.Get("Update_Label_Install") + " …",
+                UpdatePhase.Error => current + " !",
+                _ => current
+            };
+        }
+    }
 
     public string UpdateButtonTooltip => _updates.Phase switch
     {
