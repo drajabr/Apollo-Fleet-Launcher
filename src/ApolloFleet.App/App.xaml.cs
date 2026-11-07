@@ -58,13 +58,21 @@ public partial class App : Application
 
             var window = new MainWindow();
             MainWindow = window;
-            // Tray-first start: showing minimized triggers the existing
-            // StateChanged handler which hides the window to the tray.
+            // Tray-first start: never show the window at all. Showing it — even
+            // minimized, even without a taskbar button — briefly paints a frame
+            // (a taskbar-button flash, or for a taskbar-less window the iconic
+            // frame parked in the screen's bottom-left corner), and WPF never
+            // raises StateChanged for a window created minimized, so the
+            // OnStateChanged → Hide() path the minimize button uses can't hide
+            // it either. InitializeForTrayStart runs the startup sequence
+            // window-less; Loaded fires (and finishes the layout-dependent
+            // bits) the first time the window is opened from the tray.
             // Never start hidden on first run — the user needs to see it to
             // configure it (no settings file exists yet).
             if (settings.Manager.StartMinimized && !firstRun)
-                window.WindowState = WindowState.Minimized;
-            window.Show();
+                window.InitializeForTrayStart();
+            else
+                window.Show();
         }
         catch (Exception ex)
         {

@@ -25,6 +25,7 @@ public partial class MainWindow : FluentWindow
     private bool _audioInit;
     private bool _logUiRefreshPending;
     private bool _shuttingDown;
+    private bool _startupDone;
 
     public MainWindow()
     {
@@ -77,14 +78,35 @@ public partial class MainWindow : FluentWindow
         _refreshTimer.Tick += async (_, _) => await _vm.RefreshStateAsync();
     }
 
-    private async void OnLoaded(object sender, RoutedEventArgs e)
+    /// <summary>
+    /// Startup work that does not need a laid-out window. Runs exactly once —
+    /// either from OnLoaded on a normal start, or from
+    /// <see cref="InitializeForTrayStart"/> when the app starts in the tray
+    /// (a window that is never shown never raises Loaded).
+    /// </summary>
+    private async Task RunStartupAsync()
     {
+        if (_startupDone) return;
+        _startupDone = true;
         await _vm.InitializeAsync();
-        OnSelectionChanged();
-        AdjustLogHeight();
         _refreshTimer.Start();
         // Non-blocking: the update button reflects the result whenever it lands.
         _ = _vm.CheckForUpdatesAtStartupAsync();
+    }
+
+    /// <summary>
+    /// Tray-first start: the window is never shown, so Loaded never fires and
+    /// OnLoaded can't run the startup sequence. Runs it here instead; the
+    /// layout-dependent bits (audio combo sync, log pane height) run from
+    /// OnLoaded when the user first opens the window from the tray.
+    /// </summary>
+    internal async void InitializeForTrayStart() => await RunStartupAsync();
+
+    private async void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        await RunStartupAsync();
+        OnSelectionChanged();
+        AdjustLogHeight();
     }
 
     private void OnClosing(object? sender, System.ComponentModel.CancelEventArgs e)
